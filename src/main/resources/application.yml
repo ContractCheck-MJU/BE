@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: contractcheck
+  profiles:
+    default: local
+  # local / dev / prod 모두 같은 PostgreSQL. 접속 정보는 환경변수로만 주입한다.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/contractcheck}
+    username: ${DB_USERNAME:contractcheck}
+    password: ${DB_PASSWORD:}
+  # DDL 담당을 나눈다.
+  # - flyway: 스펙시트 애플리케이션 테이블. 기동 시 db/migration 적용.
+  # - session.jdbc.initialize-schema: spring_session, spring_session_attributes.
+  #   기본값 embedded 는 H2 등 내장 DB 에서만 실행되므로 PostgreSQL 에서는 always.
+  # - jpa.hibernate.ddl-auto: 엔티티와 테이블 불일치만 검사. 테이블은 만들지 않는다.
+  flyway:
+    enabled: true
+  session:
+    jdbc:
+      initialize-schema: always
+      # 공식 스크립트는 CREATE TABLE 이라 재기동마다 이미 있으면 실패한다. 그 오류는 무시한다.
+      continue-on-error: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  servlet:
+    session:
+      timeout: 30m   # FR-AUTH-02: 유휴 30분 후 만료(제안)
+
+contractcheck:
+  analysis:
+    confidence-threshold: 0.6       # TC-ANL-017
+    evidence-score-threshold: 0.5   # AI·RAG 파이프라인 7단계 리랭크 임계
+
+# Actuator: health·info만 웹에 노출
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+---
+# dev·prod 공통 로그: 콘솔+파일은 ECS JSON, 파일은 LOG_PATH 아래 롤링.
+# local·test는 이 문서를 쓰지 않는다(콘솔만, 패턴은 각 프로필).
+spring:
+  config:
+    activate:
+      on-profile: "dev | prod"
+
+logging:
+  file:
+    path: ${LOG_PATH:./logs}
+    name: ${LOG_PATH:./logs}/contractcheck.log
+  structured:
+    format:
+      console: ecs
+      file: ecs
+    json:
+      context:
+        include: true
+    ecs:
+      service:
+        environment: ${spring.profiles.active:}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+server:
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: ${LOG_PATH:./logs}/access
+      prefix: access
+      suffix: .log
+      file-date-format: .yyyy-MM-dd
+      rotate: true
+      rename-on-rotate: true
+      buffered: false
+      max-days: 30
+      # 쿼리스트링은 토큰이 실릴 수 있어 제외한다. %D는 처리 ms, 요청 ID는 헤더.
+      pattern: '%h %l %u %t "%m %U" %s %b %D %{X-Request-Id}o'
+

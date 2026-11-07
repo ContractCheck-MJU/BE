@@ -1,0 +1,19 @@
+# prod: application.yml 의 PostgreSQL(DB_URL, DB_USERNAME, DB_PASSWORD)을 그대로 쓴다.
+# 배포 환경에서 세 변수를 반드시 주입한다.
+# 파일·ECS JSON·Tomcat 액세스 로그는 application.yml 의 dev|prod 문서를 쓴다.
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    root: warn
+    ac.mju.contractcheck: info
+
+# 운영에서는 Swagger UI·API 문서 비활성화
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
