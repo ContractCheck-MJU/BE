@@ -1,0 +1,27 @@
+# local: application.yml 의 PostgreSQL(DB_URL, DB_USERNAME, DB_PASSWORD)을 그대로 쓴다.
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true        # SQL 줄바꿈·들여쓰기
+        highlight_sql: true     # 콘솔 색상
+        use_sql_comments: true  # 어떤 JPQL/메서드에서 나온 SQL인지 주석 표시
+
+# 앱 DEBUG + SQL. 바인딩 값 로그는 로컬 콘솔 전용이다. dev/prod/공유 로그로 복사하지 않는다.
+logging:
+  level:
+    ac.mju.contractcheck: debug
+    org.hibernate.SQL: debug              # 실행 SQL
+    org.hibernate.orm.jdbc.bind: trace    # 바인딩 파라미터 값 (? 에 들어간 값)
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %clr(%5p) [%X{requestId:-}] %clr(%logger{36}.%method:%line){cyan} - %m%n%wEx"
+
+# Swagger UI가 XSRF-TOKEN 쿠키를 읽어 X-XSRF-TOKEN 헤더로 보내게 한다
+springdoc:
+  swagger-ui:
+    csrf:
+      enabled: true

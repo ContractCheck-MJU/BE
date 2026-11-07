@@ -1,0 +1,27 @@
+# 외부 서비스 없이 테스트: H2(PostgreSQL 호환 모드) 인메모리 DB
+spring:
+  datasource:
+    url: jdbc:h2:mem:contractcheck;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  # 테스트는 Flyway 없이 H2. 엔티티는 Hibernate 가 만들고, 세션 테이블은 Spring Session JDBC 가 만든다.
+  flyway:
+    enabled: false
+  session:
+    jdbc:
+      initialize-schema: always
+      continue-on-error: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# 테스트는 콘솔만, 조용히. 파일 롤링과 SQL 바인드 로그는 쓰지 않는다.
+logging:
+  level:
+    root: warn
+    ac.mju.contractcheck: warn
+    org.springframework: warn
+    org.springframework.boot: warn
+    org.hibernate: warn
+    org.flywaydb: warn
+    com.zaxxer.hikari: warn
