@@ -1,0 +1,790 @@
+info:
+  title: 자취방 계약서 위험 분석 서비스 API
+  version: "0.0.1-SNAPSHOT"
+  description: |
+    자취방 임대차 계약서의 불공정 약관을 탐지하는 서비스 API입니다.
+
+    ## 인증
+    로그인 이후에는 Spring Session 쿠키(`SESSION`)로 인증합니다. 인증이 필요한 API에 로그인하지 않고 요청하면 401을 반환합니다.
+    `/api/v1/admin/**` 는 `ADMIN` 권한이 필요하며, 로그인했지만 권한이 없으면 403을 반환합니다.
+
+    ## CSRF
+    SPA 방식입니다. 쿠키 `XSRF-TOKEN`의 값을 변경 요청(POST/PATCH/PUT/DELETE)의 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
+    토큰은 `GET /api/v1/auth/csrf`로 발급받을 수 있습니다.
+    예외: "`POST /api/v1/payments/webhooks/toss`는 CSRF 검증을 하지 않습니다."
+
+tags:
+  - name: auth
+    description: 인증(CSRF 토큰, 내 정보, 로그아웃)
+  - name: members
+    description: 내 회원 정보 조회·수정·탈퇴
+  - name: contracts
+    description: 계약서 업로드, 목록, 상세, 처리 상태, 파일 URL, 삭제
+  - name: clauses
+    description: 계약서 조항 조회·수정
+  - name: analyses
+    description: 계약서 위험 분석 요청과 결과 조회
+  - name: comparisons
+    description: 변경 전·후 계약서 비교
+  - name: explanations
+    description: 조항 설명 생성과 조회
+  - name: credits
+    description: 내 크레딧 잔액과 사용 내역
+  - name: milestones
+    description: 계약 일정 생성·조회·수정·삭제와 ICS 내보내기
+  - name: notifications
+    description: 알림 목록, 읽음 처리, 설정, 푸시 구독
+  - name: payments
+    description: 이용권 상품, 주문, 결제 승인, 웹훅, 내역, 취소
+  - name: precedents
+    description: 판례·시정 사례 검색
+  - name: admin-ingest
+    description: 관리자용 법령·시정 사례 적재
+
+paths:
+  "GET /api/v1/auth/csrf":
+    tag: auth
+    summary: CSRF 토큰 발급
+    description: SPA 첫 로드, 로그인 직후, 로그아웃 후에 호출한다. 헤더 이름과 토큰 값을 반환하며, 같은 값이 XSRF-TOKEN 쿠키로도 내려간다.
+    auth: public
+    responses:
+      "200": 헤더 이름과 CSRF 토큰
+
+  "GET /api/v1/auth/me":
+    tag: auth
+    summary: 현재 로그인한 회원 정보
+    description: 세션의 사용자로 회원 정보를 조회한다. 인메모리 저장소에 없으면 해당 사용자 이름으로 회원을 보장(ensure)한 뒤 반환한다.
+    auth: login
+    responses:
+      "200": 회원 ID, 닉네임, 역할, 로그인 제공자
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/auth/logout":
+    tag: auth
+    summary: 로그아웃
+    description: 현재 세션이 있으면 무효화하고 SecurityContext를 비운다. 응답 본문은 없다.
+    auth: login
+    responses:
+      "204": 로그아웃 완료
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/members/me":
+    tag: members
+    summary: 내 회원 정보 조회
+    description: 로그인한 사용자의 회원 정보를 반환한다. 저장소에 없으면 사용자 이름으로 회원을 보장한 뒤 반환한다.
+    auth: login
+    responses:
+      "200": 회원 ID, 이메일, 닉네임, 제공자, 생성 시각
+      "401": 로그인되어 있지 않음
+
+  "PATCH /api/v1/members/me":
+    tag: members
+    summary: 내 회원 정보 수정
+    description: 닉네임과 이메일 알림 여부를 수정한다. 필드를 생략하거나 닉네임이 공백이면 기존 값을 유지한다.
+    auth: login
+    requestBody: 수정할 닉네임, 이메일 알림 여부
+    responses:
+      "200": 수정된 회원 정보
+      "401": 로그인되어 있지 않음
+
+  "DELETE /api/v1/members/me":
+    tag: members
+    summary: 회원 탈퇴
+    description: 로그인한 사용자를 저장소에서 삭제한다. 응답 본문은 없다.
+    auth: login
+    responses:
+      "204": 탈퇴 완료
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/contracts":
+    tag: contracts
+    summary: 계약서 업로드
+    description: 파일, 제목, 계약 유형을 받아 계약서를 저장하고 201을 반환한다. 현재 상태는 UPLOADED로 저장된다.
+    auth: login
+    params:
+      - name: title
+        in: query
+        description: 계약서 제목
+      - name: contractType
+        in: query
+        description: 계약 유형
+    responses:
+      "201": 생성된 계약서 ID와 상태
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/contracts":
+    tag: contracts
+    summary: 내 계약서 목록
+    description: 로그인한 사용자의 계약서 목록을 반환한다. page와 size를 받지만, 현재 구현은 전체 목록을 그대로 반환하고 요청값을 응답에 실으며 total은 목록 크기다.
+    auth: login
+    params:
+      - name: page
+        in: query
+        description: 페이지 번호(기본 0). 현재는 필터/슬라이스에 사용되지 않고 응답에만 그대로 실린다.
+      - name: size
+        in: query
+        description: 페이지 크기(기본 20). 현재는 슬라이스에 사용되지 않고 응답에만 그대로 실린다.
+    responses:
+      "200": 계약서 목록과 page, size, total
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/contracts/{id}":
+    tag: contracts
+    summary: 계약서 상세
+    description: 본인 소유의 계약서 상세를 반환한다. 없거나 소유자가 아니면 404(CONTRACT_NOT_FOUND)다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": 계약서 ID, 제목, 유형, 상태, 생성 시각
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/contracts/{id}/status":
+    tag: contracts
+    summary: 계약서 처리 상태
+    description: 본인 소유의 계약서 상태를 반환한다. progress는 상태가 UPLOADED이면 10, 그 외에는 100이다. errorMessage가 없으면 빈 문자열이다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": 상태, 진행률, 오류 메시지
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/contracts/{id}/file-url":
+    tag: contracts
+    summary: 계약서 파일 URL
+    description: 본인 소유의 계약서 파일 URL을 반환한다. 현재 구현은 예시용 placeholder URL과 약 5분 뒤 만료 시각을 반환한다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": 파일 URL과 만료 시각
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "DELETE /api/v1/contracts/{id}":
+    tag: contracts
+    summary: 계약서 삭제
+    description: 본인 소유의 계약서를 삭제한다. 없거나 소유자가 아니면 404다. 응답 본문은 없다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "204": 삭제 완료
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/contracts/{id}/clauses":
+    tag: clauses
+    summary: 계약서 조항 목록
+    description: 본인 소유의 계약서에 속한 조항 목록을 반환한다. 계약서가 없거나 소유자가 아니면 404다. 현재 needsReanalysis는 항상 false다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": 조항 목록
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "PATCH /api/v1/clauses/{id}":
+    tag: clauses
+    summary: 조항 수정
+    description: 본인 소유의 조항 번호, 제목, 본문을 수정한다. 없거나 소유자가 아니면 404(CLAUSE_NOT_FOUND)다.
+    auth: login
+    requestBody: 수정할 조항 본문, 번호, 제목. 전달한 값만 반영된다.
+    params:
+      - name: id
+        in: path
+        description: 조항 ID
+    responses:
+      "200": 수정된 조항
+      "401": 로그인되어 있지 않음
+      "404": 조항을 찾을 수 없음
+
+  "POST /api/v1/contracts/{id}/analyses":
+    tag: analyses
+    summary: 위험 분석 시작
+    description: 본인 소유의 계약서에 대한 분석을 접수하고 202를 반환한다. 계약서가 없으면 404다. 저장된 분석 상태는 ACCEPTED다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "202": 접수된 분석 ID와 상태
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/analyses/{id}":
+    tag: analyses
+    summary: 분석 결과 조회
+    description: 본인 소유의 분석 결과를 반환한다. 없거나 소유자가 아니면 404(ANALYSIS_NOT_FOUND)다. 현재 results는 항상 빈 목록이다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 분석 ID
+    responses:
+      "200": 종합 점수, 요약, 조항별 결과
+      "401": 로그인되어 있지 않음
+      "404": 분석 결과를 찾을 수 없음
+
+  "POST /api/v1/comparisons":
+    tag: comparisons
+    summary: 계약서 비교 생성
+    description: 변경 전·후 계약서 ID로 비교를 만들고 201을 반환한다. 두 계약서 모두 본인 소유여야 하며, 없으면 404다.
+    auth: login
+    requestBody: 변경 전 계약서 ID(beforeContractId), 변경 후 계약서 ID(afterContractId)
+    responses:
+      "201": 생성된 비교 ID
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/comparisons/{id}":
+    tag: comparisons
+    summary: 비교 결과 조회
+    description: 본인 소유의 비교가 있는지만 확인한 뒤 결과를 반환한다. 없으면 404(COMPARISON_NOT_FOUND)다. 현재 pairs는 항상 빈 목록이다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 비교 ID
+    responses:
+      "200": 조항 쌍 목록
+      "401": 로그인되어 있지 않음
+      "404": 비교 결과를 찾을 수 없음
+
+  "POST /api/v1/clauses/{id}/explanations":
+    tag: explanations
+    summary: 조항 설명 생성
+    description: |
+      조항에 대한 설명을 만들고 201을 반환한다. 요청 본문의 tone이 없거나 본문 자체가 없으면 톤은 "기본"으로 저장된다.
+      현재 구현은 조항 존재 여부를 검사하지 않으며, text·suggestion은 빈 문자열, citations는 빈 목록이다.
+    auth: login
+    requestBody: 선택. 설명 톤(tone)
+    params:
+      - name: id
+        in: path
+        description: 조항 ID
+    responses:
+      "201": 생성된 설명
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/explanations/{id}":
+    tag: explanations
+    summary: 설명 조회
+    description: 본인 소유의 설명을 반환한다. 없거나 소유자가 아니면 404(EXPLANATION_NOT_FOUND)다. 현재 citations는 항상 빈 목록이다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 설명 ID
+    responses:
+      "200": 설명 본문, 제안, 근거
+      "401": 로그인되어 있지 않음
+      "404": 설명을 찾을 수 없음
+
+  "GET /api/v1/credits/me":
+    tag: credits
+    summary: 내 크레딧 잔액
+    description: 로그인한 사용자의 무료·유료 잔여 크레딧을 반환한다.
+    auth: login
+    responses:
+      "200": 무료 잔여, 유료 잔여
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/credits/me/ledger":
+    tag: credits
+    summary: 내 크레딧 사용 내역
+    description: 로그인한 사용자의 크레딧 원장을 반환한다. page를 받지만, 현재 구현은 전체 목록을 반환하고 요청한 page 값만 응답에 싣는다.
+    auth: login
+    params:
+      - name: page
+        in: query
+        description: 페이지 번호(기본 0). 현재는 슬라이스에 사용되지 않고 응답에만 실린다.
+    responses:
+      "200": 원장 항목 목록과 page
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/contracts/{id}/milestones/generate":
+    tag: milestones
+    summary: 계약 일정 자동 생성
+    description: 본인 소유의 계약서에 계약일·잔금일·입주일·만기일 일정 4건을 생성한다. 계약서가 없으면 404다. 기본 리마인드는 각각 7, 7, 1, 30일이다.
+    auth: login
+    requestBody: 계약일, 잔금일, 입주일, 만기일
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": 생성된 일정 목록
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/milestones":
+    tag: milestones
+    summary: 내 일정 목록
+    description: 로그인한 사용자의 일정 목록을 반환한다. from·to를 받을 수 있지만, 현재 구현은 이 값으로 필터링하지 않고 전체 목록을 반환한다.
+    auth: login
+    params:
+      - name: from
+        in: query
+        description: 조회 시작일. 현재 서비스는 필터에 사용하지 않는다.
+      - name: to
+        in: query
+        description: 조회 종료일. 현재 서비스는 필터에 사용하지 않는다.
+    responses:
+      "200": 일정 목록
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/milestones":
+    tag: milestones
+    summary: 일정 직접 추가
+    description: 지정한 계약서에 일정을 추가하고 201을 반환한다. 계약서가 없거나 본인 소유가 아니면 404다.
+    auth: login
+    requestBody: 계약서 ID, 유형, 제목, 기한, 리마인드 일수
+    responses:
+      "201": 생성된 일정
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "PATCH /api/v1/milestones/{id}":
+    tag: milestones
+    summary: 일정 수정
+    description: 본인 소유의 일정 제목, 기한, 리마인드 일수, 완료 여부를 수정한다. 없으면 404(MILESTONE_NOT_FOUND)다.
+    auth: login
+    requestBody: 수정할 제목, 기한, 리마인드 일수, 완료 여부
+    params:
+      - name: id
+        in: path
+        description: 일정 ID
+    responses:
+      "200": 수정된 일정
+      "401": 로그인되어 있지 않음
+      "404": 마일스톤을 찾을 수 없음
+
+  "DELETE /api/v1/milestones/{id}":
+    tag: milestones
+    summary: 일정 삭제
+    description: 본인 소유의 일정을 삭제한다. 없으면 404다. 응답 본문은 없다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 일정 ID
+    responses:
+      "204": 삭제 완료
+      "401": 로그인되어 있지 않음
+      "404": 마일스톤을 찾을 수 없음
+
+  "GET /api/v1/contracts/{id}/milestones.ics":
+    tag: milestones
+    summary: 계약 일정 ICS 내보내기
+    description: 본인 소유의 계약서 일정을 text/calendar(ICS)로 반환한다. 계약서가 없으면 404다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 계약서 ID
+    responses:
+      "200": ICS 본문
+      "401": 로그인되어 있지 않음
+      "404": 계약서를 찾을 수 없음
+
+  "GET /api/v1/notifications":
+    tag: notifications
+    summary: 내 알림 목록
+    description: 로그인한 사용자의 알림 목록을 반환한다. page를 받지만, 현재 구현은 전체 목록을 반환하고 요청한 page 값만 응답에 싣는다.
+    auth: login
+    params:
+      - name: page
+        in: query
+        description: 페이지 번호(기본 0). 현재는 슬라이스에 사용되지 않고 응답에만 실린다.
+    responses:
+      "200": 알림 목록과 page
+      "401": 로그인되어 있지 않음
+
+  "PATCH /api/v1/notifications/{id}/read":
+    tag: notifications
+    summary: 알림 읽음 처리
+    description: 본인 소유의 알림을 읽음으로 표시한다. 없으면 404(NOTIFICATION_NOT_FOUND)다. 응답 본문은 없다.
+    auth: login
+    params:
+      - name: id
+        in: path
+        description: 알림 ID
+    responses:
+      "204": 읽음 처리 완료
+      "401": 로그인되어 있지 않음
+      "404": 알림을 찾을 수 없음
+
+  "PUT /api/v1/notifications/settings":
+    tag: notifications
+    summary: 알림 설정 변경
+    description: 이메일·푸시 사용 여부와 리마인드 일수 목록을 저장하고 그 설정을 반환한다.
+    auth: login
+    requestBody: 이메일 알림, 푸시 알림, 리마인드 일수 목록
+    responses:
+      "200": 저장된 알림 설정
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/notifications/push-subscriptions":
+    tag: notifications
+    summary: 푸시 구독 등록
+    description: 푸시 엔드포인트를 저장한다. 요청의 p256dh, auth는 현재 서비스에서 사용하지 않는다. 응답 본문은 없다.
+    auth: login
+    requestBody: 푸시 구독 endpoint(필수에 가깝게 사용). p256dh, auth는 현재 저장하지 않는다.
+    responses:
+      "204": 구독 저장 완료
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/products":
+    tag: payments
+    summary: 이용권 상품 목록
+    description: 구매 가능한 이용권 상품 목록을 반환한다. 로그인하지 않아도 호출할 수 있다.
+    auth: public
+    responses:
+      "200": 상품 목록(이름, 크레딧, 가격)
+
+  "POST /api/v1/payments/orders":
+    tag: payments
+    summary: 결제 주문 생성
+    description: 상품 ID로 주문을 만들고 201을 반환한다. 상품이 없으면 404(PRODUCT_NOT_FOUND)다. 주문 상태는 READY이며, customerKey는 현재 로그인 사용자 이름이다.
+    auth: login
+    requestBody: 구매할 상품 ID(productId)
+    responses:
+      "201": 주문 ID, 금액, 주문명, customerKey
+      "401": 로그인되어 있지 않음
+      "404": 이용권 상품을 찾을 수 없음
+
+  "POST /api/v1/payments/confirm":
+    tag: payments
+    summary: 결제 승인
+    description: 본인 주문을 찾아 상태를 DONE으로 갱신한다. 주문이 없거나 소유자가 아니면 404(PAYMENT_NOT_FOUND)다.
+    auth: login
+    requestBody: paymentKey, orderId, amount
+    responses:
+      "200": 결제 ID, 상태, 적립 크레딧
+      "401": 로그인되어 있지 않음
+      "404": 주문을 찾을 수 없음
+
+  "POST /api/v1/payments/webhooks/toss":
+    tag: payments
+    summary: 토스 결제 웹훅
+    description: |
+      토스 웹훅을 받아 결제 상태를 반영한다. CSRF 검증을 하지 않으며 로그인하지 않아도 호출할 수 있다.
+      대상 결제가 없으면 경고만 남기고, 어느 경우든 200을 반환한다. 현재는 data.paymentKey를 주문 ID처럼 조회한다.
+    auth: public
+    requestBody: eventType과 data(paymentKey, status)
+    responses:
+      "200": 수신 완료(본문 없음)
+
+  "GET /api/v1/payments":
+    tag: payments
+    summary: 내 결제 내역
+    description: 로그인한 사용자의 결제 목록을 반환한다. page를 받지만, 현재 구현은 전체 목록을 반환하고 요청한 page 값만 응답에 싣는다.
+    auth: login
+    params:
+      - name: page
+        in: query
+        description: 페이지 번호(기본 0). 현재는 슬라이스에 사용되지 않고 응답에만 실린다.
+    responses:
+      "200": 결제 목록과 page
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/payments/{id}/cancel":
+    tag: payments
+    summary: 결제 취소
+    description: 본인 소유의 결제를 CANCELED로 바꾸고 상태와 요청 reason을 반환한다. reason이 없으면 빈 문자열이다. 결제가 없으면 404다.
+    auth: login
+    requestBody: 취소 사유(reason)
+    params:
+      - name: id
+        in: path
+        description: 결제 ID
+    responses:
+      "200": 취소 상태와 사유
+      "401": 로그인되어 있지 않음
+      "404": 결제를 찾을 수 없음
+
+  "GET /api/v1/precedents/search":
+    tag: precedents
+    summary: 판례 검색
+    description: 질의어, 유형, 최대 건수(k, 기본 5)로 판례를 검색한다.
+    auth: login
+    params:
+      - name: q
+        in: query
+        description: 검색어
+      - name: type
+        in: query
+        description: 판례 유형
+      - name: k
+        in: query
+        description: 최대 결과 수(기본 5)
+    responses:
+      "200": 검색 결과 목록
+      "401": 로그인되어 있지 않음
+
+  "GET /api/v1/cases/search":
+    tag: precedents
+    summary: 시정 사례 검색
+    description: 질의어, 조항 ID, 불공정 유형, 최대 건수(k, 기본 5)로 시정 사례를 검색한다.
+    auth: login
+    params:
+      - name: q
+        in: query
+        description: 검색어
+      - name: clauseId
+        in: query
+        description: 관련 조항 ID
+      - name: unfairType
+        in: query
+        description: 불공정 유형
+      - name: k
+        in: query
+        description: 최대 결과 수(기본 5)
+    responses:
+      "200": 검색 결과 목록
+      "401": 로그인되어 있지 않음
+
+  "POST /api/v1/admin/ingest/laws":
+    tag: admin-ingest
+    summary: 법령 적재 접수
+    description: 법령 적재 작업을 접수하고 202를 반환한다. 요청 본문의 target, since는 로그에만 쓰이고, 저장된 작업 상태는 ACCEPTED다.
+    auth: ADMIN
+    requestBody: 선택. 적재 대상(target), 기준 일자(since)
+    responses:
+      "202": 접수된 작업 ID
+      "401": 로그인되어 있지 않음
+      "403": ADMIN 권한이 없음
+
+  "POST /api/v1/admin/ingest/kftc-cases":
+    tag: admin-ingest
+    summary: 시정 사례 적재 접수
+    description: 공정위 시정 사례 적재 작업을 접수하고 202를 반환한다. 저장된 작업 상태는 ACCEPTED다.
+    auth: ADMIN
+    responses:
+      "202": 접수된 작업 ID와 삽입 건수
+      "401": 로그인되어 있지 않음
+      "403": ADMIN 권한이 없음
+
+  "GET /api/v1/admin/ingest/jobs/{id}":
+    tag: admin-ingest
+    summary: 적재 작업 상태
+    description: 적재 작업의 상태, 처리 건수, 실패 건수를 반환한다. 없으면 404(JOB_NOT_FOUND)다.
+    auth: ADMIN
+    params:
+      - name: id
+        in: path
+        description: 적재 작업 ID
+    responses:
+      "200": 상태, 처리 건수, 실패 건수
+      "401": 로그인되어 있지 않음
+      "403": ADMIN 권한이 없음
+      "404": 적재 작업을 찾을 수 없음
+
+schemas:
+  CsrfResponse:
+    headerName: CSRF 토큰을 실을 요청 헤더 이름(X-XSRF-TOKEN)
+    token: CSRF 토큰 값
+  MeResponse:
+    id: 회원 ID
+    nickname: 닉네임
+    role: 권한(USER 또는 ADMIN)
+    provider: "로그인 제공자(예: local)"
+  MemberResponse:
+    id: 회원 ID
+    email: 이메일
+    nickname: 닉네임
+    provider: 로그인 제공자
+    createdAt: 생성 시각
+  UpdateMemberRequest:
+    nickname: 바꿀 닉네임. 생략하거나 공백이면 유지
+    notifyEmail: 이메일 알림 여부. 생략하면 유지
+  UploadedContract:
+    contractId: 생성된 계약서 ID
+    status: 계약서 상태(업로드 직후는 UPLOADED)
+  ContractItem:
+    contractId: 계약서 ID
+    title: 제목
+    status: 상태
+    createdAt: 생성 시각
+  ContractPage:
+    items: 계약서 목록
+    page: 요청한 페이지 번호
+    size: 요청한 페이지 크기
+    total: 현재 반환된 목록 크기
+  ContractDetail:
+    contractId: 계약서 ID
+    title: 제목
+    contractType: 계약 유형
+    status: 상태
+    createdAt: 생성 시각
+  ContractStatus:
+    status: 처리 상태
+    progress: UPLOADED이면 10, 그 외에는 100
+    errorMessage: 오류 메시지. 없으면 빈 문자열
+  FileUrl:
+    url: 파일 URL(현재는 placeholder)
+    expiresAt: URL 만료 시각
+  ClauseItem:
+    clauseId: 조항 ID
+    "no": 조항 번호
+    title: 조항 제목
+    text: 조항 본문
+    riskLevel: 위험 수준
+    needsReanalysis: 재분석 필요 여부. 현재는 항상 false
+  ClauseUpdateRequest:
+    text: 수정할 본문
+    "no": 수정할 조항 번호
+    title: 수정할 제목
+  AcceptedAnalysis:
+    analysisId: 접수된 분석 ID
+    status: 분석 상태(접수 직후는 ACCEPTED)
+  AnalysisResponse:
+    overallScore: 종합 위험 점수
+    summary: 분석 요약
+    results: 조항별 결과. 현재는 항상 빈 목록
+  CreatedComparison:
+    comparisonId: 생성된 비교 ID
+  ComparisonResult:
+    pairs: 조항 쌍 목록. 현재는 항상 빈 목록
+  CreateComparison:
+    beforeContractId: 변경 전 계약서 ID
+    afterContractId: 변경 후 계약서 ID
+  ExplanationResponse:
+    explanationId: 설명 ID
+    text: 설명 본문
+    suggestion: 수정 제안
+    citations: 근거 목록. 현재는 항상 빈 목록
+  ExplanationToneRequest:
+    tone: 설명 톤. 없으면 "기본"
+  CreditBalance:
+    freeRemaining: 무료 잔여 크레딧
+    paidRemaining: 유료 잔여 크레딧
+  LedgerItem:
+    type: 원장 유형
+    amount: 변동량
+    refId: 관련 참조 ID
+    createdAt: 발생 시각
+  MilestoneItem:
+    id: 일정 ID
+    type: 일정 유형(CONTRACT, BALANCE, MOVE_IN, END 등)
+    dueDate: 기한. 없으면 빈 문자열
+    title: 제목
+    remindDays: 리마인드 일수
+    done: 완료 여부
+  MilestoneGenerateRequest:
+    contractDate: 계약일
+    balanceDate: 잔금일
+    moveInDate: 입주일
+    endDate: 만기일
+  MilestoneCreateRequest:
+    contractId: 계약서 ID
+    type: 일정 유형
+    title: 제목
+    dueDate: 기한
+    remindDays: 리마인드 일수
+  MilestoneUpdateRequest:
+    title: 제목
+    dueDate: 기한
+    remindDays: 리마인드 일수
+    done: 완료 여부
+  NotificationItem:
+    id: 알림 ID
+    channel: 채널
+    title: 제목
+    sentAt: 발송 시각
+    read: 읽음 여부
+  NotificationSettingsRequest:
+    emailEnabled: 이메일 알림 사용 여부
+    pushEnabled: 푸시 알림 사용 여부
+    remindDays: 리마인드 일수 목록
+  NotificationPushRequest:
+    endpoint: 푸시 구독 엔드포인트
+    p256dh: 푸시 공개키. 현재 서비스는 사용하지 않는다
+    auth: 푸시 auth 시크릿. 현재 서비스는 사용하지 않는다
+  NotificationSettings:
+    owner: 설정 소유자(로그인 사용자)
+    emailEnabled: 이메일 알림 사용 여부
+    pushEnabled: 푸시 알림 사용 여부
+    remindDays: 리마인드 일수 목록
+  ProductItem:
+    id: 상품 ID
+    name: 상품 이름
+    credits: 제공 크레딧
+    price: 가격
+  PaymentOrder:
+    orderId: 주문 ID
+    amount: 결제 금액
+    orderName: 주문명
+    customerKey: 고객 키(현재는 로그인 사용자 이름)
+  ConfirmedPayment:
+    paymentId: 결제 ID
+    status: 결제 상태
+    creditsAdded: 적립된 크레딧
+  PaymentItem:
+    paymentId: 결제 ID
+    orderId: 주문 ID
+    amount: 결제 금액
+    status: 결제 상태
+  CanceledPayment:
+    status: 결제 상태(취소 후 CANCELED)
+    reason: 취소 사유. 없으면 빈 문자열
+  PaymentOrderRequest:
+    productId: 구매할 상품 ID
+  PaymentConfirmRequest:
+    paymentKey: 결제 키
+    orderId: 주문 ID
+    amount: 결제 금액
+  PaymentWebhookRequest:
+    eventType: 웹훅 이벤트 유형
+    data: 결제 키와 상태
+  PaymentWebhookData:
+    paymentKey: 결제 키. 현재 구현은 이 값으로 주문을 찾는다
+    status: 결제 상태
+  PaymentCancelRequest:
+    reason: 취소 사유
+  AcceptedJob:
+    jobId: 적재 작업 ID
+  IngestedCases:
+    jobId: 적재 작업 ID
+    inserted: 삽입 건수
+  IngestJobStatus:
+    status: 작업 상태
+    processed: 처리 건수
+    failed: 실패 건수
+  IngestLawRequest:
+    target: 적재 대상
+    since: 기준 일자
+
+  ItemsResponseClauseItem:
+    items: 조항 목록
+  ItemsResponseMilestoneItem:
+    items: 일정 목록
+  ItemsResponseProductItem:
+    items: 상품 목록
+  ItemsResponseMapStringObject:
+    items: 검색 결과 목록
+  PageResponseLedgerItem:
+    items: 원장 항목 목록
+    page: 요청한 페이지 번호
+  PageResponseNotificationItem:
+    items: 알림 목록
+    page: 요청한 페이지 번호
+  PageResponsePaymentItem:
+    items: 결제 목록
+    page: 요청한 페이지 번호
