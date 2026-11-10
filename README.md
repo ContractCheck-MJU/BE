@@ -4,7 +4,7 @@
 
 자취방 임대차 계약서의 불공정·위험 조항을 찾아 쉬운 말로 설명하고, 수정 전후 비교와 일정·알림을 돕는 서비스다. 주 사용자는 임차인(자취생)이다.
 
-[스펙시트](https://docs.google.com/spreadsheets/d/1wjLgLhIR7CT9lP263eIHSWrxBBgrc9r0b7nUlRxKGbI/edit)가 API·에러 코드·DB 스키마의 근거다. 사람 기여 안내는 [CONTRIBUTING.md](CONTRIBUTING.md), AI 에이전트 규칙은 [AGENTS.md](AGENTS.md)와 [docs/steering/](docs/steering/)다. 라이선스는 [MIT](LICENSE)다.
+[스펙시트](https://docs.google.com/spreadsheets/d/1wjLgLhIR7CT9lP263eIHSWrxBBgrc9r0b7nUlRxKGbI/edit)가 API·에러 코드·DB 스키마의 근거다. 사람 기여 안내는 [CONTRIBUTING.md](CONTRIBUTING.md), AI 에이전트 규칙은 [AGENTS.md](AGENTS.md)와 [docs/steering/](docs/steering/)다. 라이선스는 없으며, 모든 권리는 ContractCheck-MJU 팀에 있다(All rights reserved).
 
 > 스펙시트 '개요' 탭이 Java 17 · Spring Boot 3.x로 남아 있을 수 있다. 이 저장소의 기준은 Spring Boot 4.1.2 · Java 21이다.
 
@@ -182,4 +182,3 @@ docker run -d \
 - [AGENTS.md](AGENTS.md) — AI 에이전트 핵심 규칙
 - [docs/steering/](docs/steering/) — 제품, 기술, 구조, 컨벤션, 테스트, 보안, 작업 흐름
 - [docs/logging.md](docs/logging.md) — 로그 경로, 롤링, 프로필 레벨, ELK
-- [LICENSE](LICENSE) — MIT, Copyright (c) 2026 Gi-Woong and contributors
