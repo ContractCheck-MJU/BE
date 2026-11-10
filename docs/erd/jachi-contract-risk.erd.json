@@ -1,0 +1,2781 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dineug/erd-editor/main/json-schema/schema.json",
+  "version": "3.0.0",
+  "settings": {
+    "originX": -30.6819,
+    "originY": 96.9192,
+    "zoomLevel": 0.22,
+    "show": 431,
+    "database": 16,
+    "databaseName": "contractcheck",
+    "canvasType": "ERD",
+    "language": 32,
+    "tableNameCase": 8,
+    "columnNameCase": 8,
+    "bracketType": 1,
+    "relationshipDataTypeSync": true,
+    "columnOrder": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64
+    ],
+    "maxWidthComment": -1,
+    "lockSettings": 0,
+    "nameViewMode": "both"
+  },
+  "doc": {
+    "tableIds": [
+      "39ac45be098e41d5801ae",
+      "645ea16f86ef4784bd8ba",
+      "80920c78737b4a59aefe2",
+      "7ed2167c6e02401db637e",
+      "6b32fb4c7ef046acab6a3",
+      "db5068e48d58468394f40",
+      "2d42e946cc78466593ff9",
+      "62ae7f17b825400fab86a",
+      "bd3e7d9346274b69820ee",
+      "7bdb9d6d7b134a6c92765",
+      "97fe4b1c4a1b4ec7ab08c",
+      "f4fbe74a58504582a57e2",
+      "e9e3ed89a5f040a48f135",
+      "94ec0ec3c65748c4bdf98",
+      "3148bfe0a92d41d0bbe00",
+      "e560873ed6684faa94cf3",
+      "920ca212ecdd4981be149",
+      "379b842b02004fe4aec02",
+      "fc00d7dc9ea7468b862c5",
+      "789c649a9b604949aed6c",
+      "9e92307b6f7b4f62b0d8f",
+      "70cab9e85eee43dbacf92",
+      "5253878f841944ed842eb",
+      "fd4f4eb1b006418db11c5"
+    ],
+    "relationshipIds": [
+      "575f49ea2fd54d77a609f",
+      "4049e6272e9240dfa1319",
+      "3cd444e419c24473aa867",
+      "9caac8cac213437b8eff3",
+      "8579edabc79b427184940",
+      "f297c1c51725474fb349d",
+      "fd872c646d01490780efe",
+      "5fee11f0ffd949979fc90",
+      "253a3acdf8254990a2c52",
+      "6a6a5e8cd0104a4391073",
+      "bd7cf176581a496c95c84",
+      "9e3328761113434d9760e",
+      "63ca4f49d0684ff29477a",
+      "7d9fc7f3e54840cfa5840",
+      "47e3c8f97c2f41a2af802",
+      "56d416d193cd4d49a1c01",
+      "29135131d6dd4bf2947e7",
+      "12d68bf885134756b3d68",
+      "563122c7274e456d8904e",
+      "73dcc6cc8ad14fc5a0738",
+      "b197c3defd754df9b1b0b",
+      "d6d3284a506b4543b7a84",
+      "3069dc2d6514498d812d7",
+      "23100f4559f04096bf7cc",
+      "5c1654433259486abccee",
+      "77b4ca7f091d49ee98da6"
+    ],
+    "indexIds": [
+      "6412c70319d2421bba4e0",
+      "72338620125047f391b57",
+      "7d76179ffd54486caec6b",
+      "96501e4e25db4936a1e42"
+    ],
+    "memoIds": [
+      "03h7e4tk7z6v2qhtnmtin0hej"
+    ],
+    "tableGroupIds": [
+      "1c8989acfb5847e39b301",
+      "ea56f5248d6e4e3e8fb47",
+      "70078c3f8a8d4bd790f74",
+      "03h7dxtfoypcuh3dn1zmz9z8b",
+      "03h7e0vg8u65d3ojmvbdjvfai"
+    ]
+  },
+  "collections": {
+    "tableEntities": {
+      "2d42e946cc78466593ff9": {
+        "id": "2d42e946cc78466593ff9",
+        "name": "risk_results",
+        "logicalName": "조항별 위험 결과",
+        "comment": "조항별 위험 여부·등급·유형·확률",
+        "columnIds": [
+          "8761b7dbf38a40d0ab452",
+          "f2bf332cf3a64b90b68fb",
+          "ba15f23d52a040b499b8c",
+          "2377f179456740a48e075",
+          "d56cdc03be5543bda29c8",
+          "ae58df5ef30d4f3b8b0aa",
+          "d442c67f4a2f4c91a80fd",
+          "b2773fd5756f40c8b695f"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": 2238.5173,
+          "y": 1396.685
+        }
+      },
+      "3148bfe0a92d41d0bbe00": {
+        "id": "3148bfe0a92d41d0bbe00",
+        "name": "push_subscriptions",
+        "logicalName": "푸시 구독",
+        "comment": "Web Push 구독 정보",
+        "columnIds": [
+          "8f01b1af3f1b47c689dd3",
+          "2eda8220498748ce991ed",
+          "49ccb522549f4d5d98b52",
+          "9639a6f8ba1d4eb2bfc40",
+          "644538db41bf4dbb82b5f"
+        ],
+        "groupId": "1c8989acfb5847e39b301",
+        "ui": {
+          "x": 107.5083,
+          "y": 239.6034
+        }
+      },
+      "379b842b02004fe4aec02": {
+        "id": "379b842b02004fe4aec02",
+        "name": "payment_webhook_events",
+        "logicalName": "결제 웹훅 이벤트",
+        "comment": "토스 웹훅 수신 이력(멱등 처리)",
+        "columnIds": [
+          "22835f2274b34cbd9ffb7",
+          "20708c42fe3542daad738",
+          "9e8447b5529c4218901e6",
+          "abc0cb2c4a2d4008ba2df",
+          "c92ea3f560544fd7b2320",
+          "66ddd4fe201347348682e"
+        ],
+        "groupId": "70078c3f8a8d4bd790f74",
+        "ui": {
+          "x": 4390.137,
+          "y": -186.4524
+        }
+      },
+      "39ac45be098e41d5801ae": {
+        "id": "39ac45be098e41d5801ae",
+        "name": "users",
+        "logicalName": "회원",
+        "comment": "소셜 로그인으로 가입한 회원",
+        "columnIds": [
+          "5bf9cbe2255a42609abe8",
+          "5a8802670d94404aa1d65",
+          "9b4d9ae40291460dbc67e",
+          "b6ee84f26f564ac7b26b5",
+          "79c483555bc74bf28e783",
+          "bc43a5173fdd45068f76a",
+          "7d650cf24c8a4cbab78d3"
+        ],
+        "groupId": "1c8989acfb5847e39b301",
+        "ui": {
+          "x": 804.3701,
+          "y": 213.3162
+        }
+      },
+      "5253878f841944ed842eb": {
+        "id": "5253878f841944ed842eb",
+        "name": "kftc_cases",
+        "logicalName": "공정위 시정 사례",
+        "comment": "공정위 불공정약관 시정 사례(데이터셋 시트 기반)",
+        "columnIds": [
+          "30c40cb3ee074cde87652",
+          "4b0e6da9112143bebee2d",
+          "99651a44843643ac802cc",
+          "f120f1b30e5c4891b6c6c",
+          "b6c044d5061a43e694b92",
+          "277a327ab9104f59bf372",
+          "b3b57e6a031744cd99fc2",
+          "21035247b7b24c4bb264d",
+          "e12497c2919844fa8554b",
+          "1d756101a3554df4828f5",
+          "2b80183b25924a5fa20c7",
+          "acc2dca3ed3040a0b8241",
+          "af598a2a778e4355bae4b"
+        ],
+        "groupId": "03h7e0vg8u65d3ojmvbdjvfai",
+        "ui": {
+          "x": 4525.0353,
+          "y": 1126.1516
+        }
+      },
+      "62ae7f17b825400fab86a": {
+        "id": "62ae7f17b825400fab86a",
+        "name": "comparisons",
+        "logicalName": "수정 전후 비교",
+        "comment": "원본·수정본 계약서 비교 실행",
+        "columnIds": [
+          "17fbee86b9684a0cb026f",
+          "0f3ded322ed94d22a48cf",
+          "018c97bdc6ce4cbab711a",
+          "2612e6d28b394d41a1551",
+          "fa7a3b246b2440b29c007"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": -1291.2666,
+          "y": 1093.8175
+        }
+      },
+      "645ea16f86ef4784bd8ba": {
+        "id": "645ea16f86ef4784bd8ba",
+        "name": "oauth_accounts",
+        "logicalName": "소셜 계정",
+        "comment": "회원과 소셜 제공자 계정 연결",
+        "columnIds": [
+          "9249991adeb24f5981f58",
+          "11066ff59411410fa7dd4",
+          "a3291f607e624ad1afd12",
+          "7a10d516c1634de8b5360",
+          "74f9e9ee50334dc3a8350"
+        ],
+        "groupId": "1c8989acfb5847e39b301",
+        "ui": {
+          "x": 772.4004,
+          "y": -50.4633
+        }
+      },
+      "6b32fb4c7ef046acab6a3": {
+        "id": "6b32fb4c7ef046acab6a3",
+        "name": "clauses",
+        "logicalName": "조항",
+        "comment": "계약서를 분할한 조항(마스킹 후)",
+        "columnIds": [
+          "c2b12481814b4918974e4",
+          "58d64b633a064018a1215",
+          "8fec2730011d451789502",
+          "d574893ca5164442bbd88",
+          "4ec2612b1e134b3695881",
+          "51ea1361327d4e0f8a40d"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": -43.1895,
+          "y": 1606.5046
+        }
+      },
+      "70cab9e85eee43dbacf92": {
+        "id": "70cab9e85eee43dbacf92",
+        "name": "legal_chunks",
+        "logicalName": "법령·판례 청크",
+        "comment": "RAG 검색용 문서 청크와 임베딩",
+        "columnIds": [
+          "c94653ed398e4cd39c557",
+          "793f37b1a8314e2893f7f",
+          "74afd9ab6cc5430ea9f1f",
+          "e1cbd6179896454f94ad0",
+          "fb042524da5643d3b136e"
+        ],
+        "groupId": "03h7e0vg8u65d3ojmvbdjvfai",
+        "ui": {
+          "x": 3844.0953,
+          "y": 1129.9209
+        }
+      },
+      "789c649a9b604949aed6c": {
+        "id": "789c649a9b604949aed6c",
+        "name": "credit_ledger",
+        "logicalName": "이용권 원장",
+        "comment": "이용권 지급·차감·환불·복구 이력",
+        "columnIds": [
+          "1e900fd4c1d04a7faa915",
+          "276f90890b0649089ff96",
+          "bca41e29fc024201a2544",
+          "fda60ee21fbb48b981a85",
+          "9ec143b2af7a42a2ac0f4",
+          "ff7d147e8b8e44ae8bd4f",
+          "92e0da6d8b0343c18a05d"
+        ],
+        "groupId": "70078c3f8a8d4bd790f74",
+        "ui": {
+          "x": 3161.4112,
+          "y": 355.9517
+        }
+      },
+      "7bdb9d6d7b134a6c92765": {
+        "id": "7bdb9d6d7b134a6c92765",
+        "name": "explanations",
+        "logicalName": "쉬운말 설명",
+        "comment": "조항별 LLM 쉬운말 설명과 수정 제안",
+        "columnIds": [
+          "e6a94e232ff543248aff3",
+          "9fedfd44b7394439ad512",
+          "57de6a154ea3435d8c972",
+          "49fd73775242494b9d94f",
+          "9017b265b48045dc860ec",
+          "4f385fedbb6245d58ff6a",
+          "e239b34954034e9aa3c01"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": 1591.5226,
+          "y": 1642.5373
+        }
+      },
+      "7ed2167c6e02401db637e": {
+        "id": "7ed2167c6e02401db637e",
+        "name": "contracts",
+        "logicalName": "계약서",
+        "comment": "업로드한 임대차 계약서와 처리 상태",
+        "columnIds": [
+          "74cb691d14534c92948f6",
+          "b221e6bf5ef247a6a9e87",
+          "dedef13e714d4fa6846fd",
+          "fd3500349d5543369861c",
+          "59f254f5aa674496baa86",
+          "921f1bf52b4647f6b5a85",
+          "2d00536c16104665b4736",
+          "f705f707134f425f91be6",
+          "47819ef4b249428e8d457"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": -192.8356,
+          "y": 1127.3139
+        }
+      },
+      "80920c78737b4a59aefe2": {
+        "id": "80920c78737b4a59aefe2",
+        "name": "refresh_tokens",
+        "logicalName": "리프레시 토큰",
+        "comment": "발급한 리프레시 토큰의 해시와 만료·폐기 상태",
+        "columnIds": [
+          "1b86694d0f1948ba90086",
+          "3eaf8a420a3046d692f2e",
+          "b7a923ff0271457a9e159",
+          "761c2e6aa2014da5a93c8",
+          "5c3ad249a44c4e05aa573"
+        ],
+        "groupId": "1c8989acfb5847e39b301",
+        "ui": {
+          "x": 1253.6206,
+          "y": 496.0936
+        }
+      },
+      "920ca212ecdd4981be149": {
+        "id": "920ca212ecdd4981be149",
+        "name": "payments",
+        "logicalName": "결제",
+        "comment": "토스페이먼츠 결제 주문·승인 내역",
+        "columnIds": [
+          "1697c2a174d54d3c8dec5",
+          "f13e47976c5647ba9498e",
+          "adc0ea41a34049428d833",
+          "0d141bebee0244ea8f12c",
+          "64eb3eba9ca14517bbf80",
+          "fa9b15b537ef4a4d9cfe1",
+          "54ecfac27cba42f9b730f",
+          "da27d15e069649ccafb2c",
+          "646052ad44df4c23ae245",
+          "04d8a14ee76749a3ab27a"
+        ],
+        "groupId": "70078c3f8a8d4bd790f74",
+        "ui": {
+          "x": 3160.6836,
+          "y": 40.7689
+        }
+      },
+      "94ec0ec3c65748c4bdf98": {
+        "id": "94ec0ec3c65748c4bdf98",
+        "name": "notification_settings",
+        "logicalName": "알림 설정",
+        "comment": "회원별 알림 채널·시점 설정",
+        "columnIds": [
+          "16566ef5632a4fb797603",
+          "2374c49411d34a7da25a3",
+          "17d1d3c14e3a44e1bcec4",
+          "f9cdd6a616f442799e766"
+        ],
+        "groupId": "1c8989acfb5847e39b301",
+        "ui": {
+          "x": 127.6357,
+          "y": 87.0181
+        }
+      },
+      "97fe4b1c4a1b4ec7ab08c": {
+        "id": "97fe4b1c4a1b4ec7ab08c",
+        "name": "explanation_citations",
+        "logicalName": "설명 근거",
+        "comment": "설명에 첨부된 법령·판례·시정 사례 근거",
+        "columnIds": [
+          "1d730754b38b444b9d080",
+          "77eb1c0af80749bb8e887",
+          "3464826113de4ef0ba212",
+          "0a4fd123a32d440092eda",
+          "eb5d37046b2343a0b2bcb"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": 2230.8644,
+          "y": 1663.8373
+        }
+      },
+      "9e92307b6f7b4f62b0d8f": {
+        "id": "9e92307b6f7b4f62b0d8f",
+        "name": "legal_documents",
+        "logicalName": "법령·판례 문서",
+        "comment": "국가법령정보센터에서 수집한 법령 조문·판례",
+        "columnIds": [
+          "b836a2ed6d174c08883f4",
+          "6160482c110247919247d",
+          "6b5f4e86b8db408197d22",
+          "439bd215c19e446ab7669",
+          "fb84a45626fb400ea5d51",
+          "8af34860b38640a093ee8",
+          "d484096dc2504614b4c68",
+          "f6914d87c90147e99e30b",
+          "90e9c5c33238454cbbdcf",
+          "91e78777884242908c462"
+        ],
+        "groupId": "03h7e0vg8u65d3ojmvbdjvfai",
+        "ui": {
+          "x": 3162.3602,
+          "y": 1299.0388
+        }
+      },
+      "bd3e7d9346274b69820ee": {
+        "id": "bd3e7d9346274b69820ee",
+        "name": "comparison_pairs",
+        "logicalName": "비교 조항 쌍",
+        "comment": "헝가리안 매칭으로 정렬된 조항 쌍과 변경 유형",
+        "columnIds": [
+          "ea72735c28734eec948c9",
+          "f41a72608105412c97cae",
+          "4b63bb9584204fc686586",
+          "c68faa47dd6b4f1f953e9",
+          "236058868a404a8c8b44f",
+          "7d4b0bb9ec5d413384e26",
+          "d91653fb29fc45edb546d"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": -1418.6708,
+          "y": 1555.1282
+        }
+      },
+      "db5068e48d58468394f40": {
+        "id": "db5068e48d58468394f40",
+        "name": "analyses",
+        "logicalName": "분석",
+        "comment": "계약서 1건에 대한 위험 분석 실행",
+        "columnIds": [
+          "834a728d59e649079073b",
+          "fc5124c7942a4c35a8614",
+          "8fbc0a8778d14835af2b4",
+          "977cf566dcb345d8ae33c",
+          "cb0f3670366d4a7dac9ba",
+          "22aaad577f6f4976b4fe6",
+          "60794bcfc0fd4b8a80130"
+        ],
+        "groupId": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "ui": {
+          "x": 2220.714,
+          "y": 1099.2426
+        }
+      },
+      "e560873ed6684faa94cf3": {
+        "id": "e560873ed6684faa94cf3",
+        "name": "products",
+        "logicalName": "이용권 상품",
+        "comment": "판매하는 분석 이용권 상품",
+        "columnIds": [
+          "5790e4f3d69d4af992360",
+          "cb462f06c723492ca4ae5",
+          "0c45ae80a1ad41608463b",
+          "3efe0d75efae473ab28bc",
+          "c24b120a2dba41dbbd0e5"
+        ],
+        "groupId": "70078c3f8a8d4bd790f74",
+        "ui": {
+          "x": 3759.8693,
+          "y": -193.8204
+        }
+      },
+      "e9e3ed89a5f040a48f135": {
+        "id": "e9e3ed89a5f040a48f135",
+        "name": "notifications",
+        "logicalName": "알림",
+        "comment": "발송 예정·완료 알림 이력",
+        "columnIds": [
+          "5ba42f100c3c414c9f9d6",
+          "a1d9c1cf32ef4f9fb2bb2",
+          "be53c00beb034b5d820bc",
+          "24f5e6f1f13e40c688dcd",
+          "9f1388f039c04d9da0ce7",
+          "90e5657fc6914de095893",
+          "26d44f6bec2549cea33d6",
+          "d0d1486f7da045b0b293c",
+          "45e14c1e94bd433d97dd7",
+          "f635a54a694a49ba8a4df"
+        ],
+        "groupId": "ea56f5248d6e4e3e8fb47",
+        "ui": {
+          "x": 2071.883,
+          "y": 2208.5286
+        }
+      },
+      "f4fbe74a58504582a57e2": {
+        "id": "f4fbe74a58504582a57e2",
+        "name": "milestones",
+        "logicalName": "일정",
+        "comment": "계약 관련 기한(잔금·입주·갱신 통지 등)",
+        "columnIds": [
+          "e7912fa7f77e408ca88fa",
+          "057efbbb84584aa183a58",
+          "f0f9039fecb6495ca0417",
+          "da0a1542c02c4be897432",
+          "2ea6a9077f334b78807af",
+          "45f64304484d4ae592b8d",
+          "ef68c50d5e6d46948326b",
+          "fb6287b3c3414384ae540"
+        ],
+        "groupId": "ea56f5248d6e4e3e8fb47",
+        "ui": {
+          "x": 842.4331,
+          "y": 2236.5203
+        }
+      },
+      "fc00d7dc9ea7468b862c5": {
+        "id": "fc00d7dc9ea7468b862c5",
+        "name": "credit_wallets",
+        "logicalName": "이용권 지갑",
+        "comment": "회원별 무료·유료 잔여 분석 횟수",
+        "columnIds": [
+          "b4a5fd6c1bee4935bc483",
+          "45635cc699074306ad2d2",
+          "58b29c816baf4d919f8b2",
+          "9195ce32469448d5ab152"
+        ],
+        "groupId": "70078c3f8a8d4bd790f74",
+        "ui": {
+          "x": 2819.2981,
+          "y": -193.0036
+        }
+      },
+      "fd4f4eb1b006418db11c5": {
+        "id": "fd4f4eb1b006418db11c5",
+        "name": "ingest_jobs",
+        "logicalName": "적재 작업",
+        "comment": "법령·판례·시정 사례 적재 배치 실행 이력",
+        "columnIds": [
+          "a504b8a322aa423daecf4",
+          "8347a00180c749568183b",
+          "35b87700a75d44978d925",
+          "03699fa9953147159bde6",
+          "d2e21c63f43a473b8a5e6",
+          "659bf5c03ca441c3815c2",
+          "dc35d146f09b4912bf7ab"
+        ],
+        "groupId": "03h7e0vg8u65d3ojmvbdjvfai",
+        "ui": {
+          "x": 5466.4809,
+          "y": 1128.7158
+        }
+      }
+    },
+    "tableColumnEntities": {
+      "2377f179456740a48e075": {
+        "id": "2377f179456740a48e075",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "is_risky",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "위험 여부",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "8761b7dbf38a40d0ab452": {
+        "id": "8761b7dbf38a40d0ab452",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "위험 결과 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "ae58df5ef30d4f3b8b0aa": {
+        "id": "ae58df5ef30d4f3b8b0aa",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "risk_type",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "불공정 유형",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "b2773fd5756f40c8b695f": {
+        "id": "b2773fd5756f40c8b695f",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "similar_case_ids",
+        "comment": "kftc_cases Top-k",
+        "dataType": "BIGINT[]",
+        "options": 0,
+        "logicalName": "유사 사례 ID 목록",
+        "domainId": "dgnv4lm000000000000000000"
+      },
+      "ba15f23d52a040b499b8c": {
+        "id": "ba15f23d52a040b499b8c",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "clause_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "조항 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "d442c67f4a2f4c91a80fd": {
+        "id": "d442c67f4a2f4c91a80fd",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "probability",
+        "comment": "CHECK (probability BETWEEN 0 AND 1) (제안)",
+        "dataType": "NUMERIC(5,4)",
+        "options": 0,
+        "logicalName": "위험 확률",
+        "domainId": "dgnv4ln000000000000000000"
+      },
+      "d56cdc03be5543bda29c8": {
+        "id": "d56cdc03be5543bda29c8",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "risk_level",
+        "comment": "CHECK (risk_level IN ('HIGH','CAUTION','SAFE')) (제안)",
+        "dataType": "VARCHAR(10)",
+        "options": 0,
+        "logicalName": "위험 등급",
+        "domainId": "dgnv4ls000000000000000000"
+      },
+      "f2bf332cf3a64b90b68fb": {
+        "id": "f2bf332cf3a64b90b68fb",
+        "tableId": "2d42e946cc78466593ff9",
+        "name": "analysis_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "분석 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "2eda8220498748ce991ed": {
+        "id": "2eda8220498748ce991ed",
+        "tableId": "3148bfe0a92d41d0bbe00",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "49ccb522549f4d5d98b52": {
+        "id": "49ccb522549f4d5d98b52",
+        "tableId": "3148bfe0a92d41d0bbe00",
+        "name": "endpoint",
+        "dataType": "TEXT",
+        "options": 4,
+        "logicalName": "푸시 엔드포인트",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "644538db41bf4dbb82b5f": {
+        "id": "644538db41bf4dbb82b5f",
+        "tableId": "3148bfe0a92d41d0bbe00",
+        "name": "auth",
+        "dataType": "VARCHAR(255)",
+        "options": 0,
+        "logicalName": "인증 비밀(auth)",
+        "domainId": "dgnv4lr000000000000000000"
+      },
+      "8f01b1af3f1b47c689dd3": {
+        "id": "8f01b1af3f1b47c689dd3",
+        "tableId": "3148bfe0a92d41d0bbe00",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "푸시 구독 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "9639a6f8ba1d4eb2bfc40": {
+        "id": "9639a6f8ba1d4eb2bfc40",
+        "tableId": "3148bfe0a92d41d0bbe00",
+        "name": "p256dh",
+        "dataType": "VARCHAR(255)",
+        "options": 0,
+        "logicalName": "공개 키(p256dh)",
+        "domainId": "dgnv4lr000000000000000000"
+      },
+      "20708c42fe3542daad738": {
+        "id": "20708c42fe3542daad738",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "event_type",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "이벤트 유형",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "22835f2274b34cbd9ffb7": {
+        "id": "22835f2274b34cbd9ffb7",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "웹훅 이벤트 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "66ddd4fe201347348682e": {
+        "id": "66ddd4fe201347348682e",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "received_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "수신 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "9e8447b5529c4218901e6": {
+        "id": "9e8447b5529c4218901e6",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "payment_key",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "결제 키",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "abc0cb2c4a2d4008ba2df": {
+        "id": "abc0cb2c4a2d4008ba2df",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "payload",
+        "dataType": "JSONB",
+        "options": 0,
+        "logicalName": "웹훅 본문",
+        "domainId": "dgnv4m3000000000000000000"
+      },
+      "c92ea3f560544fd7b2320": {
+        "id": "c92ea3f560544fd7b2320",
+        "tableId": "379b842b02004fe4aec02",
+        "name": "processed",
+        "comment": "멱등 처리",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "처리 여부",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "5a8802670d94404aa1d65": {
+        "id": "5a8802670d94404aa1d65",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "email",
+        "dataType": "VARCHAR(255)",
+        "options": 4,
+        "logicalName": "이메일",
+        "domainId": "dgnv4lq000000000000000000"
+      },
+      "5bf9cbe2255a42609abe8": {
+        "id": "5bf9cbe2255a42609abe8",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "79c483555bc74bf28e783": {
+        "id": "79c483555bc74bf28e783",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "status",
+        "comment": "CHECK (status IN ('ACTIVE','WITHDRAWN')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "회원 상태",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "7d650cf24c8a4cbab78d3": {
+        "id": "7d650cf24c8a4cbab78d3",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "updated_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "수정 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "9b4d9ae40291460dbc67e": {
+        "id": "9b4d9ae40291460dbc67e",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "nickname",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "닉네임",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "b6ee84f26f564ac7b26b5": {
+        "id": "b6ee84f26f564ac7b26b5",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "role",
+        "comment": "CHECK (role IN ('USER','ADMIN')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 8,
+        "logicalName": "권한",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "bc43a5173fdd45068f76a": {
+        "id": "bc43a5173fdd45068f76a",
+        "tableId": "39ac45be098e41d5801ae",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "가입 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "1d756101a3554df4828f5": {
+        "id": "1d756101a3554df4828f5",
+        "tableId": "5253878f841944ed842eb",
+        "name": "after_text",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "시정 후 조항",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "21035247b7b24c4bb264d": {
+        "id": "21035247b7b24c4bb264d",
+        "tableId": "5253878f841944ed842eb",
+        "name": "law_article",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "관련 약관법 조항",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "277a327ab9104f59bf372": {
+        "id": "277a327ab9104f59bf372",
+        "tableId": "5253878f841944ed842eb",
+        "name": "industry",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "업종",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "2b80183b25924a5fa20c7": {
+        "id": "2b80183b25924a5fa20c7",
+        "tableId": "5253878f841944ed842eb",
+        "name": "after_is_deletion",
+        "comment": "1=삭제, 0=수정, NULL=시정 후 미제시. CHECK (after_is_deletion IN (0,1)) (제안)",
+        "dataType": "SMALLINT",
+        "options": 0,
+        "logicalName": "시정 방식",
+        "domainId": "dgnv4lj000000000000000000"
+      },
+      "30c40cb3ee074cde87652": {
+        "id": "30c40cb3ee074cde87652",
+        "tableId": "5253878f841944ed842eb",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "시정 사례 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "4b0e6da9112143bebee2d": {
+        "id": "4b0e6da9112143bebee2d",
+        "tableId": "5253878f841944ed842eb",
+        "name": "press_date",
+        "dataType": "DATE",
+        "options": 0,
+        "logicalName": "보도일자",
+        "domainId": "dgnv4lh000000000000000000"
+      },
+      "99651a44843643ac802cc": {
+        "id": "99651a44843643ac802cc",
+        "tableId": "5253878f841944ed842eb",
+        "name": "press_title",
+        "dataType": "VARCHAR(300)",
+        "options": 0,
+        "logicalName": "보도자료 제목",
+        "domainId": "dgnv4ly000000000000000000"
+      },
+      "acc2dca3ed3040a0b8241": {
+        "id": "acc2dca3ed3040a0b8241",
+        "tableId": "5253878f841944ed842eb",
+        "name": "note",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "비고",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "af598a2a778e4355bae4b": {
+        "id": "af598a2a778e4355bae4b",
+        "tableId": "5253878f841944ed842eb",
+        "name": "embedding",
+        "comment": "before_text 임베딩. HNSW(vector_cosine_ops)",
+        "dataType": "VECTOR(1024)",
+        "options": 0,
+        "logicalName": "시정 전 조항 임베딩",
+        "domainId": "dgnv4m4000000000000000000"
+      },
+      "b3b57e6a031744cd99fc2": {
+        "id": "b3b57e6a031744cd99fc2",
+        "tableId": "5253878f841944ed842eb",
+        "name": "unfair_type",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "불공정 유형",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "b6c044d5061a43e694b92": {
+        "id": "b6c044d5061a43e694b92",
+        "tableId": "5253878f841944ed842eb",
+        "name": "business",
+        "dataType": "VARCHAR(500)",
+        "options": 0,
+        "logicalName": "사업자·서비스명",
+        "domainId": "dgnv4lz000000000000000000"
+      },
+      "e12497c2919844fa8554b": {
+        "id": "e12497c2919844fa8554b",
+        "tableId": "5253878f841944ed842eb",
+        "name": "before_text",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "시정 전 조항",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "f120f1b30e5c4891b6c6c": {
+        "id": "f120f1b30e5c4891b6c6c",
+        "tableId": "5253878f841944ed842eb",
+        "name": "source_url",
+        "dataType": "VARCHAR(500)",
+        "options": 0,
+        "logicalName": "출처 URL",
+        "domainId": "dgnv4lz000000000000000000"
+      },
+      "018c97bdc6ce4cbab711a": {
+        "id": "018c97bdc6ce4cbab711a",
+        "tableId": "62ae7f17b825400fab86a",
+        "name": "before_contract_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "수정 전 계약서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "0f3ded322ed94d22a48cf": {
+        "id": "0f3ded322ed94d22a48cf",
+        "tableId": "62ae7f17b825400fab86a",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "17fbee86b9684a0cb026f": {
+        "id": "17fbee86b9684a0cb026f",
+        "tableId": "62ae7f17b825400fab86a",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "비교 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "2612e6d28b394d41a1551": {
+        "id": "2612e6d28b394d41a1551",
+        "tableId": "62ae7f17b825400fab86a",
+        "name": "after_contract_id",
+        "comment": "CHECK (before_contract_id <> after_contract_id) (제안)",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "수정 후 계약서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "fa7a3b246b2440b29c007": {
+        "id": "fa7a3b246b2440b29c007",
+        "tableId": "62ae7f17b825400fab86a",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "비교 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "11066ff59411410fa7dd4": {
+        "id": "11066ff59411410fa7dd4",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "74f9e9ee50334dc3a8350": {
+        "id": "74f9e9ee50334dc3a8350",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "연결 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "7a10d516c1634de8b5360": {
+        "id": "7a10d516c1634de8b5360",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "name": "provider_user_id",
+        "dataType": "VARCHAR(100)",
+        "options": 0,
+        "logicalName": "제공자 회원 식별자",
+        "domainId": "dgnv4lw000000000000000000"
+      },
+      "9249991adeb24f5981f58": {
+        "id": "9249991adeb24f5981f58",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "소셜 계정 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "a3291f607e624ad1afd12": {
+        "id": "a3291f607e624ad1afd12",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "name": "provider",
+        "comment": "CHECK (provider IN ('kakao','naver','google')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "소셜 제공자",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "4ec2612b1e134b3695881": {
+        "id": "4ec2612b1e134b3695881",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "text",
+        "comment": "마스킹된 조항",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "조항 본문",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "51ea1361327d4e0f8a40d": {
+        "id": "51ea1361327d4e0f8a40d",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "embedding",
+        "comment": "BGE-M3",
+        "dataType": "VECTOR(1024)",
+        "options": 0,
+        "logicalName": "조항 임베딩",
+        "domainId": "dgnv4m4000000000000000000"
+      },
+      "58d64b633a064018a1215": {
+        "id": "58d64b633a064018a1215",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "contract_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "계약서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "8fec2730011d451789502": {
+        "id": "8fec2730011d451789502",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "clause_no",
+        "comment": "UNIQUE(contract_id, clause_no) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "조항 순번",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "c2b12481814b4918974e4": {
+        "id": "c2b12481814b4918974e4",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "조항 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "d574893ca5164442bbd88": {
+        "id": "d574893ca5164442bbd88",
+        "tableId": "6b32fb4c7ef046acab6a3",
+        "name": "title",
+        "comment": "예: 제5조(계약의 해지)",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "조항 제목",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "74afd9ab6cc5430ea9f1f": {
+        "id": "74afd9ab6cc5430ea9f1f",
+        "tableId": "70cab9e85eee43dbacf92",
+        "name": "chunk_no",
+        "comment": "UNIQUE(document_id, chunk_no) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "청크 순번",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "793f37b1a8314e2893f7f": {
+        "id": "793f37b1a8314e2893f7f",
+        "tableId": "70cab9e85eee43dbacf92",
+        "name": "document_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "문서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "c94653ed398e4cd39c557": {
+        "id": "c94653ed398e4cd39c557",
+        "tableId": "70cab9e85eee43dbacf92",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "청크 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "e1cbd6179896454f94ad0": {
+        "id": "e1cbd6179896454f94ad0",
+        "tableId": "70cab9e85eee43dbacf92",
+        "name": "text",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "청크 본문",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "fb042524da5643d3b136e": {
+        "id": "fb042524da5643d3b136e",
+        "tableId": "70cab9e85eee43dbacf92",
+        "name": "embedding",
+        "comment": "BGE-M3. HNSW(vector_cosine_ops)",
+        "dataType": "VECTOR(1024)",
+        "options": 0,
+        "logicalName": "청크 임베딩",
+        "domainId": "dgnv4m4000000000000000000"
+      },
+      "1e900fd4c1d04a7faa915": {
+        "id": "1e900fd4c1d04a7faa915",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "원장 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "276f90890b0649089ff96": {
+        "id": "276f90890b0649089ff96",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "92e0da6d8b0343c18a05d": {
+        "id": "92e0da6d8b0343c18a05d",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "기록 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "9ec143b2af7a42a2ac0f4": {
+        "id": "9ec143b2af7a42a2ac0f4",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "ref_type",
+        "comment": "CHECK (ref_type IN ('PAYMENT','ANALYSIS')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "참조 유형",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "bca41e29fc024201a2544": {
+        "id": "bca41e29fc024201a2544",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "type",
+        "comment": "CHECK (type IN ('GRANT','USE','REFUND','RESTORE')) (제안)",
+        "dataType": "VARCHAR(10)",
+        "options": 0,
+        "logicalName": "거래 유형",
+        "domainId": "dgnv4ls000000000000000000"
+      },
+      "fda60ee21fbb48b981a85": {
+        "id": "fda60ee21fbb48b981a85",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "amount",
+        "comment": "CHECK (amount <> 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "변동 횟수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "ff7d147e8b8e44ae8bd4f": {
+        "id": "ff7d147e8b8e44ae8bd4f",
+        "tableId": "789c649a9b604949aed6c",
+        "name": "ref_id",
+        "comment": "PAYMENT 또는 ANALYSIS 참조",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "참조 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "49fd73775242494b9d94f": {
+        "id": "49fd73775242494b9d94f",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "suggestion",
+        "comment": "수정 제안/삭제 권고",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "수정 제안",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "4f385fedbb6245d58ff6a": {
+        "id": "4f385fedbb6245d58ff6a",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "prompt_version",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "프롬프트 버전",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "57de6a154ea3435d8c972": {
+        "id": "57de6a154ea3435d8c972",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "text",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "쉬운말 설명",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "9017b265b48045dc860ec": {
+        "id": "9017b265b48045dc860ec",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "llm_model",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "LLM 모델명",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "9fedfd44b7394439ad512": {
+        "id": "9fedfd44b7394439ad512",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "clause_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "조항 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "e239b34954034e9aa3c01": {
+        "id": "e239b34954034e9aa3c01",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "생성 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "e6a94e232ff543248aff3": {
+        "id": "e6a94e232ff543248aff3",
+        "tableId": "7bdb9d6d7b134a6c92765",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "설명 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "2d00536c16104665b4736": {
+        "id": "2d00536c16104665b4736",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "masked_text",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "마스킹된 전문",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "47819ef4b249428e8d457": {
+        "id": "47819ef4b249428e8d457",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "업로드 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "59f254f5aa674496baa86": {
+        "id": "59f254f5aa674496baa86",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "s3_key",
+        "dataType": "VARCHAR(500)",
+        "options": 0,
+        "logicalName": "원본 파일 경로",
+        "domainId": "dgnv4lz000000000000000000"
+      },
+      "74cb691d14534c92948f6": {
+        "id": "74cb691d14534c92948f6",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "계약서 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "921f1bf52b4647f6b5a85": {
+        "id": "921f1bf52b4647f6b5a85",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "status",
+        "comment": "CHECK (status IN ('UPLOADED','OCR','SPLIT','ANALYZING','ANALYZED','FAILED')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "처리 상태",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "b221e6bf5ef247a6a9e87": {
+        "id": "b221e6bf5ef247a6a9e87",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "dedef13e714d4fa6846fd": {
+        "id": "dedef13e714d4fa6846fd",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "title",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "계약서 제목",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "f705f707134f425f91be6": {
+        "id": "f705f707134f425f91be6",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "ocr_raw",
+        "comment": "Upstage 응답(마스킹 후)",
+        "dataType": "JSONB",
+        "options": 0,
+        "logicalName": "OCR 원본 응답",
+        "domainId": "dgnv4m3000000000000000000"
+      },
+      "fd3500349d5543369861c": {
+        "id": "fd3500349d5543369861c",
+        "tableId": "7ed2167c6e02401db637e",
+        "name": "contract_type",
+        "comment": "CHECK (contract_type IN ('MONTHLY','JEONSE')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "계약 유형",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "1b86694d0f1948ba90086": {
+        "id": "1b86694d0f1948ba90086",
+        "tableId": "80920c78737b4a59aefe2",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "토큰 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "3eaf8a420a3046d692f2e": {
+        "id": "3eaf8a420a3046d692f2e",
+        "tableId": "80920c78737b4a59aefe2",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "5c3ad249a44c4e05aa573": {
+        "id": "5c3ad249a44c4e05aa573",
+        "tableId": "80920c78737b4a59aefe2",
+        "name": "revoked",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "폐기 여부",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "761c2e6aa2014da5a93c8": {
+        "id": "761c2e6aa2014da5a93c8",
+        "tableId": "80920c78737b4a59aefe2",
+        "name": "expires_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "만료 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "b7a923ff0271457a9e159": {
+        "id": "b7a923ff0271457a9e159",
+        "tableId": "80920c78737b4a59aefe2",
+        "name": "token_hash",
+        "comment": "평문은 저장하지 않는다",
+        "dataType": "VARCHAR(128)",
+        "options": 4,
+        "logicalName": "토큰 해시",
+        "domainId": "dgnv4m1000000000000000000"
+      },
+      "04d8a14ee76749a3ab27a": {
+        "id": "04d8a14ee76749a3ab27a",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "raw",
+        "dataType": "JSONB",
+        "options": 0,
+        "logicalName": "토스 응답 원문",
+        "domainId": "dgnv4m3000000000000000000"
+      },
+      "0d141bebee0244ea8f12c": {
+        "id": "0d141bebee0244ea8f12c",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "order_id",
+        "dataType": "VARCHAR(64)",
+        "options": 4,
+        "logicalName": "주문 번호",
+        "domainId": "dgnv4m0000000000000000000"
+      },
+      "1697c2a174d54d3c8dec5": {
+        "id": "1697c2a174d54d3c8dec5",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "결제 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "54ecfac27cba42f9b730f": {
+        "id": "54ecfac27cba42f9b730f",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "status",
+        "comment": "CHECK (status IN ('READY','DONE','CANCELED','FAILED')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "결제 상태",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "646052ad44df4c23ae245": {
+        "id": "646052ad44df4c23ae245",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "approved_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "승인 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "64eb3eba9ca14517bbf80": {
+        "id": "64eb3eba9ca14517bbf80",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "payment_key",
+        "comment": "토스 paymentKey",
+        "dataType": "VARCHAR(200)",
+        "options": 4,
+        "logicalName": "결제 키",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "adc0ea41a34049428d833": {
+        "id": "adc0ea41a34049428d833",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "product_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "상품 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "da27d15e069649ccafb2c": {
+        "id": "da27d15e069649ccafb2c",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "method",
+        "dataType": "VARCHAR(30)",
+        "options": 0,
+        "logicalName": "결제 수단",
+        "domainId": "dgnv4lu000000000000000000"
+      },
+      "f13e47976c5647ba9498e": {
+        "id": "f13e47976c5647ba9498e",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "fa9b15b537ef4a4d9cfe1": {
+        "id": "fa9b15b537ef4a4d9cfe1",
+        "tableId": "920ca212ecdd4981be149",
+        "name": "amount",
+        "comment": "CHECK (amount > 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "결제 금액",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "16566ef5632a4fb797603": {
+        "id": "16566ef5632a4fb797603",
+        "tableId": "94ec0ec3c65748c4bdf98",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 10,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "17d1d3c14e3a44e1bcec4": {
+        "id": "17d1d3c14e3a44e1bcec4",
+        "tableId": "94ec0ec3c65748c4bdf98",
+        "name": "push_enabled",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "푸시 알림 사용",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "2374c49411d34a7da25a3": {
+        "id": "2374c49411d34a7da25a3",
+        "tableId": "94ec0ec3c65748c4bdf98",
+        "name": "email_enabled",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "메일 알림 사용",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "f9cdd6a616f442799e766": {
+        "id": "f9cdd6a616f442799e766",
+        "tableId": "94ec0ec3c65748c4bdf98",
+        "name": "remind_days",
+        "comment": "예: {30,7,1}",
+        "dataType": "INT[]",
+        "options": 0,
+        "logicalName": "기본 알림 시점",
+        "domainId": "dgnv4ll000000000000000000"
+      },
+      "0a4fd123a32d440092eda": {
+        "id": "0a4fd123a32d440092eda",
+        "tableId": "97fe4b1c4a1b4ec7ab08c",
+        "name": "source_id",
+        "comment": "legal_documents.id 또는 kftc_cases.id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "근거 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "1d730754b38b444b9d080": {
+        "id": "1d730754b38b444b9d080",
+        "tableId": "97fe4b1c4a1b4ec7ab08c",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "근거 인용 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "3464826113de4ef0ba212": {
+        "id": "3464826113de4ef0ba212",
+        "tableId": "97fe4b1c4a1b4ec7ab08c",
+        "name": "source_type",
+        "comment": "CHECK (source_type IN ('LAW','PRECEDENT','KFTC_CASE')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "근거 유형",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "77eb1c0af80749bb8e887": {
+        "id": "77eb1c0af80749bb8e887",
+        "tableId": "97fe4b1c4a1b4ec7ab08c",
+        "name": "explanation_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "설명 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "eb5d37046b2343a0b2bcb": {
+        "id": "eb5d37046b2343a0b2bcb",
+        "tableId": "97fe4b1c4a1b4ec7ab08c",
+        "name": "score",
+        "comment": "CHECK (score BETWEEN 0 AND 1) (제안)",
+        "dataType": "NUMERIC(5,4)",
+        "options": 0,
+        "logicalName": "검색 유사도",
+        "domainId": "dgnv4lo000000000000000000"
+      },
+      "439bd215c19e446ab7669": {
+        "id": "439bd215c19e446ab7669",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "title",
+        "comment": "법령명/사건명",
+        "dataType": "VARCHAR(500)",
+        "options": 0,
+        "logicalName": "제목",
+        "domainId": "dgnv4lz000000000000000000"
+      },
+      "6160482c110247919247d": {
+        "id": "6160482c110247919247d",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "doc_type",
+        "comment": "CHECK (doc_type IN ('LAW','PRECEDENT')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "문서 유형",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "6b5f4e86b8db408197d22": {
+        "id": "6b5f4e86b8db408197d22",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "source_id",
+        "comment": "법령ID·판례일련번호",
+        "dataType": "VARCHAR(100)",
+        "options": 0,
+        "logicalName": "원천 ID",
+        "domainId": "dgnv4lw000000000000000000"
+      },
+      "8af34860b38640a093ee8": {
+        "id": "8af34860b38640a093ee8",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "court",
+        "comment": "판례",
+        "dataType": "VARCHAR(100)",
+        "options": 0,
+        "logicalName": "법원명",
+        "domainId": "dgnv4lw000000000000000000"
+      },
+      "90e9c5c33238454cbbdcf": {
+        "id": "90e9c5c33238454cbbdcf",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "url",
+        "dataType": "VARCHAR(500)",
+        "options": 0,
+        "logicalName": "원문 URL",
+        "domainId": "dgnv4lz000000000000000000"
+      },
+      "91e78777884242908c462": {
+        "id": "91e78777884242908c462",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "fetched_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "수집 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "b836a2ed6d174c08883f4": {
+        "id": "b836a2ed6d174c08883f4",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "법령·판례 문서 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "d484096dc2504614b4c68": {
+        "id": "d484096dc2504614b4c68",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "decided_at",
+        "comment": "판례",
+        "dataType": "DATE",
+        "options": 0,
+        "logicalName": "선고일",
+        "domainId": "dgnv4lh000000000000000000"
+      },
+      "f6914d87c90147e99e30b": {
+        "id": "f6914d87c90147e99e30b",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "content",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "본문",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "fb84a45626fb400ea5d51": {
+        "id": "fb84a45626fb400ea5d51",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "name": "ref",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "조문·사건번호",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "236058868a404a8c8b44f": {
+        "id": "236058868a404a8c8b44f",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "similarity",
+        "comment": "CHECK (similarity BETWEEN 0 AND 1) (제안)",
+        "dataType": "NUMERIC(5,4)",
+        "options": 0,
+        "logicalName": "유사도",
+        "domainId": "dgnv4lo000000000000000000"
+      },
+      "4b63bb9584204fc686586": {
+        "id": "4b63bb9584204fc686586",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "before_clause_id",
+        "comment": "추가 조항이면 NULL",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "수정 전 조항 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "7d4b0bb9ec5d413384e26": {
+        "id": "7d4b0bb9ec5d413384e26",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "change_type",
+        "comment": "CHECK (change_type IN ('ADDED','DELETED','MODIFIED','SAME')) (제안)",
+        "dataType": "VARCHAR(10)",
+        "options": 0,
+        "logicalName": "변경 유형",
+        "domainId": "dgnv4ls000000000000000000"
+      },
+      "c68faa47dd6b4f1f953e9": {
+        "id": "c68faa47dd6b4f1f953e9",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "after_clause_id",
+        "comment": "삭제 조항이면 NULL. CHECK (before_clause_id IS NOT NULL OR after_clause_id IS NOT NULL) (제안)",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "수정 후 조항 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "d91653fb29fc45edb546d": {
+        "id": "d91653fb29fc45edb546d",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "risk_delta",
+        "comment": "CHECK (risk_delta IN (-1,0,1)) (제안). -1 개선/0/+1 악화",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "위험도 변화",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "ea72735c28734eec948c9": {
+        "id": "ea72735c28734eec948c9",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "비교 쌍 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "f41a72608105412c97cae": {
+        "id": "f41a72608105412c97cae",
+        "tableId": "bd3e7d9346274b69820ee",
+        "name": "comparison_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "비교 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "22aaad577f6f4976b4fe6": {
+        "id": "22aaad577f6f4976b4fe6",
+        "tableId": "db5068e48d58468394f40",
+        "name": "status",
+        "comment": "CHECK (status IN ('PENDING','RUNNING','DONE','FAILED')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "분석 상태",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "60794bcfc0fd4b8a80130": {
+        "id": "60794bcfc0fd4b8a80130",
+        "tableId": "db5068e48d58468394f40",
+        "name": "created_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "분석 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "834a728d59e649079073b": {
+        "id": "834a728d59e649079073b",
+        "tableId": "db5068e48d58468394f40",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "분석 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "8fbc0a8778d14835af2b4": {
+        "id": "8fbc0a8778d14835af2b4",
+        "tableId": "db5068e48d58468394f40",
+        "name": "model_version",
+        "dataType": "VARCHAR(50)",
+        "options": 0,
+        "logicalName": "모델 버전",
+        "domainId": "dgnv4lv000000000000000000"
+      },
+      "977cf566dcb345d8ae33c": {
+        "id": "977cf566dcb345d8ae33c",
+        "tableId": "db5068e48d58468394f40",
+        "name": "overall_score",
+        "comment": "CHECK (overall_score BETWEEN 0 AND 100) (제안)",
+        "dataType": "NUMERIC(5,2)",
+        "options": 0,
+        "logicalName": "종합 위험 점수",
+        "domainId": "dgnv4lp000000000000000000"
+      },
+      "cb0f3670366d4a7dac9ba": {
+        "id": "cb0f3670366d4a7dac9ba",
+        "tableId": "db5068e48d58468394f40",
+        "name": "summary",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "분석 요약",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "fc5124c7942a4c35a8614": {
+        "id": "fc5124c7942a4c35a8614",
+        "tableId": "db5068e48d58468394f40",
+        "name": "contract_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "계약서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "0c45ae80a1ad41608463b": {
+        "id": "0c45ae80a1ad41608463b",
+        "tableId": "e560873ed6684faa94cf3",
+        "name": "credits",
+        "comment": "CHECK (credits > 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "지급 분석 횟수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "3efe0d75efae473ab28bc": {
+        "id": "3efe0d75efae473ab28bc",
+        "tableId": "e560873ed6684faa94cf3",
+        "name": "price",
+        "comment": "원. CHECK (price >= 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "가격",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "5790e4f3d69d4af992360": {
+        "id": "5790e4f3d69d4af992360",
+        "tableId": "e560873ed6684faa94cf3",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "상품 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "c24b120a2dba41dbbd0e5": {
+        "id": "c24b120a2dba41dbbd0e5",
+        "tableId": "e560873ed6684faa94cf3",
+        "name": "active",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "판매 여부",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "cb462f06c723492ca4ae5": {
+        "id": "cb462f06c723492ca4ae5",
+        "tableId": "e560873ed6684faa94cf3",
+        "name": "name",
+        "dataType": "VARCHAR(100)",
+        "options": 0,
+        "logicalName": "상품명",
+        "domainId": "dgnv4lw000000000000000000"
+      },
+      "24f5e6f1f13e40c688dcd": {
+        "id": "24f5e6f1f13e40c688dcd",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "channel",
+        "comment": "CHECK (channel IN ('EMAIL','PUSH')) (제안)",
+        "dataType": "VARCHAR(10)",
+        "options": 0,
+        "logicalName": "발송 채널",
+        "domainId": "dgnv4ls000000000000000000"
+      },
+      "26d44f6bec2549cea33d6": {
+        "id": "26d44f6bec2549cea33d6",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "scheduled_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "발송 예정 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "45e14c1e94bd433d97dd7": {
+        "id": "45e14c1e94bd433d97dd7",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "status",
+        "comment": "CHECK (status IN ('PENDING','SENT','FAILED')) (제안)",
+        "dataType": "VARCHAR(10)",
+        "options": 0,
+        "logicalName": "발송 상태",
+        "domainId": "dgnv4ls000000000000000000"
+      },
+      "5ba42f100c3c414c9f9d6": {
+        "id": "5ba42f100c3c414c9f9d6",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "알림 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "90e5657fc6914de095893": {
+        "id": "90e5657fc6914de095893",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "body",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "알림 본문",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "9f1388f039c04d9da0ce7": {
+        "id": "9f1388f039c04d9da0ce7",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "title",
+        "dataType": "TEXT",
+        "options": 0,
+        "logicalName": "알림 제목",
+        "domainId": "dgnv4m2000000000000000000"
+      },
+      "a1d9c1cf32ef4f9fb2bb2": {
+        "id": "a1d9c1cf32ef4f9fb2bb2",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "be53c00beb034b5d820bc": {
+        "id": "be53c00beb034b5d820bc",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "milestone_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "일정 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "d0d1486f7da045b0b293c": {
+        "id": "d0d1486f7da045b0b293c",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "sent_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "발송 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "f635a54a694a49ba8a4df": {
+        "id": "f635a54a694a49ba8a4df",
+        "tableId": "e9e3ed89a5f040a48f135",
+        "name": "read_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "읽은 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "057efbbb84584aa183a58": {
+        "id": "057efbbb84584aa183a58",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "2ea6a9077f334b78807af": {
+        "id": "2ea6a9077f334b78807af",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "title",
+        "dataType": "VARCHAR(200)",
+        "options": 0,
+        "logicalName": "일정 제목",
+        "domainId": "dgnv4lx000000000000000000"
+      },
+      "45f64304484d4ae592b8d": {
+        "id": "45f64304484d4ae592b8d",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "due_date",
+        "dataType": "DATE",
+        "options": 0,
+        "logicalName": "기한일",
+        "domainId": "dgnv4lh000000000000000000"
+      },
+      "da0a1542c02c4be897432": {
+        "id": "da0a1542c02c4be897432",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "type",
+        "comment": "CHECK (type IN ('CONTRACT','BALANCE','MOVE_IN','RENEWAL_NOTICE','END','CUSTOM')) (제안)",
+        "dataType": "VARCHAR(30)",
+        "options": 0,
+        "logicalName": "일정 유형",
+        "domainId": "dgnv4lu000000000000000000"
+      },
+      "e7912fa7f77e408ca88fa": {
+        "id": "e7912fa7f77e408ca88fa",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "일정 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "ef68c50d5e6d46948326b": {
+        "id": "ef68c50d5e6d46948326b",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "remind_days",
+        "comment": "예: {30,7,1}",
+        "dataType": "INT[]",
+        "options": 0,
+        "logicalName": "알림 시점(일 전)",
+        "domainId": "dgnv4ll000000000000000000"
+      },
+      "f0f9039fecb6495ca0417": {
+        "id": "f0f9039fecb6495ca0417",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "contract_id",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "계약서 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "fb6287b3c3414384ae540": {
+        "id": "fb6287b3c3414384ae540",
+        "tableId": "f4fbe74a58504582a57e2",
+        "name": "done",
+        "dataType": "BOOLEAN",
+        "options": 0,
+        "logicalName": "완료 여부",
+        "domainId": "dgnv4li000000000000000000"
+      },
+      "45635cc699074306ad2d2": {
+        "id": "45635cc699074306ad2d2",
+        "tableId": "fc00d7dc9ea7468b862c5",
+        "name": "free_remaining",
+        "comment": "가입 시 2. CHECK (free_remaining >= 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "무료 잔여 횟수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "58b29c816baf4d919f8b2": {
+        "id": "58b29c816baf4d919f8b2",
+        "tableId": "fc00d7dc9ea7468b862c5",
+        "name": "paid_remaining",
+        "comment": "CHECK (paid_remaining >= 0) (제안)",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "유료 잔여 횟수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "9195ce32469448d5ab152": {
+        "id": "9195ce32469448d5ab152",
+        "tableId": "fc00d7dc9ea7468b862c5",
+        "name": "version",
+        "comment": "낙관적 락",
+        "dataType": "BIGINT",
+        "options": 0,
+        "logicalName": "버전",
+        "domainId": "dgnv4lf000000000000000000"
+      },
+      "b4a5fd6c1bee4935bc483": {
+        "id": "b4a5fd6c1bee4935bc483",
+        "tableId": "fc00d7dc9ea7468b862c5",
+        "name": "user_id",
+        "dataType": "BIGINT",
+        "options": 10,
+        "logicalName": "회원 ID",
+        "domainId": "dgnv4le000000000000000000"
+      },
+      "03699fa9953147159bde6": {
+        "id": "03699fa9953147159bde6",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "processed",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "처리 건수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "35b87700a75d44978d925": {
+        "id": "35b87700a75d44978d925",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "status",
+        "comment": "CHECK (status IN ('RUNNING','DONE','FAILED')) (제안)",
+        "dataType": "VARCHAR(20)",
+        "options": 0,
+        "logicalName": "작업 상태",
+        "domainId": "dgnv4lt000000000000000000"
+      },
+      "659bf5c03ca441c3815c2": {
+        "id": "659bf5c03ca441c3815c2",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "started_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "시작 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      },
+      "8347a00180c749568183b": {
+        "id": "8347a00180c749568183b",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "target",
+        "comment": "CHECK (target IN ('LAW','PRECEDENT','KFTC')) (제안)",
+        "dataType": "VARCHAR(30)",
+        "options": 0,
+        "logicalName": "적재 대상",
+        "domainId": "dgnv4lu000000000000000000"
+      },
+      "a504b8a322aa423daecf4": {
+        "id": "a504b8a322aa423daecf4",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "id",
+        "dataType": "BIGSERIAL",
+        "options": 11,
+        "logicalName": "적재 작업 ID",
+        "domainId": "dgnv4ld000000000000000000"
+      },
+      "d2e21c63f43a473b8a5e6": {
+        "id": "d2e21c63f43a473b8a5e6",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "failed",
+        "dataType": "INT",
+        "options": 0,
+        "logicalName": "실패 건수",
+        "domainId": "dgnv4lk000000000000000000"
+      },
+      "dc35d146f09b4912bf7ab": {
+        "id": "dc35d146f09b4912bf7ab",
+        "tableId": "fd4f4eb1b006418db11c5",
+        "name": "finished_at",
+        "dataType": "TIMESTAMPTZ",
+        "options": 0,
+        "logicalName": "종료 일시",
+        "domainId": "dgnv4lg000000000000000000"
+      }
+    },
+    "relationshipEntities": {
+      "12d68bf885134756b3d68": {
+        "id": "12d68bf885134756b3d68",
+        "relationshipType": 8,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "94ec0ec3c65748c4bdf98",
+          "columnIds": [
+            "16566ef5632a4fb797603"
+          ]
+        }
+      },
+      "23100f4559f04096bf7cc": {
+        "id": "23100f4559f04096bf7cc",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "9e92307b6f7b4f62b0d8f",
+          "columnIds": [
+            "b836a2ed6d174c08883f4"
+          ]
+        },
+        "end": {
+          "tableId": "70cab9e85eee43dbacf92",
+          "columnIds": [
+            "793f37b1a8314e2893f7f"
+          ]
+        }
+      },
+      "253a3acdf8254990a2c52": {
+        "id": "253a3acdf8254990a2c52",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "74cb691d14534c92948f6"
+          ]
+        },
+        "end": {
+          "tableId": "62ae7f17b825400fab86a",
+          "columnIds": [
+            "018c97bdc6ce4cbab711a"
+          ]
+        }
+      },
+      "29135131d6dd4bf2947e7": {
+        "id": "29135131d6dd4bf2947e7",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "f4fbe74a58504582a57e2",
+          "columnIds": [
+            "e7912fa7f77e408ca88fa"
+          ]
+        },
+        "end": {
+          "tableId": "e9e3ed89a5f040a48f135",
+          "columnIds": [
+            "be53c00beb034b5d820bc"
+          ]
+        }
+      },
+      "3069dc2d6514498d812d7": {
+        "id": "3069dc2d6514498d812d7",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "789c649a9b604949aed6c",
+          "columnIds": [
+            "276f90890b0649089ff96"
+          ]
+        }
+      },
+      "3cd444e419c24473aa867": {
+        "id": "3cd444e419c24473aa867",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "b221e6bf5ef247a6a9e87"
+          ]
+        }
+      },
+      "4049e6272e9240dfa1319": {
+        "id": "4049e6272e9240dfa1319",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "80920c78737b4a59aefe2",
+          "columnIds": [
+            "3eaf8a420a3046d692f2e"
+          ]
+        }
+      },
+      "47e3c8f97c2f41a2af802": {
+        "id": "47e3c8f97c2f41a2af802",
+        "relationshipType": 4,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "74cb691d14534c92948f6"
+          ]
+        },
+        "end": {
+          "tableId": "f4fbe74a58504582a57e2",
+          "columnIds": [
+            "f0f9039fecb6495ca0417"
+          ]
+        }
+      },
+      "563122c7274e456d8904e": {
+        "id": "563122c7274e456d8904e",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "3148bfe0a92d41d0bbe00",
+          "columnIds": [
+            "2eda8220498748ce991ed"
+          ]
+        }
+      },
+      "56d416d193cd4d49a1c01": {
+        "id": "56d416d193cd4d49a1c01",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "e9e3ed89a5f040a48f135",
+          "columnIds": [
+            "a1d9c1cf32ef4f9fb2bb2"
+          ]
+        }
+      },
+      "575f49ea2fd54d77a609f": {
+        "id": "575f49ea2fd54d77a609f",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "645ea16f86ef4784bd8ba",
+          "columnIds": [
+            "11066ff59411410fa7dd4"
+          ]
+        }
+      },
+      "5c1654433259486abccee": {
+        "id": "5c1654433259486abccee",
+        "relationshipType": 4,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "6b32fb4c7ef046acab6a3",
+          "columnIds": [
+            "c2b12481814b4918974e4"
+          ]
+        },
+        "end": {
+          "tableId": "bd3e7d9346274b69820ee",
+          "columnIds": [
+            "4b63bb9584204fc686586"
+          ]
+        }
+      },
+      "5fee11f0ffd949979fc90": {
+        "id": "5fee11f0ffd949979fc90",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "62ae7f17b825400fab86a",
+          "columnIds": [
+            "0f3ded322ed94d22a48cf"
+          ]
+        }
+      },
+      "63ca4f49d0684ff29477a": {
+        "id": "63ca4f49d0684ff29477a",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7bdb9d6d7b134a6c92765",
+          "columnIds": [
+            "e6a94e232ff543248aff3"
+          ]
+        },
+        "end": {
+          "tableId": "97fe4b1c4a1b4ec7ab08c",
+          "columnIds": [
+            "77eb1c0af80749bb8e887"
+          ]
+        }
+      },
+      "6a6a5e8cd0104a4391073": {
+        "id": "6a6a5e8cd0104a4391073",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "74cb691d14534c92948f6"
+          ]
+        },
+        "end": {
+          "tableId": "62ae7f17b825400fab86a",
+          "columnIds": [
+            "2612e6d28b394d41a1551"
+          ]
+        }
+      },
+      "73dcc6cc8ad14fc5a0738": {
+        "id": "73dcc6cc8ad14fc5a0738",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "920ca212ecdd4981be149",
+          "columnIds": [
+            "f13e47976c5647ba9498e"
+          ]
+        }
+      },
+      "77b4ca7f091d49ee98da6": {
+        "id": "77b4ca7f091d49ee98da6",
+        "relationshipType": 4,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "6b32fb4c7ef046acab6a3",
+          "columnIds": [
+            "c2b12481814b4918974e4"
+          ]
+        },
+        "end": {
+          "tableId": "bd3e7d9346274b69820ee",
+          "columnIds": [
+            "c68faa47dd6b4f1f953e9"
+          ]
+        }
+      },
+      "7d9fc7f3e54840cfa5840": {
+        "id": "7d9fc7f3e54840cfa5840",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "f4fbe74a58504582a57e2",
+          "columnIds": [
+            "057efbbb84584aa183a58"
+          ]
+        }
+      },
+      "8579edabc79b427184940": {
+        "id": "8579edabc79b427184940",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "74cb691d14534c92948f6"
+          ]
+        },
+        "end": {
+          "tableId": "db5068e48d58468394f40",
+          "columnIds": [
+            "fc5124c7942a4c35a8614"
+          ]
+        }
+      },
+      "9caac8cac213437b8eff3": {
+        "id": "9caac8cac213437b8eff3",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "7ed2167c6e02401db637e",
+          "columnIds": [
+            "74cb691d14534c92948f6"
+          ]
+        },
+        "end": {
+          "tableId": "6b32fb4c7ef046acab6a3",
+          "columnIds": [
+            "58d64b633a064018a1215"
+          ]
+        }
+      },
+      "9e3328761113434d9760e": {
+        "id": "9e3328761113434d9760e",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "6b32fb4c7ef046acab6a3",
+          "columnIds": [
+            "c2b12481814b4918974e4"
+          ]
+        },
+        "end": {
+          "tableId": "7bdb9d6d7b134a6c92765",
+          "columnIds": [
+            "9fedfd44b7394439ad512"
+          ]
+        }
+      },
+      "b197c3defd754df9b1b0b": {
+        "id": "b197c3defd754df9b1b0b",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "e560873ed6684faa94cf3",
+          "columnIds": [
+            "5790e4f3d69d4af992360"
+          ]
+        },
+        "end": {
+          "tableId": "920ca212ecdd4981be149",
+          "columnIds": [
+            "adc0ea41a34049428d833"
+          ]
+        }
+      },
+      "bd7cf176581a496c95c84": {
+        "id": "bd7cf176581a496c95c84",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "62ae7f17b825400fab86a",
+          "columnIds": [
+            "17fbee86b9684a0cb026f"
+          ]
+        },
+        "end": {
+          "tableId": "bd3e7d9346274b69820ee",
+          "columnIds": [
+            "f41a72608105412c97cae"
+          ]
+        }
+      },
+      "d6d3284a506b4543b7a84": {
+        "id": "d6d3284a506b4543b7a84",
+        "relationshipType": 8,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "39ac45be098e41d5801ae",
+          "columnIds": [
+            "5bf9cbe2255a42609abe8"
+          ]
+        },
+        "end": {
+          "tableId": "fc00d7dc9ea7468b862c5",
+          "columnIds": [
+            "b4a5fd6c1bee4935bc483"
+          ]
+        }
+      },
+      "f297c1c51725474fb349d": {
+        "id": "f297c1c51725474fb349d",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "db5068e48d58468394f40",
+          "columnIds": [
+            "834a728d59e649079073b"
+          ]
+        },
+        "end": {
+          "tableId": "2d42e946cc78466593ff9",
+          "columnIds": [
+            "f2bf332cf3a64b90b68fb"
+          ]
+        }
+      },
+      "fd872c646d01490780efe": {
+        "id": "fd872c646d01490780efe",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "6b32fb4c7ef046acab6a3",
+          "columnIds": [
+            "c2b12481814b4918974e4"
+          ]
+        },
+        "end": {
+          "tableId": "2d42e946cc78466593ff9",
+          "columnIds": [
+            "ba15f23d52a040b499b8c"
+          ]
+        }
+      }
+    },
+    "indexEntities": {
+      "6412c70319d2421bba4e0": {
+        "id": "6412c70319d2421bba4e0",
+        "name": "uq_oauth_accounts_provider_provider_user_id",
+        "tableId": "645ea16f86ef4784bd8ba",
+        "indexColumnIds": [
+          "db9abefc07944ef6bb1ea",
+          "24198855c55e4691b3494"
+        ],
+        "unique": true
+      },
+      "72338620125047f391b57": {
+        "id": "72338620125047f391b57",
+        "name": "uq_legal_documents_doc_type_source_id",
+        "tableId": "9e92307b6f7b4f62b0d8f",
+        "indexColumnIds": [
+          "fdac7f24b02c42fc8fae8",
+          "116f0c2b1fc3483a99180"
+        ],
+        "unique": true
+      },
+      "7d76179ffd54486caec6b": {
+        "id": "7d76179ffd54486caec6b",
+        "name": "idx_legal_chunks_embedding_hnsw",
+        "tableId": "70cab9e85eee43dbacf92",
+        "indexColumnIds": [
+          "90fe3ea84e274b57a0a24"
+        ],
+        "unique": false
+      },
+      "96501e4e25db4936a1e42": {
+        "id": "96501e4e25db4936a1e42",
+        "name": "idx_kftc_cases_embedding_hnsw",
+        "tableId": "5253878f841944ed842eb",
+        "indexColumnIds": [
+          "0b661f12f93b4a108b416"
+        ],
+        "unique": false
+      }
+    },
+    "indexColumnEntities": {
+      "24198855c55e4691b3494": {
+        "id": "24198855c55e4691b3494",
+        "indexId": "6412c70319d2421bba4e0",
+        "columnId": "7a10d516c1634de8b5360",
+        "orderType": 1
+      },
+      "db9abefc07944ef6bb1ea": {
+        "id": "db9abefc07944ef6bb1ea",
+        "indexId": "6412c70319d2421bba4e0",
+        "columnId": "a3291f607e624ad1afd12",
+        "orderType": 1
+      },
+      "116f0c2b1fc3483a99180": {
+        "id": "116f0c2b1fc3483a99180",
+        "indexId": "72338620125047f391b57",
+        "columnId": "6b5f4e86b8db408197d22",
+        "orderType": 1
+      },
+      "fdac7f24b02c42fc8fae8": {
+        "id": "fdac7f24b02c42fc8fae8",
+        "indexId": "72338620125047f391b57",
+        "columnId": "6160482c110247919247d",
+        "orderType": 1
+      },
+      "90fe3ea84e274b57a0a24": {
+        "id": "90fe3ea84e274b57a0a24",
+        "indexId": "7d76179ffd54486caec6b",
+        "columnId": "fb042524da5643d3b136e",
+        "orderType": 1
+      },
+      "0b661f12f93b4a108b416": {
+        "id": "0b661f12f93b4a108b416",
+        "indexId": "96501e4e25db4936a1e42",
+        "columnId": "af598a2a778e4355bae4b",
+        "orderType": 1
+      }
+    },
+    "memoEntities": {
+      "03h7e4tk7z6v2qhtnmtin0hej": {
+        "id": "03h7e4tk7z6v2qhtnmtin0hej",
+        "value": "벡터 값은 PGVector에 임베딩한 벡터값을 레퍼런스 합니다.",
+        "ui": {
+          "x": 3161.4508,
+          "y": 1118.3724,
+          "width": 333.79661016949166,
+          "height": 100
+        }
+      }
+    },
+    "tableGroupEntities": {
+      "03h7dxtfoypcuh3dn1zmz9z8b": {
+        "id": "03h7dxtfoypcuh3dn1zmz9z8b",
+        "name": "계약•분석",
+        "color": "#f76b15",
+        "ui": {
+          "x": -1442.6708,
+          "y": 1041.8175,
+          "width": 4496.5352,
+          "height": 822.7197999999999
+        }
+      },
+      "03h7e0vg8u65d3ojmvbdjvfai": {
+        "id": "03h7e0vg8u65d3ojmvbdjvfai",
+        "name": "법령·판례·사례",
+        "color": "#e5484d",
+        "ui": {
+          "x": 3138.3602,
+          "y": 1074.1516,
+          "width": 3064.1206999999995,
+          "height": 518.8872000000001
+        }
+      },
+      "1c8989acfb5847e39b301": {
+        "id": "1c8989acfb5847e39b301",
+        "name": "회원·인증",
+        "color": "#4f8cff",
+        "ui": {
+          "x": 82.1055,
+          "y": -138.9481,
+          "width": 1899.169811320755,
+          "height": 774.1509433962265
+        }
+      },
+      "70078c3f8a8d4bd790f74": {
+        "id": "70078c3f8a8d4bd790f74",
+        "name": "결제·이용권",
+        "color": "#e056fd",
+        "ui": {
+          "x": 2668.2359,
+          "y": -266.4729,
+          "width": 2368,
+          "height": 860
+        }
+      },
+      "ea56f5248d6e4e3e8fb47": {
+        "id": "ea56f5248d6e4e3e8fb47",
+        "name": "일정·알림",
+        "color": "#2ecc71",
+        "ui": {
+          "x": 1287.5608,
+          "y": 2115.7511,
+          "width": 1660,
+          "height": 460
+        }
+      }
+    },
+    "domainEntities": {
+      "fields": [
+        "id",
+        "name",
+        "category",
+        "dataType",
+        "description"
+      ],
+      "rows": [
+        ["dgnv4ld000000000000000000","식별자","식별","BIGSERIAL","테이블 대리키"],
+        ["dgnv4le000000000000000000","참조식별자","식별","BIGINT","다른 테이블의 식별자를 가리키는 값"],
+        ["dgnv4lf000000000000000000","버전","식별","BIGINT","이용권 지갑의 낙관적 잠금 버전"],
+        ["dgnv4lg000000000000000000","일시","일시","TIMESTAMPTZ","시각. 타임존 포함"],
+        ["dgnv4lh000000000000000000","일자","일시","DATE","날짜만 있는 값"],
+        ["dgnv4li000000000000000000","여부","플래그","BOOLEAN","참 또는 거짓"],
+        ["dgnv4lj000000000000000000","삭제여부","플래그","SMALLINT","공정위 사례의 시정 후 삭제 여부. 0 또는 1"],
+        ["dgnv4lk000000000000000000","정수","수량","INT","번호, 건수, 금액, 가격, 잔여 횟수"],
+        ["dgnv4ll000000000000000000","일수목록","수량","INT[]","알림을 보낼 기준 일수 목록"],
+        ["dgnv4lm000000000000000000","식별자목록","수량","BIGINT[]","유사 사례 식별자 목록"],
+        ["dgnv4ln000000000000000000","확률","수치","NUMERIC(5,4)","0 이상 1 이하의 위험 확률"],
+        ["dgnv4lo000000000000000000","유사도","수치","NUMERIC(5,4)","0 이상 1 이하의 유사도 또는 근거 점수"],
+        ["dgnv4lp000000000000000000","점수","수치","NUMERIC(5,2)","계약 전체 위험 점수"],
+        ["dgnv4lq000000000000000000","이메일","문자","VARCHAR(255)","회원 이메일"],
+        ["dgnv4lr000000000000000000","푸시암호","문자","VARCHAR(255)","웹 푸시 구독의 p256dh 또는 auth"],
+        ["dgnv4ls000000000000000000","코드10","문자","VARCHAR(10)","위험 등급, 원장 유형, 변경 유형, 알림 채널·상태"],
+        ["dgnv4lt000000000000000000","코드20","문자","VARCHAR(20)","상태, 역할, 제공자, 계약 유형 등 짧은 코드"],
+        ["dgnv4lu000000000000000000","코드30","문자","VARCHAR(30)","결제 수단, 마일스톤 유형, 적재 대상"],
+        ["dgnv4lv000000000000000000","이름50","문자","VARCHAR(50)","별명, 유형, 모델명처럼 짧은 이름"],
+        ["dgnv4lw000000000000000000","이름100","문자","VARCHAR(100)","상품명, 법원, 외부 출처 식별자"],
+        ["dgnv4lx000000000000000000","제목200","문자","VARCHAR(200)","계약·조항·마일스톤 제목, 결제 키, 법령 조문"],
+        ["dgnv4ly000000000000000000","제목300","문자","VARCHAR(300)","공정위 보도자료 제목"],
+        ["dgnv4lz000000000000000000","경로500","문자","VARCHAR(500)","URL, S3 키, 사업자명"],
+        ["dgnv4m0000000000000000000","주문번호","문자","VARCHAR(64)","토스 주문 번호"],
+        ["dgnv4m1000000000000000000","토큰해시","문자","VARCHAR(128)","리프레시 토큰 해시"],
+        ["dgnv4m2000000000000000000","본문","문자","TEXT","조항, 설명, 요약, 알림 본문, 푸시 엔드포인트"],
+        ["dgnv4m3000000000000000000","문서","구조","JSONB","원문 JSON. OCR 결과, 결제 원문, 웹훅 페이로드"],
+        ["dgnv4m4000000000000000000","임베딩","구조","VECTOR(1024)","BGE-M3 1024차원 벡터"]
+      ]
+    }
+  }
+}
