@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Boot 기본 콘솔·파일 조각을 가져오고, dev/prod에만 ERROR 전용 롤링 파일을 추가한다.
+  포맷·롤링 정책(크기·일수·gzip)·LOG_FILE은 application*.yml 의 logging.* 가 시스템 프로퍼티로 넘긴다.
+-->
+<configuration>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+	<springProfile name="local | test">
+		<include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+		<root level="INFO">
+			<appender-ref ref="CONSOLE"/>
+		</root>
+	</springProfile>
+
+	<springProfile name="dev | prod">
+		<include resource="org/springframework/boot/logging/logback/structured-console-appender.xml"/>
+		<include resource="org/springframework/boot/logging/logback/structured-file-appender.xml"/>
+		<appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+				<level>ERROR</level>
+			</filter>
+			<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+				<format>${FILE_LOG_STRUCTURED_FORMAT}</format>
+				<charset>${FILE_LOG_CHARSET}</charset>
+			</encoder>
+			<file>${LOG_PATH:-./logs}/contractcheck-error.log</file>
+			<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+				<fileNamePattern>${LOG_PATH:-./logs}/contractcheck-error.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+				<cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START:-false}</cleanHistoryOnStart>
+				<maxFileSize>${LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE:-100MB}</maxFileSize>
+				<totalSizeCap>${LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP:-3GB}</totalSizeCap>
+				<maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-30}</maxHistory>
+			</rollingPolicy>
+		</appender>
+		<root level="INFO">
+			<appender-ref ref="CONSOLE"/>
+			<appender-ref ref="FILE"/>
+			<appender-ref ref="ERROR_FILE"/>
+		</root>
+	</springProfile>
+
+	<!-- 알 수 없는 프로필은 콘솔만 열어 로그가 사라지지 않게 한다. -->
+	<springProfile name="!(local | test | dev | prod)">
+		<include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+		<root level="INFO">
+			<appender-ref ref="CONSOLE"/>
+		</root>
+	</springProfile>
+</configuration>
