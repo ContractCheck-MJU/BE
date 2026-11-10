@@ -1,0 +1,6 @@
+---
+description: contractcheck 핵심 규칙은 AGENTS.md와 docs/steering/에 있다.
+alwaysApply: true
+---
+
+이 저장소의 핵심 규칙은 `AGENTS.md`에 있다. 코드를 수정하기 전에 그 파일을 읽고, 색인의 "언제 읽을지"에 따라 `docs/steering/`의 해당 문서를 읽는다. 내용을 여기에 복제하지 않는다.
