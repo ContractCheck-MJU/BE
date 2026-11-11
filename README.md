@@ -10,75 +10,147 @@
 
 ## 아키텍처
 
-Spring Boot 앱이 DB, 인증, OCR, LLM, 결제를 소유한다. 추론 서버는 FastAPI이며 허용 경로는 `POST /classify`, `POST /embed`, `GET /health`, `POST /models/reload`뿐이다. 벡터 검색은 우리 테이블에 대한 native SQL(`ORDER BY embedding <=> ?`)이다.
+### 시스템 아키텍처
 
-```mermaid
-flowchart LR
-  Client[클라이언트] --> Spring[Spring Boot 앱]
-  Spring --> PG[(PostgreSQL + pgvector)]
-  Spring --> FastAPI[FastAPI 추론]
-  FastAPI --> Classify["POST /classify"]
-  FastAPI --> Embed["POST /embed"]
-  Spring --> OCR[Upstage OCR]
-  Spring --> Claude[Claude]
-  Spring --> Toss[Toss Payments]
-```
+![시스템 아키텍처](docs/assets/img.png)
 
-패키지와 계층 규칙은 [docs/steering/structure.md](docs/steering/structure.md)다.
+- Spring Boot 앱이 DB, 인증, OCR, LLM, 결제를 소유
+- 추론 서버는 FastAPI
+  - 허용 경로:
+    - `POST /classify`
+    - `POST /embed`
+    - `GET /health`
+    - `POST /models/reload`
 
-## 스택
+패키지와 계층 규칙은 [docs/steering/structure.md](docs/steering/structure.md)에 기재됨.
 
-| 구성 | 버전·비고 |
-|---|---|
-| Spring Boot | 4.1.2 (`build.gradle`) |
-| Java | 21 toolchain (`settings.gradle`의 foojay resolver) |
-| Gradle | 9.8.2 (Wrapper) |
-| Spring Security | 7 (Boot 포함) |
-| Spring Session | JDBC |
-| Hibernate | 7 (Boot 포함) |
-| Flyway | 12 + `flyway-database-postgresql` |
-| springdoc-openapi | 3.2.0 (Swagger UI). 설명은 `src/main/resources/openapi/api-docs.yml` |
-| PostgreSQL | 16 + pgvector (`pgvector/pgvector:pg16`) |
-| 테스트 DB | H2 (`test` 프로필, PostgreSQL 모드) |
-| Lombok, Fixture Monkey | 컴파일·테스트 |
+## 사용 스택
+
+- Java: 21 toolchain (`settings.gradle`의 foojay resolver)
+  - Spring Boot: 4.1.2 (`build.gradle`)
+  - Gradle: 9.8.2 (Wrapper)
+  - Spring Security: 7 (Boot 포함)
+  - Spring Session: JDBC
+  - Hibernate: 7 (Boot 포함)
+  - 스키마 마이그레이션: Flyway 12 + `flyway-database-postgresql`
+  - springdoc-openapi: 3.2.0 (Swagger UI). 설명은 `src/main/resources/openapi/api-docs.yml`
+  - 테스트 DB: H2 (`test` 프로필, PostgreSQL 모드)
+  - Lombok, Fixture Monkey: 컴파일·테스트
+- PostgreSQL: 16 + pgvector (`pgvector/pgvector:pg16`)
 
 프로필은 `local`(기본), `dev`, `prod`다. 세 프로필 모두 같은 PostgreSQL 변수(`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`)를 쓴다. 테스트만 `test` 프로필의 H2다.
 
-## 현재 진행
+## 진행 상황
 
-지금은 백엔드 골격이다.
+### 현재 백엔드 골격
 
-- HTTP API와 DTO, `SecurityConfig`(세션 쿠키 `SESSION`, CSRF SPA, 미인증 401)가 있다. 컨트롤러는 스펙 경로의 목 응답을 돌린다.
+- HTTP API와 DTO, `SecurityConfig`(세션 쿠키 `SESSION`, CSRF SPA, 토스 웹훅 CSRF 예외, 미인증 401)가 있다. 컨트롤러는 스펙 경로의 목 응답을 돌린다.
 - 저장소는 인메모리(`ConcurrentHashMap`)다. Flyway `V1__init.sql` 스키마는 있으나 JPA 영속화는 아직이다.
 - Swagger(`local`/`dev`), Actuator(`health`, `info`), CI(`./gradlew test`)가 붙어 있다.
 - 소셜 로그인(OAuth2), Upstage OCR, FastAPI 추론 클라이언트, Claude, 토스 결제 등 외부 연동은 `TODO(FR-…)` 주석만 있고 구현 전이다. FastAPI 서버 코드는 이 저장소에 없다.
 
 ## 빠른 시작
 
-macOS 터미널의 기본 JDK가 8인 경우가 많다. 이 프로젝트는 **Java 21** toolchain이다. `JAVA_HOME`을 JDK 21로 맞춘다. 예:
+이 프로젝트는 Java 21 toolchain을 사용합니다. 터미널에 JDK 21이 설치되어 있지 않더라도 Gradle의 foojay resolver(`settings.gradle`)를 통해 자동으로 toolchain을 다운로드받을 수 있습니다.
+
+### macOS
+
+**JDK 환경 변수 설정 (선택)**
+
+터미널의 기본 JDK가 8 등 다른 버전으로 잡혀 있다면 `JAVA_HOME`을 JDK 21로 지정합니다.
 
 ```bash
 export JAVA_HOME=/Users/<you>/Library/Java/JavaVirtualMachines/azul-24.0.2/Contents/Home
 # 또는 로컬에 설치한 Temurin 21 경로
 ```
 
-터미널에 JDK 21이 없어도 Gradle은 `settings.gradle`의 foojay resolver로 toolchain을 받을 수 있다. IntelliJ는 프로젝트 SDK를 21로 직접 지정한다.
+**환경 설정 파일 준비**
 
 ```bash
 cp .env.example .env          # DB_PASSWORD를 설정한다. .env는 커밋하지 않는다.
+```
 
-# 아직 Postgres가 없으면 compose로 DB만 띄운다.
+**PostgreSQL 실행**
+
+로컬에 Postgres 컨테이너가 없다면 compose로 DB만 먼저 실행합니다.
+
+```bash
 docker compose up -d postgres
+```
 
+**애플리케이션 실행**
+
+```bash
 DB_URL=jdbc:postgresql://localhost:5432/contractcheck \
 DB_USERNAME=contractcheck \
 DB_PASSWORD=*** \
 ./gradlew bootRun             # local 프로필, http://localhost:8080
 ```
 
-이미 `contractcheck-postgres` 컨테이너와 볼륨이 있으면 다시 만들지 않는다. `.env`의 `DB_PASSWORD`를 볼륨을 처음 만들 때 쓴 값과 맞추면 된다.
+### Windows
 
-IntelliJ에서는 메인 클래스 `ac.mju.contractcheck.ContractcheckApplication`을 실행한다. 프로젝트 SDK는 21, 환경변수는 위와 같고, 기본 프로필은 `local`, 포트는 8080이다.
+**JDK 환경 변수 설정 (선택)**
+
+시스템 환경 변수의 `JAVA_HOME`을 JDK 21 설치 경로로 지정하거나 터미널에서 임시로 설정합니다.
+
+PowerShell:
+
+```powershell
+$env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-21.x.x-hotspot"
+```
+
+CMD:
+
+```cmd
+set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.x.x-hotspot
+```
+
+**환경 설정 파일 준비**
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env   # DB_PASSWORD를 설정한다. .env는 커밋하지 않는다.
+```
+
+CMD:
+
+```cmd
+copy .env.example .env        # DB_PASSWORD를 설정한다. .env는 커밋하지 않는다.
+```
+
+**PostgreSQL 실행**
+
+로컬에 Postgres 컨테이너가 없다면 compose로 DB만 먼저 실행합니다.
+
+```bash
+docker compose up -d postgres
+```
+
+**애플리케이션 실행**
+
+PowerShell:
+
+```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/contractcheck"
+$env:DB_USERNAME="contractcheck"
+$env:DB_PASSWORD="***"
+.\gradlew.bat bootRun         # local 프로필, http://localhost:8080
+```
+
+CMD:
+
+```cmd
+set DB_URL=jdbc:postgresql://localhost:5432/contractcheck
+set DB_USERNAME=contractcheck
+set DB_PASSWORD=***
+gradlew.bat bootRun           # local 프로필, http://localhost:8080
+```
+
+### 공통 참고사항
+
+- 기존 DB 재사용: 이미 `contractcheck-postgres` 컨테이너와 볼륨이 생성되어 있다면 다시 만들지 않습니다. `.env`의 `DB_PASSWORD`를 볼륨을 처음 만들 때 쓴 값과 맞추면 됩니다.
+- IntelliJ 실행: 메인 클래스 `ac.mju.contractcheck.ContractcheckApplication`을 실행합니다. 프로젝트 SDK를 21로 설정하고, Run Configuration의 환경 변수에 위 DB 접속 정보(`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`)를 등록합니다. (기본 프로필: `local`, 포트: 8080)
 
 ## Docker
 
@@ -133,15 +205,13 @@ docker run -d \
 
 `local`/`dev` 기준이다. `bootRun`·compose 앱은 8080, 위의 단독 컨테이너는 8081이다. `prod`에서는 Swagger와 `/v3/api-docs`를 열지 않는다.
 
-| 경로 | 설명 |
-|---|---|
-| [`/swagger-ui.html`](http://localhost:8080/swagger-ui.html) | Swagger UI로 리다이렉트 |
-| [`/swagger-ui/index.html`](http://localhost:8080/swagger-ui/index.html) | Swagger UI |
-| [`/v3/api-docs`](http://localhost:8080/v3/api-docs) | OpenAPI JSON |
-| [`/actuator/health`](http://localhost:8080/actuator/health) | 헬스. 공개, `{"status":"UP",...}` |
-| `/actuator/info` | 앱 정보. 공개 |
+- [`/swagger-ui.html`](http://localhost:8080/swagger-ui.html) — Swagger UI로 리다이렉트
+- [`/swagger-ui/index.html`](http://localhost:8080/swagger-ui/index.html) — Swagger UI
+- [`/v3/api-docs`](http://localhost:8080/v3/api-docs) — OpenAPI JSON
+- [`/actuator/health`](http://localhost:8080/actuator/health) — 헬스. 공개, `{"status":"UP",...}`
+- `/actuator/info` — 앱 정보. 공개
 
-미인증 API는 401이다. CSRF는 `XSRF-TOKEN` 쿠키와 `X-XSRF-TOKEN` 헤더다.
+미인증 API는 401이다. CSRF는 `XSRF-TOKEN` 쿠키와 `X-XSRF-TOKEN` 헤더다. 토스 웹훅 `/api/v1/payments/webhooks/toss`는 CSRF 예외다.
 
 ## 테스트
 
@@ -162,20 +232,18 @@ docker run -d \
 
 ## 설정 파일
 
-| 파일 | 용도 |
-|---|---|
-| `application.yml` | 공통 이름, 기본 프로필 `local`, PostgreSQL, Flyway, Session JDBC, `ddl-auto=validate`, 세션 30분. `dev`/`prod` 공통 파일 로그·Tomcat 액세스 로그 |
-| `application-local.yml` | local. SQL 디버그, 사람용 콘솔 패턴, Swagger CSRF |
-| `application-dev.yml` | dev. 앱 INFO, 라이브러리 WARN, Swagger CSRF |
-| `application-prod.yml` | prod. 앱 INFO, 루트 WARN, Swagger 끄기 |
-| `src/test/resources/application-test.yml` | 테스트 전용 H2, 로그 억제 |
-| `src/main/resources/db/migration/V1__init.sql` | 스펙시트 DB 스키마. pgvector 필요 |
-| `src/main/resources/openapi/api-docs.yml` | Swagger 설명. 컨트롤러 애노테이션으로 대체하지 않는다 |
-| `docker-compose.yml` | 로컬: 앱+DB, 프로필 `local`, 포트 8080 |
-| `docker-compose.prod.yml` | 배포: 프로필 `prod`, DB 포트 닫힘, `./logs` 마운트 |
-| `.env.example` | `DB_PASSWORD`, `LOG_PATH` 예시. 복사한 `.env`는 커밋하지 않는다 |
+- `application.yml` — 공통. 기본 `local`, DB·Flyway·Session JDBC, `ddl-auto=validate`, 세션 30분. `dev`/`prod` 파일·액세스 로그
+- `application-local.yml` — SQL 디버그, 콘솔 패턴, Swagger CSRF
+- `application-dev.yml` — 앱 INFO, 라이브러리 WARN, Swagger CSRF
+- `application-prod.yml` — 앱 INFO, 루트 WARN, Swagger 끄기
+- `src/test/resources/application-test.yml` — 테스트 H2, 로그 억제
+- `src/main/resources/db/migration/V1__init.sql` — 스펙 DB 스키마. pgvector 필요
+- `src/main/resources/openapi/api-docs.yml` — Swagger 설명. 컨트롤러 애노테이션으로 대체하지 않음
+- `docker-compose.yml` — 로컬 앱+DB (`local`, 8080)
+- `docker-compose.prod.yml` — 배포 (`prod`, DB 포트 닫힘, `./logs` 마운트)
+- `.env.example` — `DB_PASSWORD`, `LOG_PATH`. 복사한 `.env`는 커밋하지 않음
 
-## 문서
+## 문서정리
 
 - [스펙시트](https://docs.google.com/spreadsheets/d/1wjLgLhIR7CT9lP263eIHSWrxBBgrc9r0b7nUlRxKGbI/edit) — API, 에러 코드, DB 스키마, FR/TC
 - [CONTRIBUTING.md](CONTRIBUTING.md) — 브랜치·PR·셀프 머지(사람용)
