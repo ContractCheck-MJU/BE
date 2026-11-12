@@ -33,6 +33,8 @@
 
 CI는 `main` push와 pull request에서 `./gradlew test`를 실행한다. 워크플로는 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)이고, 잡 이름은 `test`다.
 
+CD는 `main` push의 CI가 성공하면 [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml)이 이미지를 빌드해 GHCR(`ghcr.io/contractcheck-mju/be`, 태그 `latest`·`main`·`sha-<커밋>`)에 올린다. 서버는 들어오는 접속 없이 Watchtower로 새 이미지를 받아 `app` 컨테이너만 다시 띄운다. 비밀값은 쓰지 않고 `GITHUB_TOKEN`만 쓴다.
+
 에이전트는 푸시·머지·이력 재작성(`force push` 등)을 스스로 하지 않는다. `main`에는 force push하지 않는다.
 
 ## Flyway 번호
