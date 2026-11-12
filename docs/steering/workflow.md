@@ -33,6 +33,8 @@
 
 CI는 `main` push와 pull request에서 `./gradlew test`를 실행한다. 워크플로는 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)이고, 잡 이름은 `test`다.
 
+CD는 `main` push의 CI가 성공하면 [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml)이 Tailscale과 SSH로 gram17 서버에 배포한다. 배포 키는 서버의 배포 스크립트만 실행할 수 있고, 비밀값은 `production` 환경 secrets에 있다.
+
 에이전트는 푸시·머지·이력 재작성(`force push` 등)을 스스로 하지 않는다. `main`에는 force push하지 않는다.
 
 ## Flyway 번호
