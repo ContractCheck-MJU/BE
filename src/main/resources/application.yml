@@ -72,6 +72,9 @@ logging:
       total-size-cap: 3GB
 
 server:
+  # nginx 등 프록시 뒤에서 X-Forwarded-Proto/Host 를 반영한다.
+  # 없으면 Swagger(OpenAPI) 서버 주소가 http 로 생성돼 https 페이지에서 요청이 막힌다.
+  forward-headers-strategy: framework
   tomcat:
     accesslog:
       enabled: true
