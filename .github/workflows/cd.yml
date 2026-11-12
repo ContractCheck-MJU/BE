@@ -8,9 +8,6 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
-  # 임시: 테스트 서버 CD 검증용 브랜치 트리거. main에는 넣지 않는다.
-  push:
-    branches: [chore/cd-gram17-deploy]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +24,6 @@ env:
 jobs:
   image:
     if: >-
-      github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
@@ -43,12 +39,7 @@ jobs:
           RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           sha="${RUN_SHA:-$GITHUB_SHA}"
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-            tags="$IMAGE:test"
-          else
-            tags="$IMAGE:latest,$IMAGE:main"
-          fi
-          tags="$tags,$IMAGE:sha-${sha:0:7}"
+          tags="$IMAGE:latest,$IMAGE:main,$IMAGE:sha-${sha:0:7}"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "tags=$tags" >> "$GITHUB_OUTPUT"
 
