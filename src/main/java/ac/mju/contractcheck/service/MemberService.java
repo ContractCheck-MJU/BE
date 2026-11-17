@@ -2,6 +2,7 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.repository.MemberRepository;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,8 @@ public class MemberService {
      * 6. 반환: id, email, nickname, role, provider, status.
      */
     public Member me(String username) {
-        return members.ensure(username);
+        return members.findByUsername(username)
+                .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("회원 행이 없는 세션"));
     }
 
     /**
@@ -44,7 +46,7 @@ public class MemberService {
      * 6. 반환: 갱신된 프로필.
      */
     public Member update(String username, String nickname, Boolean notifyEmail) {
-        Member current = members.ensure(username);
+        Member current = me(username);
         Member updated = current.withProfile(
                 nickname == null || nickname.isBlank() ? current.nickname() : nickname,
                 notifyEmail == null ? current.notifyEmail() : notifyEmail);
@@ -65,7 +67,7 @@ public class MemberService {
      * 6. 반환: 204.
      */
     public void withdraw(String username) {
-        members.deleteByUsername(username);
+        members.markWithdrawn(username);
         log.info("회원 탈퇴 username={}", username);
     }
 }

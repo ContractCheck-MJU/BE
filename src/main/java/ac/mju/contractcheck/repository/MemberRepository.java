@@ -1,60 +1,80 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.OAuthProfile;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /**
- * 인메모리 저장소. 영속화 시 V1__init.sql의 {@code users}, {@code oauth_accounts} 테이블에 매핑한다.
- * 조회 시 ensure()로 회원을 만들지 않고, 가입은 OAuth upsert에서만 수행한다.
+ * V1__init.sql의 {@code users}, {@code oauth_accounts}에 저장한다. 가입은 {@link #register}에서만 한다.
+ * 인증 주체 이름({@code username})은 users.id 문자열이다(spring_session.principal_name과 같다).
  */
 @Repository
+@RequiredArgsConstructor
 public class MemberRepository {
 
-    private final AtomicLong sequence = new AtomicLong(1);
-    private final ConcurrentHashMap<Long, Member> byId = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Long> byUsername = new ConcurrentHashMap<>();
+    private static final String ROLE_USER = "USER";
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_WITHDRAWN = "WITHDRAWN";
 
-    public @NonNull Member ensure(String username) {
-        return findByUsername(username).orElseGet(() -> {
-            long id = sequence.getAndIncrement();
-            Member member = new Member(
-                    id,
-                    username,
-                    username + "@local.test",
-                    username,
-                    "local",
-                    "USER",
-                    true,
-                    Instant.now());
-            byId.put(id, member);
-            byUsername.put(username, id);
-            return member;
-        });
+    @NonNull
+    private final MemberJpaRepository users;
+    @NonNull
+    private final OAuthAccountJpaRepository accounts;
+
+    public @NonNull Optional<Member> findByProviderAccount(String provider, String providerUserId) {
+        return accounts.findByProviderAndProviderUserId(provider, providerUserId)
+                .flatMap(account -> users.findById(account.getUserId())
+                        .map(user -> toMember(user, account.getProvider())));
+    }
+
+    /** 신규 회원과 소셜 계정 연결을 한 번에 만든다. 같은 이메일이 이미 있으면 무결성 예외가 난다. */
+    public @NonNull Member register(@NonNull OAuthProfile profile) {
+        Instant now = Instant.now();
+        MemberEntity user = users.saveAndFlush(
+                new MemberEntity(profile.email(), profile.nickname(), ROLE_USER, STATUS_ACTIVE, now));
+        accounts.save(new OAuthAccountEntity(user.getId(), profile.provider(), profile.providerUserId(), now));
+        return toMember(user, profile.provider());
     }
 
     public @NonNull Optional<Member> findByUsername(String username) {
-        Long id = byUsername.get(username);
-        if (id == null) {
-            return Optional.empty();
-        }
-        return Presence.present(byId.get(id));
+        return OwnerId.parse(username)
+                .flatMap(users::findById)
+                .map(user -> toMember(user, providerOf(user.getId())));
     }
 
+    /** 프로필 중 users에 있는 값(닉네임)만 저장한다. */
     public Member save(Member member) {
-        byId.put(member.id(), member);
-        byUsername.put(member.username(), member.id());
-        return member;
+        MemberEntity user = users.findById(member.id()).orElseThrow();
+        user.changeNickname(member.nickname(), Instant.now());
+        return toMember(users.save(user), providerOf(user.getId()));
     }
 
-    public void deleteByUsername(String username) {
-        Long id = byUsername.remove(username);
-        if (id != null) {
-            byId.remove(id);
-        }
+    public void markWithdrawn(String username) {
+        OwnerId.parse(username).flatMap(users::findById).ifPresent(user -> {
+            user.changeStatus(STATUS_WITHDRAWN, Instant.now());
+            users.save(user);
+        });
+    }
+
+    private String providerOf(Long userId) {
+        return accounts.findFirstByUserIdOrderByIdAsc(userId)
+                .map(OAuthAccountEntity::getProvider)
+                .orElse("");
+    }
+
+    private Member toMember(MemberEntity user, String provider) {
+        return new Member(
+                user.getId(),
+                String.valueOf(user.getId()),
+                user.getEmail(),
+                user.getNickname(),
+                provider,
+                user.getRole(),
+                true,
+                user.getCreatedAt());
     }
 }
