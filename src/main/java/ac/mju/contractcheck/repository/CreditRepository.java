@@ -1,13 +1,16 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import java.time.Instant;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * V1__init.sql의 {@code credit_wallets}, {@code credit_ledger}에 저장한다.
@@ -20,6 +23,8 @@ public class CreditRepository {
 
     private static final int SIGNUP_FREE_CREDITS = 2;
     private static final String TYPE_GRANT = "GRANT";
+    private static final String TYPE_USE = "USE";
+    private static final String REF_ANALYSIS = "ANALYSIS";
 
     @NonNull
     private final CreditWalletJpaRepository wallets;
@@ -31,6 +36,24 @@ public class CreditRepository {
         wallets.save(new CreditWalletEntity(userId, SIGNUP_FREE_CREDITS, 0));
         ledgers.save(new CreditLedgerEntity(userId, TYPE_GRANT, SIGNUP_FREE_CREDITS, null, null, Instant.now()));
         log.info("무료 이용권 지급 userId={} amount={}", userId, SIGNUP_FREE_CREDITS);
+    }
+
+    /**
+     * 분석 1건에 대해 이용권 1회를 차감하고 USE 원장을 남긴다(무료 우선 → 유료). 지갑 version으로 낙관적 락을 건다.
+     * 동시에 같은 지갑을 바꾼 요청이 있으면 {@link ObjectOptimisticLockingFailureException}이 나므로 호출자가 다시 시도한다.
+     */
+    @Transactional
+    public @NonNull CreditUseResult use(String owner, long analysisId) {
+        long userId = OwnerId.parse(owner).orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
+        CreditWalletEntity wallet = wallets.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
+        if (!wallet.useOne()) {
+            return CreditUseResult.INSUFFICIENT;
+        }
+        wallets.saveAndFlush(wallet);
+        ledgers.save(new CreditLedgerEntity(userId, TYPE_USE, 1, REF_ANALYSIS, analysisId, Instant.now()));
+        log.info("이용권 차감 userId={} analysisId={}", userId, analysisId);
+        return CreditUseResult.USED;
     }
 
     /** 지갑이 없으면 조회 시 만들어 주지 않고 가입 오류로 본다. 전용 오류 코드는 스펙 미정이다. */

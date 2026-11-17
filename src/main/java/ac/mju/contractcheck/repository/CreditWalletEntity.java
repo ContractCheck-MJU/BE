@@ -25,6 +25,19 @@ class CreditWalletEntity {
     @Version
     private Long version;
 
+    /** 무료가 있으면 무료부터, 없으면 유료에서 1회 차감한다. 둘 다 없으면 false. */
+    boolean useOne() {
+        if (freeRemaining > 0) {
+            freeRemaining--;
+            return true;
+        }
+        if (paidRemaining > 0) {
+            paidRemaining--;
+            return true;
+        }
+        return false;
+    }
+
     CreditWalletEntity(Long userId, int freeRemaining, int paidRemaining) {
         this.userId = userId;
         this.freeRemaining = freeRemaining;

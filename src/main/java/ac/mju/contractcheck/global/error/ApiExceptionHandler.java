@@ -28,6 +28,13 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(409).body(new ApiError(exception.code(), exception.getMessage(), traceId));
     }
 
+    @ExceptionHandler(CreditInsufficientException.class)
+    public ResponseEntity<ApiError> creditInsufficient(CreditInsufficientException exception) {
+        String traceId = traceId();
+        log.warn("이용권 부족 code={} traceId={}", exception.code(), traceId);
+        return ResponseEntity.status(402).body(new ApiError(exception.code(), exception.getMessage(), traceId));
+    }
+
     /** 요청 본문·파라미터 검증 실패. 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다. */
     @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
     public ResponseEntity<ApiError> invalidRequest(Exception exception) {
