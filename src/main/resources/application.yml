@@ -24,6 +24,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  # FR-UPL-01 업로드 한도. 정확히 20MB는 통과하고 그보다 크면 413(FILE_TOO_LARGE)이다.
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
   # FR-AUTH-01 소셜 로그인. 시크릿은 환경변수로만 주입한다. 값이 없으면 로그인만 실패하고 기동은 된다.
   # 콜백은 {baseUrl}/login/oauth2/code/{registrationId}. 제공자 콘솔에 이 주소를 등록한다.
   security:
@@ -71,6 +76,16 @@ server:
       timeout: 30m   # FR-AUTH-02: 유휴 30분 후 만료(제안)
 
 contractcheck:
+  # 계약서 원본 보관소(S3 호환, SeaweedFS). 접속 정보는 환경변수로만 주입하고 값이 없으면 업로드만 실패한다.
+  # 버킷은 미리 만들어 둔다. 서버 측 암호화(SSE-S3)를 지원하지 않는 저장소면 STORAGE_SSE=false로 끈다.
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
+    region: ${STORAGE_REGION:us-east-1}
+    bucket: ${STORAGE_BUCKET:contractcheck}
+    access-key: ${STORAGE_ACCESS_KEY:unset}
+    secret-key: ${STORAGE_SECRET_KEY:unset}
+    path-style: true
+    server-side-encryption: ${STORAGE_SSE:true}
   session:
     cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:
