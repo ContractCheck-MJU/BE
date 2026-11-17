@@ -1,30 +1,52 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.service.MemberService;
+import ac.mju.contractcheck.domain.OAuthProfile;
+import ac.mju.contractcheck.repository.CreditRepository;
+import ac.mju.contractcheck.repository.MemberRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * TODO(FR-AUTH-01): 카카오·네이버·구글 소셜 로그인(Authorization Code)을 이 서비스와 SecurityConfig에 구현한다.
- * 1. 입력 검증: OAuth2 콜백의 registrationId(kakao/naver/google)와 제공자 프로필(sub/id, email, nickname)을 확인한다.
- * 2. 권한/소유자 확인: 로그인 전이므로 세션은 아직 없다. 클라이언트 ID/Secret은 설정값이며 코드에 넣지 않는다.
- * 3. DB/외부 호출: CustomOAuth2UserService에서 oauth_accounts(provider, provider_user_id)를 찾는다.
- *    없으면 users(role=USER, nickname, email, status, created_at)와 oauth_accounts를 넣고,
- *    credit_wallets(free_remaining=2, paid_remaining=0, version=0)와 credit_ledger type=GRANT(TC-CRD-001, TC-AUTH)를 같은 트랜잭션으로 기록한다.
- *    있으면 기존 user_id로 세션을 만든다. 액세스 토큰은 로그인 처리 후 저장하지 않는다.
- * 4. 상태 전이: 신규 가입 시 users.status를 활성 값으로 둔다. 스펙 미정: users.status 허용 값, 같은 email·다른 provider 계정 연결 여부.
- * 5. 예외/에러코드: 제공자/사용자 거부·연동 실패 시 프론트 로그인 페이지로 리다이렉트. 스펙 미정: 실패 리다이렉트 베이스 URL과 오류 쿼리 형식.
- * 6. 반환: Spring Session JDBC 세션 쿠키(SESSION)와 CSRF 쿠키. 로그아웃(FR-AUTH-02)은 앱 세션만 무효화한다.
+ * FR-AUTH-01 소셜 로그인, FR-AUTH-02 세션 관리·로그아웃
+ *
+ * 소셜 로그인의 외부 호출(제공자 토큰·사용자 정보)은 CustomOAuth2UserService가 이 서비스 밖에서 끝낸다.
+ * 여기서는 DB 작업만 한 트랜잭션으로 묶는다.
+ * 스펙 미정: 같은 email·다른 provider 계정을 한 회원으로 연결할지 여부. 지금은 연결하지 않고,
+ * users.email이 UNIQUE라 두 번째 가입은 무결성 예외로 거절한다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     @NonNull
     private final MemberService members;
+    @NonNull
+    private final MemberRepository memberRepository;
+    @NonNull
+    private final CreditRepository credits;
 
+    /**
+     * FR-AUTH-01 소셜 로그인
+     * 기존 (provider, provider_user_id)면 그 회원을 돌려주고, 처음이면 users·oauth_accounts와
+     * 무료 2회 지갑·GRANT 원장을 같은 트랜잭션으로 만든다(TC-AUTH-001, TC-AUTH-002, TC-CRD-001).
+     */
+    @Transactional
+    public Member signIn(OAuthProfile profile) {
+        return memberRepository.findByProviderAccount(profile.provider(), profile.providerUserId())
+                .orElseGet(() -> register(profile));
+    }
+
+    private Member register(OAuthProfile profile) {
+        Member member = memberRepository.register(profile);
+        credits.grantSignup(member.id());
+        log.info("신규 가입 userId={} provider={}", member.id(), profile.provider());
+        return member;
+    }
 
     /**
      * FR-AUTH-02 세션 관리·로그아웃

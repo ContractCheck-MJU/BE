@@ -30,6 +30,13 @@ services:
       DB_USERNAME: contractcheck
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env에 설정하세요}
       LOG_PATH: /var/log/contractcheck
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-unset}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-unset}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-unset}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-unset}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
     volumes:
       - ./logs:/var/log/contractcheck
     restart: unless-stopped
