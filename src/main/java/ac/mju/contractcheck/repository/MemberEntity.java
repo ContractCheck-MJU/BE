@@ -52,8 +52,11 @@ class MemberEntity {
         this.updatedAt = now;
     }
 
-    void changeStatus(String status, Instant now) {
-        this.status = status;
+    /** 탈퇴: 상태를 WITHDRAWN으로 바꾸고 개인정보(이메일·닉네임)를 비운다. */
+    void withdraw(Instant now) {
+        this.status = "WITHDRAWN";
+        this.email = null;
+        this.nickname = null;
         this.updatedAt = now;
     }
 }

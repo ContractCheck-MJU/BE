@@ -8,4 +8,6 @@ interface OAuthAccountJpaRepository extends JpaRepository<OAuthAccountEntity, Lo
     Optional<OAuthAccountEntity> findByProviderAndProviderUserId(String provider, String providerUserId);
 
     Optional<OAuthAccountEntity> findFirstByUserIdOrderByIdAsc(Long userId);
+
+    void deleteByUserId(Long userId);
 }

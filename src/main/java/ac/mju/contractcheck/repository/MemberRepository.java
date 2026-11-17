@@ -17,6 +17,7 @@ import org.springframework.stereotype.Repository;
 public class MemberRepository {
 
     private static final String ROLE_USER = "USER";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_WITHDRAWN = "WITHDRAWN";
 
@@ -40,9 +41,11 @@ public class MemberRepository {
         return toMember(user, profile.provider());
     }
 
+    /** 탈퇴한 회원은 없는 회원으로 본다. */
     public @NonNull Optional<Member> findByUsername(String username) {
         return OwnerId.parse(username)
                 .flatMap(users::findById)
+                .filter(user -> !STATUS_WITHDRAWN.equals(user.getStatus()))
                 .map(user -> toMember(user, providerOf(user.getId())));
     }
 
@@ -53,10 +56,16 @@ public class MemberRepository {
         return toMember(users.save(user), providerOf(user.getId()));
     }
 
+    public long countActiveAdmins() {
+        return users.countByRoleAndStatus(ROLE_ADMIN, STATUS_ACTIVE);
+    }
+
+    /** 탈퇴 처리. 상태를 WITHDRAWN으로 바꾸고 개인정보를 비우며 소셜 계정 연결을 끊는다. */
     public void markWithdrawn(String username) {
         OwnerId.parse(username).flatMap(users::findById).ifPresent(user -> {
-            user.changeStatus(STATUS_WITHDRAWN, Instant.now());
+            user.withdraw(Instant.now());
             users.save(user);
+            accounts.deleteByUserId(user.getId());
         });
     }
 

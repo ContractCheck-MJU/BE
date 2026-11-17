@@ -85,21 +85,25 @@ paths:
   "PATCH /api/v1/members/me":
     tag: members
     summary: 내 회원 정보 수정
-    description: 닉네임과 이메일 알림 여부를 수정한다. 필드를 생략하거나 닉네임이 공백이면 기존 값을 유지한다.
+    description: 닉네임을 수정한다(50자 이내). 필드를 생략하거나 닉네임이 공백이면 기존 값을 유지하고, role 등 허용 외 필드는 무시한다. 이메일 알림 여부(notifyEmail)는 저장 위치가 스펙 미정이라 아직 저장하지 않는다.
     auth: login
     requestBody: 수정할 닉네임, 이메일 알림 여부
     responses:
       "200": 수정된 회원 정보
-      "401": 로그인되어 있지 않음
+      "400": 닉네임 길이 초과 (VALIDATION_ERROR)
+      "401": 로그인되어 있지 않음 (UNAUTHORIZED)
+      "403": CSRF 토큰이 없거나 틀림 (CSRF_INVALID)
 
   "DELETE /api/v1/members/me":
     tag: members
     summary: 회원 탈퇴
-    description: 로그인한 사용자의 users.status를 WITHDRAWN으로 바꾼다. 계약·분석 데이터와 다른 기기 세션 삭제는 FR-AUTH-03에서 이어서 구현한다. 응답 본문은 없다.
+    description: 로그인한 사용자의 users.status를 WITHDRAWN으로 바꾸고 이메일·닉네임을 비우며 소셜 계정 연결과 모든 기기의 로그인 세션을 삭제한다. 계약서·분석 데이터와 S3 원본 삭제는 계약 저장소가 영속화되는 FR-UPL-01에서 이어서 구현한다. 마지막 ADMIN은 탈퇴할 수 없다. 응답 본문은 없다.
     auth: login
     responses:
       "204": 탈퇴 완료
-      "401": 로그인되어 있지 않음
+      "401": 로그인되어 있지 않음 (UNAUTHORIZED)
+      "403": CSRF 토큰이 없거나 틀림 (CSRF_INVALID)
+      "409": 마지막 ADMIN (LAST_ADMIN)
 
   "POST /api/v1/contracts":
     tag: contracts
