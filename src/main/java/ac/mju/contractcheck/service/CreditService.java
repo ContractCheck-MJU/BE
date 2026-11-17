@@ -17,16 +17,9 @@ public class CreditService {
 
     /**
      * FR-CRD-01 무료 횟수
-     *
-     * TODO(FR-CRD-01): 잔여 이용권을 조회한다.
-     * 1. 입력 검증: 로그인 필수.
-     * 2. 권한/소유자 확인: 본인 credit_wallets.user_id만 읽는다.
-     * 3. DB/외부 호출: credit_wallets의 free_remaining, paid_remaining, version.
-     *    지갑이 없는 사용자는 조회 시 만들어 주지 않는다. 최초 OAuth 가입 트랜잭션에서
-     *    free_remaining=2, paid_remaining=0, version=0과 credit_ledger type=GRANT를 넣는다(TC-CRD-001).
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 지갑 부재는 가입 오류로 보고, 스펙 미정: 전용 오류 코드.
-     * 6. 반환: freeRemaining, paidRemaining.
+     * 본인 credit_wallets의 free_remaining, paid_remaining을 읽는다. 지갑은 최초 소셜 가입 트랜잭션에서
+     * 무료 2회와 GRANT 원장으로 만들어지며(AuthService), 조회 시 만들어 주지 않는다.
+     * 스펙 미정: 지갑이 없는 회원(가입 오류)에 돌려줄 전용 오류 코드. 지금은 서버 오류로 드러낸다.
      */
     public CreditAccount me(String owner) {
         return credits.account(owner);
