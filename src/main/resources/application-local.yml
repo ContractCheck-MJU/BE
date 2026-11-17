@@ -25,3 +25,8 @@ springdoc:
   swagger-ui:
     csrf:
       enabled: true
+
+# 로컬 개발은 http라 Secure 세션 쿠키를 끈다. dev·prod는 기본값(Secure)을 그대로 쓴다.
+contractcheck:
+  session:
+    cookie-secure: false

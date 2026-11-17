@@ -71,6 +71,8 @@ server:
       timeout: 30m   # FR-AUTH-02: 유휴 30분 후 만료(제안)
 
 contractcheck:
+  session:
+    cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}   # 소셜 로그인 성공·실패 리다이렉트 기준
   analysis:

@@ -50,14 +50,7 @@ public class AuthService {
 
     /**
      * FR-AUTH-02 세션 관리·로그아웃
-     *
-     * TODO(FR-AUTH-02): 세션의 users.id로 현재 사용자를 조회한다.
-     * 1. 입력 검증: 인증된 세션이 있어야 한다. 없으면 401.
-     * 2. 권한/소유자 확인: 세션 주체 본인만 조회한다.
-     * 3. DB/외부 호출: users를 id로 읽고, 필요 시 oauth_accounts.provider를 조인한다. MemberRepository.ensure()로 자동 생성하지 않는다.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 세션은 있으나 users 행이 없으면 401 또는 시트 회원 오류 코드.
-     * 6. 반환: id, nickname, role, provider.
+     * 세션 주체(users.id)로 현재 회원을 조회한다. 세션은 있으나 users 행이 없으면 회원을 만들지 않고 401로 이어진다.
      */
     public Member me(String username) {
         return members.me(username);
