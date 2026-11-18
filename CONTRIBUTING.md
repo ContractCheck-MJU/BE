@@ -9,11 +9,11 @@
 - 보호 규칙: **PR 필수**, **CI 통과 필수**. 사람 승인(required review)은 두지 않는다.
 - 브랜치 이름은 `feat/FR-XXX-00-short-desc`, `fix/...`, `refactor/...`, `docs/...`, `chore/...`다. 이슈·FR 하나당 브랜치 하나다.
 - `main`을 자주 rebase하거나 merge해서 최신으로 맞춘다.
-- 머지는 **squash merge**다. 머지 후 브랜치는 삭제한다.
+- 머지는 **merge commit(일반 merge)**이다. squash merge와 rebase merge는 쓰지 않는다. 머지 후 브랜치는 삭제한다.
 - 핫픽스도 같은 방식의 `fix/` 브랜치다.
 - 릴리스 태그는 필요하면 `v0.x`를 붙인다.
 
-PR은 작게 유지하고, 가능하면 그날 합친다. 여러 기능을 한 PR에 넣지 않는다.
+PR은 **기능(FR) 단위**로 연다. 작게 유지하고, 가능하면 그날 합친다. 여러 기능을 한 PR에 넣지 않는다.
 
 ## 작업 순서
 
@@ -32,8 +32,7 @@ PR은 작게 유지하고, 가능하면 그날 합친다. 여러 기능을 한 P
    - 제목은 50자 안쪽, 마침표 없음, 명사형으로 끝낸다(`삭제`, `정리`, `추가`). 예: `docs: README 정리 및 아키텍처 이미지 추가`
    - 커밋 하나는 한 가지 변경이다. `.env`, 비밀값, 실제 계약서는 넣지 않는다.
 7. 브랜치를 push하고 PR을 연다. Draft여도 된다.
-8. AI 리뷰 봇(GitHub Copilot, CodeRabbit, Claude 리뷰 등, 저장소에 설정된 것)이 코멘트를 남기면 작성자가 고친다. 봇을 새로 설치할 필요는 없다.
-9. CI(`CI` 워크플로의 `test` 잡, `./gradlew test`)가 초록이면 작성자가 **스스로 squash merge**한다.
+8. CI(`CI` 워크플로의 `test` 잡, `./gradlew test`)가 초록이면 작성자가 **스스로 merge commit으로 머지**한다.
 
 사람 승인은 기본 경로가 아니다. 다만 `SecurityConfig`, Flyway 마이그레이션, 결제(토스 웹훅·CSRF 예외 등)처럼 위험한 변경은 머지 전에 PM에게 한 번 알린다. 이 확인은 보호 규칙이 아니라 팀 약속이다.
 
@@ -43,7 +42,7 @@ PR은 작게 유지하고, 가능하면 그날 합친다. 여러 기능을 한 P
 
 - 관련 FR / GitHub 이슈
 - 변경 요약
-- 체크리스트: 스펙시트, `src/main/resources/openapi/api-docs.yml`, `SecurityConfig` 동기화, AI 리뷰 반영 여부
+- 체크리스트: 스펙시트, `src/main/resources/openapi/api-docs.yml`, `SecurityConfig` 동기화
 
 테스트 결과나 Swagger 스크린샷은 필요할 때만 붙인다.
 
