@@ -29,6 +29,19 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/contractcheck
       DB_USERNAME: contractcheck
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env에 설정하세요}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-unset}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-unset}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-unset}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-unset}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://localhost:9000}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-contractcheck}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-unset}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-unset}
+      STORAGE_SSE: ${STORAGE_SSE:-true}
 
 volumes:
   pgdata:

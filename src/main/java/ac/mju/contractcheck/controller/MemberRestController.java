@@ -6,6 +6,7 @@ import ac.mju.contractcheck.dto.member.UpdateMemberRequest;
 import ac.mju.contractcheck.global.security.CurrentUser;
 import ac.mju.contractcheck.service.MemberService;
 
+import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -37,7 +38,7 @@ public class MemberRestController {
 
     /** FR-AUTH-03 내 정보·탈퇴 */
     @PatchMapping("/api/v1/members/me")
-    public MemberResponse update(Authentication authentication, @RequestBody UpdateMemberRequest request) {
+    public MemberResponse update(Authentication authentication, @Valid @RequestBody UpdateMemberRequest request) {
         Member member = members.update(currentUser.username(authentication), request.nickname(), request.notifyEmail());
         return MemberResponse.from(member);
     }

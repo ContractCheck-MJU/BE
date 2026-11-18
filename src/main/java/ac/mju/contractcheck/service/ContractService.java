@@ -1,12 +1,21 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.dto.contract.FileUrl;
+import ac.mju.contractcheck.global.error.ApiException;
+import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.repository.ContractRepository;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +28,17 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ContractService {
 
+    private static final int MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+    private static final int MAX_TITLE_LENGTH = 200;
+    private static final Duration FILE_URL_VALIDITY = Duration.ofMinutes(5);
+    private static final Set<String> ALLOWED_CONTRACT_TYPES = Set.of("MONTHLY", "JEONSE");
+
     @NonNull
     private final ContractRepository contracts;
+    @NonNull
+    private final CreditService credits;
+    @NonNull
+    private final StorageClient storage;
 
     /*
      * TODO(FR-UPL-04): 개인정보 마스킹. 조항 분할이 끝난 직후, classify/embed/Claude 등 외부 전송 전에 수행한다.
@@ -36,50 +54,54 @@ public class ContractService {
 
     /**
      * FR-UPL-01 계약서 업로드
+     * 검증(제목 200자·계약 유형 MONTHLY/JEONSE·20MB·PDF/JPG/PNG 매직바이트)과 이용권 잔여 확인을 통과한 파일만 저장소에 올리고
+     * contracts 행(status=UPLOADED)을 만든다. 이용권은 차감하지 않고 잔여만 확인한다(실제 USE는 분석 시작, TC-UPL-001·TC-CRD-002).
+     * 저장소 호출은 트랜잭션 밖이며, 행 저장이 실패하면 올린 객체를 지운다.
      *
-     * TODO(FR-UPL-01): 파일을 검증해 S3에 올리고 contracts 행을 만든 뒤 OCR을 비동기로 시작한다.
-     * 1. 입력 검증: PDF/JPG/PNG, 최대 20MB. 아니면 UNSUPPORTED_FILE_TYPE(415), FILE_TOO_LARGE(413). title 길이(200자) 확인.
-     * 2. 권한/소유자 확인: 로그인 사용자(users.id).
-     * 3. DB/외부 호출: credit_wallets 잔여(free_remaining+paid_remaining)가 없으면 CREDIT_INSUFFICIENT(402, TC-UPL-004).
-     *    스펙 미정: FR-UPL-01 '차감 예약'을 원장에 남길지, 잔액 확인만 할지(실제 USE는 분석 시작, TC-CRD-002).
-     *    S3에 SSE로 업로드하고 contracts(user_id, title, contract_type, s3_key, status=UPLOADED, created_at)를 insert한다. 원본 보관 90일.
-     * 4. 상태 전이: UPLOADED → 비동기 OCR(FR-UPL-02) 시작.
-     * 5. 예외/에러코드: 위 4xx 및 시트 업로드 한도(TC-UPL).
-     * 6. 반환: 계약 메타(파일 바이너리 제외). 스펙 미정: contract_type 허용 값.
+     * TODO(FR-UPL-02): 업로드 직후 비동기 OCR을 시작한다.
+     * 스펙 미정: 업로드 한도 429 RATE_LIMITED(시간당 10회, TC-UPL-005), 원본 보관 90일 만료 삭제 배치.
      */
     public Contract upload(String owner, MultipartFile file, String title, String contractType) {
-        String name = file == null ? "" : file.getOriginalFilename();
-        Contract saved = contracts.save(new Contract(
-                0, owner, title, contractType, "UPLOADED", name == null ? "" : name, Instant.now(), null));
-        log.info("계약서 업로드 contractId={} owner={}", saved.id(), owner);
-        return saved;
+        validateMetadata(title, contractType);
+        byte[] content = read(file);
+        if (content.length > MAX_UPLOAD_BYTES) {
+            throw new ApiException(413, "FILE_TOO_LARGE", "파일은 20MB 이하여야 합니다.");
+        }
+        ContractFileType fileType = ContractFileType.detect(content)
+                .orElseThrow(() -> new ApiException(415, "UNSUPPORTED_FILE_TYPE", "PDF, JPG, PNG 파일만 올릴 수 있습니다."));
+        CreditAccount account = credits.me(owner);
+        if (account.freeRemaining() + account.paidRemaining() <= 0) {
+            throw new CreditInsufficientException();
+        }
+
+        String key = "contracts/" + owner + "/" + UUID.randomUUID();
+        storage.put(key, content, fileType.contentType());
+        try {
+            Contract saved = contracts.save(new Contract(
+                    0, owner, title, contractType, key, "UPLOADED", "", Instant.now(), null));
+            log.info("계약서 업로드 contractId={} userId={}", saved.id(), owner);
+            return saved;
+        } catch (RuntimeException exception) {
+            deleteQuietly(key);
+            throw exception;
+        }
     }
 
     /**
      * FR-UPL-01 계약서 업로드
-     *
-     * TODO(FR-UPL-01): 내 계약 목록을 페이지로 조회한다.
-     * 1. 입력 검증: page/size는 컨트롤러에서 서비스로 전달한다. 현재는 전체 목록을 가져와 총건수를 잘못 계산한다.
-     * 2. 권한/소유자 확인: contracts.user_id = 현재 사용자.
-     * 3. DB/외부 호출: created_at 내림차순, OFFSET/LIMIT.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 없음(빈 목록 허용).
-     * 6. 반환: 목록과 총건수.
+     * 내 계약 목록을 최신순으로 한 페이지 돌려준다(OFFSET/LIMIT, 전체 건수 포함). 빈 목록은 허용한다.
      */
-    public List<Contract> list(String owner) {
-        return contracts.findByOwner(owner);
+    public PageSlice<Contract> list(String owner, int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new ApiException(400, "VALIDATION_ERROR", "page는 0 이상, size는 1 이상이어야 합니다.");
+        }
+        return contracts.findPage(owner, page, size);
     }
 
     /**
      * FR-UPL-01 계약서 업로드
-     *
-     * TODO(FR-UPL-01): 계약 상세를 조회한다.
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: contracts.user_id. 아니면 CONTRACT_NOT_FOUND(404, 존재 여부 비공개).
-     * 3. DB/외부 호출: contracts 행. 필요 시 최신 분석 상태를 붙인다.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: CONTRACT_NOT_FOUND(404).
-     * 6. 반환: 메타데이터. 원본 파일은 fileUrl로만 제공한다.
+     * 내 계약의 메타데이터를 조회한다. 없는 계약과 타인 계약은 모두 404 CONTRACT_NOT_FOUND다.
+     * 원본 파일은 fileUrl로만 제공한다.
      */
     public Contract get(String owner, long id) {
         return owned(owner, id);
@@ -105,35 +127,56 @@ public class ContractService {
 
     /**
      * FR-UPL-01 계약서 업로드
-     *
-     * TODO(FR-UPL-01): 원본 열람용 사전 서명 URL을 발급한다. 현재 플레이스홀더 도메인을 교체한다.
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: CONTRACT_NOT_FOUND(404).
-     * 3. DB/외부 호출: contracts.s3_key로 S3 presigned GET을 만든다. 만료 5분(TC-UPL-017).
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 원본 보관 90일이 지났으면 스펙 미정: 오류 코드.
-     * 6. 반환: url, expiresAt.
+     * 원본 열람용 사전서명 URL을 5분 유효로 발급한다(TC-UPL-017). 없는 계약과 타인 계약은 404다.
+     * 스펙 미정: 원본 보관 90일이 지난 계약의 오류 코드.
      */
     public FileUrl fileUrl(String owner, long id) {
         Contract contract = owned(owner, id);
-        return new FileUrl("https://example.invalid/contracts/" + contract.id(), Instant.now().plusSeconds(300).toString());
+        String url = storage.presignGet(contract.s3Key(), FILE_URL_VALIDITY);
+        return new FileUrl(url, Instant.now().plus(FILE_URL_VALIDITY).toString());
     }
 
     /**
      * FR-UPL-01 계약서 업로드
+     * 저장소 객체를 먼저 지우고 contracts 행을 지운다. 쓴 이용권은 복구하지 않는다(TC-CRD-011).
+     * 객체 삭제가 실패하면 행을 남겨 다시 시도할 수 있게 한다.
      *
-     * TODO(FR-UPL-01): 계약과 종속 데이터를 삭제한다. 이용권은 복구하지 않는다(TC-CRD-011).
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: CONTRACT_NOT_FOUND(404).
-     * 3. DB/외부 호출: S3 객체 삭제 후 contracts 및 FK 종속(clauses, analyses, risk_results, comparisons, explanations, milestones 등)을 삭제한다.
-     * 4. 상태 전이: 행 제거. 스키마에 deleted_at이 없다.
-     * 5. 예외/에러코드: CONTRACT_NOT_FOUND(404).
-     * 6. 반환: 204. 스펙 미정: 물리 삭제 vs 상태 변경, 비교·설명 등 타 테이블 보존 범위.
+     * TODO(FR-UPL-01): 조항·분석·비교·설명·일정 같은 종속 데이터 삭제는 각 저장소가 영속화되는 FR에서 이어 붙인다.
+     * 스펙 미정: 물리 삭제 vs 상태 변경, 비교·설명 등 타 테이블 보존 범위.
      */
     public void delete(String owner, long id) {
-        owned(owner, id);
+        Contract contract = owned(owner, id);
+        storage.delete(contract.s3Key());
         contracts.delete(id);
-        log.info("계약서 삭제 contractId={} owner={}", id, owner);
+        log.info("계약서 삭제 contractId={} userId={}", id, owner);
+    }
+
+    private void validateMetadata(String title, String contractType) {
+        if (title == null || title.isBlank() || title.length() > MAX_TITLE_LENGTH) {
+            throw new ApiException(400, "VALIDATION_ERROR", "제목은 1~200자여야 합니다.");
+        }
+        if (!ALLOWED_CONTRACT_TYPES.contains(contractType)) {
+            throw new ApiException(400, "VALIDATION_ERROR", "계약 유형은 MONTHLY 또는 JEONSE여야 합니다.");
+        }
+    }
+
+    private byte[] read(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(400, "VALIDATION_ERROR", "파일이 비어 있습니다.");
+        }
+        try {
+            return file.getBytes();
+        } catch (IOException exception) {
+            throw new IllegalStateException("업로드 파일을 읽지 못했다", exception);
+        }
+    }
+
+    private void deleteQuietly(String key) {
+        try {
+            storage.delete(key);
+        } catch (RuntimeException exception) {
+            log.warn("업로드 롤백 중 저장소 객체 삭제 실패 key={}", key);
+        }
     }
 
     private Contract owned(String owner, long id) {
