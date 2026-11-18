@@ -103,7 +103,8 @@ management:
         include: health,info
 
 ---
-# dev·prod 공통 로그: 콘솔+파일은 ECS JSON, 파일은 LOG_PATH 아래 롤링.
+# dev·prod 공통 로그: 파일은 ECS JSON, LOG_PATH 아래 롤링.
+# dev 콘솔 패턴은 application-dev.yml, prod 콘솔 ECS는 application-prod.yml.
 # local·test는 이 문서를 쓰지 않는다(콘솔만, 패턴은 각 프로필).
 spring:
   config:
@@ -116,7 +117,6 @@ logging:
     name: ${LOG_PATH:./logs}/contractcheck.log
   structured:
     format:
-      console: ecs
       file: ecs
     json:
       context:

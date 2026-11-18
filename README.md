@@ -246,7 +246,7 @@ docker run -d \
 
 ## 로깅
 
-- 콘솔: 모든 프로필
+- 콘솔: 모든 프로필. `local`/`dev`는 패턴, `prod`는 ECS JSON
 - 파일: `dev`/`prod`만. `LOG_PATH`(기본 `./logs`, 컨테이너 `/var/log/contractcheck`)에 ECS JSON 롤링
 - 에러 로그: `dev`/`prod`만. `logback-spring.xml`이 `contractcheck-error.log`를 별도 롤링
 - 요청 상관 ID: `X-Request-Id` 헤더, MDC `requestId`
