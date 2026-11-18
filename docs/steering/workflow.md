@@ -4,9 +4,9 @@
 
 ## 브랜치와 PR
 
-이름은 `feat|fix|docs|refactor|chore/FR-XXX-00-short`다. 한 이슈·FR에 브랜치·PR 하나다. 여러 기능을 한 PR에 넣지 않는다. ([anti-patterns.md](anti-patterns.md) 35)
+이름은 `feat|fix|docs|refactor|chore/FR-XXX-00-short`다. 한 이슈·FR에 브랜치·PR 하나이고, PR은 기능(FR) 단위다. 여러 기능을 한 PR에 넣지 않는다. ([anti-patterns.md](anti-patterns.md) 35)
 
-`main`에는 직접 푸시하지 않는다. PR을 열고(Draft 가능) CI가 통과하면 사람이 squash merge한다. 사람 승인은 보호 규칙이 아니다. `SecurityConfig`, Flyway, 결제처럼 위험한 변경은 머지 전에 PM에게 알리라고 PR에 적는다.
+`main`에는 직접 푸시하지 않는다. PR을 열고(Draft 가능) CI가 통과하면 사람이 merge commit(일반 merge)으로 머지한다. squash merge와 rebase merge는 쓰지 않는다. 사람 승인은 보호 규칙이 아니다. `SecurityConfig`, Flyway, 결제처럼 위험한 변경은 머지 전에 PM에게 알리라고 PR에 적는다.
 
 세부 순서와 템플릿은 [CONTRIBUTING.md](../../CONTRIBUTING.md)와 [`.github/pull_request_template.md`](../../.github/pull_request_template.md)다.
 
@@ -47,5 +47,5 @@ CD는 `main` push의 CI가 성공하면 [`.github/workflows/cd.yml`](../../.gith
 - 변경은 이슈 범위에 맞게 최소로 둔다. 의존성을 임의로 추가하지 않고, 대량 재포맷을 하지 않으며, 스펙에 없는 요구사항을 만들지 않는다. Boot 3 기준 코드를 가져와 쓰지 않는다. ([anti-patterns.md](anti-patterns.md) 32·33)
 - `스펙 미정:`과 애매한 점은 추측하지 않는다. PR 설명에 적거나 사람에게 묻는다. ([product.md](product.md))
 - 완료라고 말하기 전에 컴파일과 `./gradlew test`를 돌린다. 스펙시트·`api-docs.yml`·`SecurityConfig`가 일치하는지도 확인한다.
-- PR의 작성자와 머지 책임은 사람에게 있다. AI 리뷰 봇 코멘트는 사람이 반영하거나 이유를 남긴다.
+- PR의 작성자와 머지 책임은 사람에게 있다.
 
