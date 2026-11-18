@@ -7,7 +7,7 @@ Spring Boot 4.1.2 내장 설정(`logging.*`)과 필요한 경우만 `logback-spr
 | 프로필 | 앱(`ac.mju.contractcheck`) | 루트·라이브러리 | SQL | 출력 |
 |---|---|---|---|---|
 | `local` | DEBUG | 기본(INFO) | `org.hibernate.SQL` DEBUG, `org.hibernate.orm.jdbc.bind` TRACE(로컬 콘솔 전용) | 콘솔만, 사람이 읽는 패턴 |
-| `dev` | INFO | 루트 INFO, Spring·Hibernate·Tomcat·Hikari·springdoc은 WARN. Boot 기동 로그는 INFO | 끔 | 콘솔은 local과 같은 패턴, 파일은 ECS JSON |
+| `dev` | INFO | 루트 INFO. Spring·Hibernate·Tomcat·Hikari 기동 로그도 INFO로 나온다 | 끔 | 콘솔은 local과 같은 패턴, 파일은 ECS JSON |
 | `prod` | INFO | 루트 WARN | 끔 | 콘솔+파일, ECS JSON |
 | `test` | WARN | 루트 WARN, 주요 라이브러리 WARN | 끔 | 콘솔만 |
 
