@@ -42,7 +42,8 @@ spring:
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: profile_nickname,account_email
+            # account_email은 비즈 앱 전환 전까지 권한이 없어 요청하면 KOE205로 실패한다. 이메일 없이 로그인한다.
+            scope: profile_nickname
           naver:
             client-id: ${NAVER_CLIENT_ID:unset}
             client-secret: ${NAVER_CLIENT_SECRET:unset}
