@@ -12,14 +12,6 @@ logging:
   level:
     root: info
     ac.mju.contractcheck: info
-    org.springframework: warn
-    org.springframework.boot: info
-    org.hibernate: warn
-    org.apache.catalina: warn
-    org.apache.tomcat: warn
-    org.apache.coyote: warn
-    com.zaxxer.hikari: warn
-    org.springdoc: warn
 
 # Swagger UI가 XSRF-TOKEN 쿠키를 읽어 X-XSRF-TOKEN 헤더로 보내게 한다
 springdoc:
