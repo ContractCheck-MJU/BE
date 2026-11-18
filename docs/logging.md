@@ -7,7 +7,7 @@ Spring Boot 4.1.2 내장 설정(`logging.*`)과 필요한 경우만 `logback-spr
 | 프로필 | 앱(`ac.mju.contractcheck`) | 루트·라이브러리 | SQL | 출력 |
 |---|---|---|---|---|
 | `local` | DEBUG | 기본(INFO) | `org.hibernate.SQL` DEBUG, `org.hibernate.orm.jdbc.bind` TRACE(로컬 콘솔 전용) | 콘솔만, 사람이 읽는 패턴 |
-| `dev` | INFO | 루트 INFO, Spring·Hibernate·Tomcat·Hikari·springdoc은 WARN. Boot 기동 로그는 INFO | 끔 | 콘솔+파일, ECS JSON |
+| `dev` | INFO | 루트 INFO. Spring·Hibernate·Tomcat·Hikari 기동 로그도 INFO로 나온다 | 끔 | 콘솔은 local과 같은 패턴, 파일은 ECS JSON |
 | `prod` | INFO | 루트 WARN | 끔 | 콘솔+파일, ECS JSON |
 | `test` | WARN | 루트 WARN, 주요 라이브러리 WARN | 끔 | 콘솔만 |
 
@@ -36,15 +36,15 @@ docker run --name contractcheck-app \
 
 ## 포맷
 
-- `local` 콘솔: `HH:mm:ss.SSS LEVEL [requestId] logger.method:line - message`
-- `dev`/`prod` 콘솔과 파일: Boot 내장 구조화 로그 `logging.structured.format.console/file: ecs`. JSON 한 줄에 `@timestamp`, `log.level`, `message`, `service.name`, `ecs.version`, 스택은 `error.*`가 들어간다.
+- `local`/`dev` 콘솔: `HH:mm:ss.SSS LEVEL [requestId] logger.method:line - message`
+- `prod` 콘솔과 `dev`/`prod` 파일: Boot 내장 구조화 로그 `logging.structured.format.console`(prod)과 `logging.structured.format.file: ecs`. JSON 한 줄에 `@timestamp`, `log.level`, `message`, `service.name`, `ecs.version`, 스택은 `error.*`가 들어간다.
 - MDC `requestId`는 `logging.structured.json.context.include: true`로 JSON에 포함된다. 요청 헤더 `X-Request-Id`가 허용 형식이면 재사용하고, 없으면 `MdcRequestIdFilter`가 UUID를 넣는다. Micrometer Tracing 의존성은 아직 없다. 나중에 브리지를 추가하면 같은 MDC/상관 패턴에 `traceId`/`spanId`를 얹을 수 있다.
 
 액세스 로그 패턴은 `"%m %U"`라서 쿼리스트링(토큰 위험)을 남기지 않는다. 요청 ID는 응답 헤더(`%{X-Request-Id}o`)를 남긴다. 액세스 로그는 텍스트이며 ECS JSON이 아니다. 파일에 바로 보이도록 `server.tomcat.accesslog.buffered`는 false다.
 
 ## ELK 계획
 
-1. 컨테이너는 ECS JSON을 stdout과 `$LOG_PATH/contractcheck.log`에 같이 쓴다.
+1. `prod` 컨테이너는 ECS JSON을 stdout과 `$LOG_PATH/contractcheck.log`에 같이 쓴다. `dev`는 파일만 ECS JSON이고, stdout은 사람이 읽는 패턴이다.
 2. Filebeat가 호스트(또는 사이드카)에서 JSON 파일을 읽거나, Docker stdout을 수집한다. 한 줄 = 한 이벤트다.
 3. Filebeat는 Elasticsearch에 바로 넣거나 Logstash를 거친다. 필드는 ECS(`@timestamp`, `log.level`, `message`, `service.name`, `service.environment`, `error.stack_trace` 등)이므로 추가 매핑은 최소로 둔다. `requestId`는 context/MDC 필드다.
 4. 액세스 로그는 별도 Filebeat input(텍스트)으로 두거나, 앱 JSON만 먼저 파이프라인에 태운다.

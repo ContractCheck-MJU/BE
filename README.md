@@ -246,7 +246,7 @@ docker run -d \
 
 ## 로깅
 
-- 콘솔: 모든 프로필
+- 콘솔: 모든 프로필. `local`/`dev`는 패턴, `prod`는 ECS JSON
 - 파일: `dev`/`prod`만. `LOG_PATH`(기본 `./logs`, 컨테이너 `/var/log/contractcheck`)에 ECS JSON 롤링
 - 에러 로그: `dev`/`prod`만. `logback-spring.xml`이 `contractcheck-error.log`를 별도 롤링
 - 요청 상관 ID: `X-Request-Id` 헤더, MDC `requestId`
@@ -258,7 +258,7 @@ docker run -d \
 
 - `application.yml`: 공통. 기본 `local`, DB·Flyway·Session JDBC, `ddl-auto=validate`, 세션 30분. `dev`/`prod` 파일·액세스 로그
 - `application-local.yml`: SQL 디버그, 콘솔 패턴, Swagger CSRF
-- `application-dev.yml`: 앱 INFO, 라이브러리 WARN, Swagger CSRF
+- `application-dev.yml`: 앱·루트 INFO(Spring 표준 기동 로그 포함), Swagger CSRF
 - `application-prod.yml`: 앱 INFO, 루트 WARN, Swagger 끔
 - `logback-spring.xml`: 프로필별 appender, `dev`/`prod` 에러 로그 파일 롤링
 - `src/test/resources/application-test.yml`: 테스트 H2, 로그 억제

@@ -13,8 +13,8 @@
 		</root>
 	</springProfile>
 
+	<!-- dev·prod 공통: ECS JSON 파일. 콘솔은 프로필마다 따로 연다. -->
 	<springProfile name="dev | prod">
-		<include resource="org/springframework/boot/logging/logback/structured-console-appender.xml"/>
 		<include resource="org/springframework/boot/logging/logback/structured-file-appender.xml"/>
 		<appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
 			<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -33,6 +33,21 @@
 				<maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-30}</maxHistory>
 			</rollingPolicy>
 		</appender>
+	</springProfile>
+
+	<!-- dev 콘솔은 local과 같은 사람이 읽는 패턴. 파일은 ECS JSON. -->
+	<springProfile name="dev">
+		<include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+		<root level="INFO">
+			<appender-ref ref="CONSOLE"/>
+			<appender-ref ref="FILE"/>
+			<appender-ref ref="ERROR_FILE"/>
+		</root>
+	</springProfile>
+
+	<!-- prod 콘솔·파일 모두 ECS JSON. -->
+	<springProfile name="prod">
+		<include resource="org/springframework/boot/logging/logback/structured-console-appender.xml"/>
 		<root level="INFO">
 			<appender-ref ref="CONSOLE"/>
 			<appender-ref ref="FILE"/>
