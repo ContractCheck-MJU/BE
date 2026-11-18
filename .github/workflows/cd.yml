@@ -1,8 +1,9 @@
 name: CD
 
-# 이미지를 빌드해 GHCR(ghcr.io/contractcheck-mju/be)에 올린다.
-# 서버는 들어오는 접속 없이 Watchtower로 새 이미지를 받아 반영한다.
-# pull_request에서는 실행하지 않는다.
+# main CI가 성공하면 이미지를 빌드해 GHCR(ghcr.io/contractcheck-mju/be)에 올리고,
+# Coolify 배포 웹훅을 호출해 서버가 :main 이미지를 받아 다시 띄우게 한다.
+# 저장소 시크릿 COOLIFY_WEBHOOK(Deploy Webhook URL), COOLIFY_TOKEN(Coolify API 토큰)이 필요하다.
+# 서버·Coolify 설정은 docs/deploy.md를 본다. pull_request에서는 실행하지 않는다.
 on:
   workflow_run:
     workflows: [CI]
@@ -65,3 +66,23 @@ jobs:
             org.opencontainers.image.revision=${{ steps.meta.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Trigger Coolify deploy
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::error::COOLIFY_WEBHOOK 또는 COOLIFY_TOKEN 시크릿이 없습니다. docs/deploy.md를 보세요."
+            exit 1
+          fi
+          # 웹훅은 배포를 큐에 넣고 바로 응답한다. 실제 배포 결과는 Coolify 화면에서 확인한다.
+          curl --fail-with-body -sS --retry 3 --retry-delay 5 --max-time 30 \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_WEBHOOK"

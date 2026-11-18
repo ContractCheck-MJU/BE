@@ -35,7 +35,7 @@ Spring이 DB, 인증, OCR(Upstage), Claude, Toss 결제를 소유한다.
 - `local`(기본), `dev`, `prod`는 같은 PostgreSQL이다. 접속은 `application.yml`의 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`만 쓴다. 프로필 파일은 이 데이터소스를 덮어쓰지 않는다. 비밀번호는 YAML에 적지 않는다.
 - 테스트만 `test` 프로필의 H2를 쓴다. ([testing.md](testing.md))
 - Docker는 `cp .env.example .env` 후 `DB_PASSWORD`를 설정한다. `.env`는 커밋하지 않는다. 이미지는 `pgvector/pgvector:pg16`이다. 명령은 [AGENTS.md](../../AGENTS.md)를 본다.
-- 배포는 `docker-compose.prod.yml`과 `.env`의 `DB_PASSWORD`다. 예: `docker compose -f docker-compose.prod.yml up -d`.
+- 서버 배포는 Coolify다. CD가 GHCR 이미지를 올리고 Coolify 웹훅으로 재배포한다. 절차와 환경 변수는 [deploy.md](../deploy.md)다. `docker-compose.prod.yml`은 Coolify 없이 한 서버에 수동으로 띄울 때만 쓴다.
 
 ## Swagger
 

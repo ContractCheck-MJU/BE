@@ -1,4 +1,5 @@
-# 배포: cp .env.example .env 후 DB_PASSWORD를 설정하고
+# 서버 배포는 Coolify를 쓴다(docs/deploy.md). 이 파일은 Coolify 없이 한 서버에 수동으로 띄울 때만 쓴다.
+# 수동 배포: cp .env.example .env 후 DB_PASSWORD를 설정하고
 # docker compose -f docker-compose.prod.yml up -d --build
 # PostgreSQL 포트는 호스트에 열지 않는다. 앱만 8080.
 services:
