@@ -244,6 +244,18 @@ docker run -d \
 - 워크플로 `CI`, 잡 `test`
 - 같은 브랜치의 이전 실행은 취소
 
+## CD (Coolify 배포)
+
+[`.github/workflows/cd.yml`](.github/workflows/cd.yml)
+
+- 트리거: `main` push의 CI 성공, 또는 수동 실행(Run workflow)
+- `image` 잡: 이미지를 빌드해 GHCR(`ghcr.io/contractcheck-mju/be`)에 `latest`·`main`·`sha-<커밋>` 태그로 push
+- `deploy` 잡: Coolify 배포 웹훅을 호출하고, Coolify가 `:main` 이미지를 받아 앱을 다시 띄움
+- 필요한 저장소 시크릿: `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN`
+- Coolify 리소스: PostgreSQL(`pgvector/pgvector:pg16`), SeaweedFS, 앱
+
+서버·Coolify 설정, 환경 변수, 롤백, 문제 해결은 [docs/deploy.md](docs/deploy.md)에 있습니다.
+
 ## 로깅
 
 - 콘솔: 모든 프로필. `local`/`dev`는 패턴, `prod`는 ECS JSON
@@ -265,7 +277,7 @@ docker run -d \
 - `src/main/resources/db/migration/V1__init.sql`: 스펙 DB 스키마. pgvector 필요
 - `src/main/resources/openapi/api-docs.yml`: Swagger 설명. 컨트롤러 애노테이션으로 대체하지 않음
 - `docker-compose.yml`: 로컬 앱+DB (`local`, 8080)
-- `docker-compose.prod.yml`: 배포 (`prod`, DB 포트 닫힘, `./logs` 마운트)
+- `docker-compose.prod.yml`: Coolify 없이 한 서버에 수동 배포할 때 (`prod`, DB 포트 닫힘, `./logs` 마운트)
 - `.env.example`: `DB_PASSWORD`, `LOG_PATH`. 복사한 `.env`는 커밋하지 않음
 
 ## 문서
@@ -274,6 +286,7 @@ docker run -d \
 - [CONTRIBUTING.md](CONTRIBUTING.md): 브랜치·PR·셀프 머지(사람용)
 - [AGENTS.md](AGENTS.md): AI 에이전트 핵심 규칙
 - [docs/steering/](docs/steering/): 제품, 기술, 구조, 컨벤션, 테스트, 보안, 작업 흐름
+- [docs/deploy.md](docs/deploy.md): Coolify 배포 설정, 롤백, 문제 해결
 - [docs/logging.md](docs/logging.md): 로그 경로, 롤링, 프로필 레벨, ELK
 - [docs/erd/](docs/erd/): ERD 원본 JSON
 
