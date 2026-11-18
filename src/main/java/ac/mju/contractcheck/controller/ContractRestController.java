@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.dto.contract.ContractDetail;
 import ac.mju.contractcheck.dto.contract.ContractItem;
 import ac.mju.contractcheck.dto.contract.ContractPage;
@@ -49,20 +50,15 @@ public class ContractRestController {
                 .body(new UploadedContract(contract.id(), contract.status()));
     }
 
-    /**
-     * FR-UPL-01 계약서 업로드
-     *
-     * TODO(FR-UPL-01): page/size를 서비스 쿼리(OFFSET/LIMIT)와 총건수에 반영한다. 현재는 전체 목록 크기를 total로 넣는다.
-     */
+    /** FR-UPL-01 계약서 업로드 */
     @GetMapping("/api/v1/contracts")
     public ContractPage list(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<ContractItem> items = contracts.list(currentUser.username(authentication)).stream()
-                .map(ContractItem::from)
-                .toList();
-        return new ContractPage(items, page, size, items.size());
+        PageSlice<Contract> found = contracts.list(currentUser.username(authentication), page, size);
+        List<ContractItem> items = found.items().stream().map(ContractItem::from).toList();
+        return new ContractPage(items, page, size, (int) found.total());
     }
 
     /** FR-UPL-01 계약서 업로드 */

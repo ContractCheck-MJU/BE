@@ -1,12 +1,18 @@
 package ac.mju.contractcheck.global.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +20,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -35,21 +44,95 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("미인증 API 요청은 리다이렉트가 아니라 401")
-    void unauthenticatedApiIs401() throws Exception {
-        mvc.perform(get("/api/v1/contracts")).andExpect(status().isUnauthorized());
+    @DisplayName("TC-AUTH-012 미인증 API 요청은 리다이렉트가 아니라 401 JSON(code=UNAUTHORIZED, traceId)")
+    void unauthenticatedApiIs401Json() throws Exception {
+        mvc.perform(get("/api/v1/members/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
     @Test
-    @DisplayName("로그인해도 CSRF 토큰 없는 변경 요청은 403")
-    void postWithoutCsrfIsForbidden() throws Exception {
-        mvc.perform(post("/api/v1/contracts").with(user("u"))).andExpect(status().isForbidden());
+    @DisplayName("TC-AUTH-008 위조·형식 오류 세션 쿠키는 401 UNAUTHORIZED")
+    void forgedSessionCookieIs401() throws Exception {
+        mvc.perform(get("/api/v1/admin/ingest/jobs/1").cookie(new Cookie("SESSION", "forged-session-value")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+        mvc.perform(get("/api/v1/members/me").cookie(new Cookie("SESSION", "%%%not-base64%%%")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
-    @DisplayName("일반 회원(USER)의 관리자 API 접근은 403")
+    @DisplayName("TC-AUTH-009 로그인해도 CSRF 토큰이 없거나 틀린 변경 요청은 403 CSRF_INVALID")
+    void mutationWithoutValidCsrfIsForbidden() throws Exception {
+        mvc.perform(patch("/api/v1/members/me").with(user("1")).contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CSRF_INVALID"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+        mvc.perform(patch("/api/v1/members/me").with(user("1")).with(csrf().useInvalidToken())
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CSRF_INVALID"));
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-010 세션 쿠키는 HttpOnly·Secure·SameSite=Lax·Path=/")
+    void sessionCookieHasSecurityAttributes() throws Exception {
+        MvcResult started = mvc.perform(get("/oauth2/authorization/kakao")).andReturn();
+
+        String setCookie = started.getResponse().getHeaders("Set-Cookie").stream()
+                .filter(header -> header.startsWith("SESSION="))
+                .findFirst()
+                .orElseThrow();
+        assertThat(setCookie).contains("HttpOnly", "Secure", "SameSite=Lax", "Path=/");
+    }
+
+    @Test
+    @DisplayName("FR-AUTH-01 소셜 로그인 시작은 제공자 인가 페이지로 302")
+    void oauth2AuthorizationRedirectsToProvider() throws Exception {
+        mvc.perform(get("/oauth2/authorization/kakao"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", startsWith("https://kauth.kakao.com/oauth/authorize")));
+    }
+
+    @Test
+    @DisplayName("FR-AUTH-01 oauth2Login이 생성 로그인 페이지(/login)를 공개하지 않는다")
+    void generatedLoginPageIsNotExposed() throws Exception {
+        mvc.perform(get("/login")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-003 인가 시작 뒤 사용자가 동의를 취소한 콜백은 로그인 세션 없이 {FE}/login?error=oauth_denied로 302")
+    void deniedCallbackRedirectsToFrontendLogin() throws Exception {
+        MvcResult started = mvc.perform(get("/oauth2/authorization/kakao")).andReturn();
+        String state = UriUtils.decode(
+                UriComponentsBuilder.fromUriString(started.getResponse().getHeader("Location"))
+                        .build().getQueryParams().getFirst("state"),
+                StandardCharsets.UTF_8);
+
+        mvc.perform(get("/login/oauth2/code/kakao")
+                        .cookie(started.getResponse().getCookie("SESSION"))
+                        .param("error", "access_denied")
+                        .param("state", state))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "http://localhost:3000/login?error=oauth_denied"));
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-004 state가 맞지 않는 콜백은 {FE}/login?error=oauth_failed로 302")
+    void stateMismatchCallbackRedirectsToFrontendLogin() throws Exception {
+        mvc.perform(get("/login/oauth2/code/kakao").param("code", "c").param("state", "forged"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "http://localhost:3000/login?error=oauth_failed"));
+    }
+
+    @Test
+    @DisplayName("TC-ADM-010 일반 회원(USER)의 관리자 API 접근은 403 FORBIDDEN")
     void adminApiRequiresAdminRole() throws Exception {
         mvc.perform(post("/api/v1/admin/ingest/laws").with(user("u").roles("USER")).with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
 }

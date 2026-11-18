@@ -7,12 +7,13 @@ public record Contract(
         String owner,
         String title,
         String contractType,
+        String s3Key,
         String status,
         String maskedText,
         Instant createdAt,
         String errorMessage) {
 
     public Contract withStatus(String status, String errorMessage) {
-        return new Contract(id, owner, title, contractType, status, maskedText, createdAt, errorMessage);
+        return new Contract(id, owner, title, contractType, s3Key, status, maskedText, createdAt, errorMessage);
     }
 }
