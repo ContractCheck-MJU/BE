@@ -33,7 +33,7 @@ class SecurityConfigTest {
     MockMvc mvc;
 
     @Test
-    @DisplayName("CSRF 토큰 발급은 비로그인도 가능")
+    @DisplayName("CSRF 토큰은 비로그인도 발급받을 수 있다")
     void csrfEndpointIsPublic() throws Exception {
         mvc.perform(get("/api/v1/auth/csrf"))
                 .andExpect(status().isOk())
@@ -44,7 +44,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-012 미인증 API 요청은 리다이렉트가 아니라 401 JSON(code=UNAUTHORIZED, traceId)")
+    @DisplayName("TC-AUTH-012 미인증 API 요청은 리다이렉트하지 않고 401 JSON(code=UNAUTHORIZED, traceId)을 응답한다")
     void unauthenticatedApiIs401Json() throws Exception {
         mvc.perform(get("/api/v1/members/me"))
                 .andExpect(status().isUnauthorized())
@@ -54,7 +54,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-008 위조·형식 오류 세션 쿠키는 401 UNAUTHORIZED")
+    @DisplayName("TC-AUTH-008 위조되거나 형식이 틀린 세션 쿠키를 보내면 401 UNAUTHORIZED를 응답한다")
     void forgedSessionCookieIs401() throws Exception {
         mvc.perform(get("/api/v1/admin/ingest/jobs/1").cookie(new Cookie("SESSION", "forged-session-value")))
                 .andExpect(status().isUnauthorized())
@@ -65,7 +65,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-009 로그인해도 CSRF 토큰이 없거나 틀린 변경 요청은 403 CSRF_INVALID")
+    @DisplayName("TC-AUTH-009 로그인해도 CSRF 토큰이 없거나 틀린 변경 요청은 403 CSRF_INVALID를 응답한다")
     void mutationWithoutValidCsrfIsForbidden() throws Exception {
         mvc.perform(patch("/api/v1/members/me").with(user("1")).contentType("application/json").content("{}"))
                 .andExpect(status().isForbidden())
@@ -78,7 +78,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-010 세션 쿠키는 HttpOnly·Secure·SameSite=Lax·Path=/")
+    @DisplayName("TC-AUTH-010 세션 쿠키는 HttpOnly·Secure·SameSite=Lax·Path=/ 속성을 가진다")
     void sessionCookieHasSecurityAttributes() throws Exception {
         MvcResult started = mvc.perform(get("/oauth2/authorization/kakao")).andReturn();
 
@@ -90,7 +90,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("FR-AUTH-01 소셜 로그인 시작은 제공자 인가 페이지로 302")
+    @DisplayName("FR-AUTH-01 소셜 로그인을 시작하면 제공자 인가 페이지로 302 이동한다")
     void oauth2AuthorizationRedirectsToProvider() throws Exception {
         mvc.perform(get("/oauth2/authorization/kakao"))
                 .andExpect(status().isFound())
@@ -104,7 +104,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-003 인가 시작 뒤 사용자가 동의를 취소한 콜백은 로그인 세션 없이 {FE}/login?error=oauth_denied로 302")
+    @DisplayName("TC-AUTH-003 인가 시작 뒤 사용자가 동의를 취소한 콜백은 로그인 세션 없이 {FE}/login?error=oauth_denied로 302 이동한다")
     void deniedCallbackRedirectsToFrontendLogin() throws Exception {
         MvcResult started = mvc.perform(get("/oauth2/authorization/kakao")).andReturn();
         String state = UriUtils.decode(
@@ -121,7 +121,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-004 state가 맞지 않는 콜백은 {FE}/login?error=oauth_failed로 302")
+    @DisplayName("TC-AUTH-004 state가 맞지 않는 콜백은 {FE}/login?error=oauth_failed로 302 이동한다")
     void stateMismatchCallbackRedirectsToFrontendLogin() throws Exception {
         mvc.perform(get("/login/oauth2/code/kakao").param("code", "c").param("state", "forged"))
                 .andExpect(status().isFound())
@@ -129,7 +129,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("TC-ADM-010 일반 회원(USER)의 관리자 API 접근은 403 FORBIDDEN")
+    @DisplayName("TC-ADM-010 일반 회원(USER)이 관리자 API에 접근하면 403 FORBIDDEN을 응답한다")
     void adminApiRequiresAdminRole() throws Exception {
         mvc.perform(post("/api/v1/admin/ingest/laws").with(user("u").roles("USER")).with(csrf()))
                 .andExpect(status().isForbidden())

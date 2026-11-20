@@ -48,7 +48,7 @@ class MemberRestControllerTest {
     }
 
     @Test
-    @DisplayName("API-MEM-02 닉네임이 50자를 넘으면 400 VALIDATION_ERROR")
+    @DisplayName("API-MEM-02 닉네임이 50자를 넘으면 400 VALIDATION_ERROR를 일으킨다")
     void patchRejectsTooLongNickname() throws Exception {
         Member member = signUp();
 
@@ -61,7 +61,7 @@ class MemberRestControllerTest {
     }
 
     @Test
-    @DisplayName("API-MEM-01 내 정보 조회는 id, email, nickname, provider, createdAt")
+    @DisplayName("API-MEM-01 내 정보 조회는 id, email, nickname, provider, createdAt이어야 한다")
     void getReturnsProfile() throws Exception {
         Member member = signUp();
 

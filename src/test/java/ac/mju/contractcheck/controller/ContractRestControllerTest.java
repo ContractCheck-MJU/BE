@@ -38,7 +38,7 @@ class ContractRestControllerTest {
     StorageClient storage;
 
     @Test
-    @DisplayName("TC-UPL-001 업로드는 201과 contractId, status=UPLOADED")
+    @DisplayName("TC-UPL-001 업로드하면 201과 contractId, status=UPLOADED를 응답한다")
     void uploadReturnsCreated() throws Exception {
         String username = newUsername();
 
@@ -58,7 +58,7 @@ class ContractRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-UPL-002 지원하지 않는 형식은 415 UNSUPPORTED_FILE_TYPE JSON")
+    @DisplayName("TC-UPL-002 지원하지 않는 형식을 올리면 415 UNSUPPORTED_FILE_TYPE JSON을 응답한다")
     void unsupportedTypeReturns415() throws Exception {
         mvc.perform(multipart("/api/v1/contracts")
                         .file(new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {'M', 'Z', 1, 2}))
@@ -70,7 +70,7 @@ class ContractRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-UPL-016 없는 계약·타인 계약은 404 CONTRACT_NOT_FOUND")
+    @DisplayName("TC-UPL-016 없는 계약이나 타인의 계약을 조회하면 404 CONTRACT_NOT_FOUND를 응답한다")
     void unknownContractReturns404() throws Exception {
         mvc.perform(get("/api/v1/contracts/999999").with(user(newUsername())))
                 .andExpect(status().isNotFound())

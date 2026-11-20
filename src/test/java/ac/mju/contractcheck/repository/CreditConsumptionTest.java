@@ -67,7 +67,7 @@ class CreditConsumptionTest {
     }
 
     @Test
-    @DisplayName("TC-CRD-004 이용권이 없으면 CREDIT_INSUFFICIENT이고 잔여·원장은 그대로")
+    @DisplayName("TC-CRD-004 이용권이 없으면 CREDIT_INSUFFICIENT를 일으키고 잔여·원장은 그대로 유지된다")
     void insufficientCreditsIsRejected() {
         String owner = walletWith(0, 0);
 

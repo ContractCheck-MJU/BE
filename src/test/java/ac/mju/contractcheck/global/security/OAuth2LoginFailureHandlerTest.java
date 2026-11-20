@@ -16,7 +16,7 @@ class OAuth2LoginFailureHandlerTest {
     private final OAuth2LoginFailureHandler handler = new OAuth2LoginFailureHandler("https://fe.example.com");
 
     @Test
-    @DisplayName("TC-AUTH-003 사용자가 동의를 취소하면 {FE}/login?error=oauth_denied")
+    @DisplayName("TC-AUTH-003 사용자가 동의를 취소하면 {FE}/login?error=oauth_denied로 이동한다")
     void accessDeniedRedirectsWithOauthDenied() throws Exception {
         MockHttpServletResponse response = fail(new OAuth2AuthenticationException(new OAuth2Error("access_denied")));
 
@@ -25,7 +25,7 @@ class OAuth2LoginFailureHandlerTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-004 state 불일치 등 그 밖의 실패는 {FE}/login?error=oauth_failed")
+    @DisplayName("TC-AUTH-004 state 불일치 등 그 밖의 실패는 {FE}/login?error=oauth_failed로 이동한다")
     void otherFailuresRedirectWithOauthFailed() throws Exception {
         MockHttpServletResponse stateMismatch =
                 fail(new OAuth2AuthenticationException(new OAuth2Error("authorization_request_not_found")));

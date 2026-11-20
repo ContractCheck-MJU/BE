@@ -64,14 +64,14 @@ class OAuthProfileTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-005 지원하지 않는 provider는 거절")
+    @DisplayName("TC-AUTH-005 지원하지 않는 provider는 거절한다")
     void unsupportedProviderIsRejected() {
         assertThatThrownBy(() -> OAuthProfile.from("facebook", Map.of("id", "x")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    @DisplayName("제공자 식별자가 없으면 거절")
+    @DisplayName("제공자 식별자가 없으면 거절한다")
     void missingProviderUserIdIsRejected() {
         assertThatThrownBy(() -> OAuthProfile.from("google", Map.of("email", "a@example.com")))
                 .isInstanceOf(IllegalArgumentException.class);

@@ -12,7 +12,7 @@ class RiskLevelResolverTest {
     private final RiskLevelResolver resolver = new RiskLevelResolver(new RiskPolicy(0.6, 0.5));
 
     @Test
-    @DisplayName("TC-ANL-017: 위험 확률 0.52 < 임계 0.6 이면 HIGH로 확정하지 않고 CAUTION + lowConfidence")
+    @DisplayName("TC-ANL-017: 위험 확률 0.52가 임계 0.6보다 낮으면 HIGH로 확정하지 않고 CAUTION으로 낮추며 lowConfidence를 표시한다")
     void lowConfidenceIsCaution() {
         RiskAssessment result = resolver.resolve(new Classification(true, 0.52), List.of(0.8));
 
@@ -21,7 +21,7 @@ class RiskLevelResolverTest {
     }
 
     @Test
-    @DisplayName("TC-ANL-018: 위험 확률 0.9 라도 리랭크 0.5 이상 근거가 0건이면 CAUTION + 근거 부족")
+    @DisplayName("TC-ANL-018: 위험 확률이 0.9여도 리랭크 0.5 이상 근거가 0건이면 CAUTION으로 낮추고 근거 부족을 표시한다")
     void noEvidenceDowngradesToCaution() {
         RiskAssessment result = resolver.resolve(new Classification(true, 0.9), List.of(0.49, 0.3));
 
@@ -31,7 +31,7 @@ class RiskLevelResolverTest {
     }
 
     @Test
-    @DisplayName("TC-ANL-018 대조군: 확률·근거 모두 충족하면 HIGH 유지")
+    @DisplayName("TC-ANL-018 대조군: 확률과 근거를 모두 충족하면 HIGH를 유지한다")
     void confidentWithEvidenceIsHigh() {
         RiskAssessment result = resolver.resolve(new Classification(true, 0.9), List.of(0.5));
 

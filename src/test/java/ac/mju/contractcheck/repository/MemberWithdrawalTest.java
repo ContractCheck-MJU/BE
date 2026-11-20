@@ -43,7 +43,7 @@ class MemberWithdrawalTest {
     FindByIndexNameSessionRepository<? extends Session> sessions;
 
     @Test
-    @DisplayName("TC-AUTH-014 탈퇴하면 개인정보를 비우고 모든 기기의 세션을 지우며 이후 조회는 401")
+    @DisplayName("TC-AUTH-014 탈퇴하면 개인정보를 비우고 모든 기기의 세션을 지우며 이후 조회는 401을 응답한다")
     void withdrawalRemovesSessionsAndPersonalData() {
         Member member = signUp();
         String username = String.valueOf(member.id());
@@ -75,7 +75,7 @@ class MemberWithdrawalTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-015 마지막 ADMIN의 탈퇴는 409 LAST_ADMIN이고 계정이 유지된다")
+    @DisplayName("TC-AUTH-015 마지막 ADMIN이 탈퇴하면 409 LAST_ADMIN을 응답하고 계정이 유지된다")
     void lastAdminCannotWithdraw() {
         long adminId = createAdmin();
         String username = String.valueOf(adminId);
@@ -100,7 +100,7 @@ class MemberWithdrawalTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-013 닉네임만 바뀌고 role은 그대로")
+    @DisplayName("TC-AUTH-013 닉네임만 바뀌고 role은 그대로 유지된다")
     void updateChangesOnlyNickname() {
         Member member = signUp();
 
