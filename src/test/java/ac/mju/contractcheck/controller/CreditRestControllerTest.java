@@ -30,7 +30,7 @@ class CreditRestControllerTest {
     AuthService auth;
 
     @Test
-    @DisplayName("TC-CRD-001 가입 직후 freeRemaining=2, paidRemaining=0이고 원장에 GRANT(2) 1건")
+    @DisplayName("TC-CRD-001 가입 직후에는 freeRemaining이 2, paidRemaining이 0이고 원장에 GRANT(2)가 1건 남는다")
     void newMemberHasTwoFreeCredits() throws Exception {
         String username = String.valueOf(signUp().id());
 
@@ -47,7 +47,7 @@ class CreditRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-CRD-012 비회원 조회는 401")
+    @DisplayName("TC-CRD-012 비회원이 조회하면 401을 응답한다")
     void anonymousIsRejected() throws Exception {
         mvc.perform(get("/api/v1/credits/me"))
                 .andExpect(status().isUnauthorized())

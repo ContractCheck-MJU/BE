@@ -86,7 +86,7 @@ class ContractServiceTest {
     }
 
     @Test
-    @DisplayName("TC-UPL-003 정확히 20MB는 통과하고 20MB+1바이트는 413 FILE_TOO_LARGE")
+    @DisplayName("TC-UPL-003 정확히 20MB는 통과하고 20MB+1바이트는 413 FILE_TOO_LARGE를 일으킨다")
     void sizeBoundary() {
         String owner = newOwner();
 
@@ -116,7 +116,7 @@ class ContractServiceTest {
     }
 
     @Test
-    @DisplayName("API-CON-01 제목이 비었거나 200자를 넘거나 계약 유형이 MONTHLY·JEONSE가 아니면 400 VALIDATION_ERROR")
+    @DisplayName("API-CON-01 제목이 비었거나 200자를 넘거나 계약 유형이 MONTHLY·JEONSE가 아니면 400 VALIDATION_ERROR를 일으킨다")
     void invalidMetadataIsRejected() {
         String owner = newOwner();
 
@@ -129,7 +129,7 @@ class ContractServiceTest {
     }
 
     @Test
-    @DisplayName("TC-UPL-016 다른 회원의 계약은 상세·file-url·삭제 모두 404 CONTRACT_NOT_FOUND이고 데이터는 그대로")
+    @DisplayName("TC-UPL-016 다른 회원의 계약은 상세·file-url·삭제 모두 404 CONTRACT_NOT_FOUND를 일으키고 데이터는 그대로 유지된다")
     void otherMembersContractIsHidden() {
         String owner = newOwner();
         String stranger = newOwner();
@@ -144,7 +144,7 @@ class ContractServiceTest {
     }
 
     @Test
-    @DisplayName("TC-UPL-017 file-url은 저장소의 5분짜리 사전서명 URL")
+    @DisplayName("TC-UPL-017 file-url은 저장소의 5분짜리 사전서명 URL이어야 한다")
     void fileUrlIsPresignedForFiveMinutes() {
         String owner = newOwner();
         Contract saved = contracts.upload(owner, pdf(1024), "제목", "MONTHLY");

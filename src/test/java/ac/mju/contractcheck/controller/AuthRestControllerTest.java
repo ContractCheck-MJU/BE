@@ -45,7 +45,7 @@ class AuthRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-016 비로그인이면 401 UNAUTHORIZED")
+    @DisplayName("TC-AUTH-016 비로그인이면 401 UNAUTHORIZED를 응답한다")
     void meWithoutSessionIs401() throws Exception {
         mvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
@@ -53,7 +53,7 @@ class AuthRestControllerTest {
     }
 
     @Test
-    @DisplayName("세션은 있으나 users 행이 없으면 회원을 만들어 주지 않고 401 UNAUTHORIZED")
+    @DisplayName("세션은 있으나 users 행이 없으면 회원을 만들어 주지 않고 401 UNAUTHORIZED를 응답한다")
     void meWithoutMemberRowIs401() throws Exception {
         mvc.perform(get("/api/v1/auth/me").with(user("987654321")))
                 .andExpect(status().isUnauthorized())
@@ -61,7 +61,7 @@ class AuthRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-011 CSRF 토큰과 함께 로그아웃하면 204")
+    @DisplayName("TC-AUTH-011 CSRF 토큰과 함께 로그아웃하면 204를 응답한다")
     void logoutReturnsNoContent() throws Exception {
         Member member = signUp();
 
@@ -70,7 +70,7 @@ class AuthRestControllerTest {
     }
 
     @Test
-    @DisplayName("TC-AUTH-009 CSRF 토큰 없는 로그아웃은 403 CSRF_INVALID")
+    @DisplayName("TC-AUTH-009 CSRF 토큰 없이 로그아웃하면 403 CSRF_INVALID를 응답한다")
     void logoutWithoutCsrfIsForbidden() throws Exception {
         Member member = signUp();
 
