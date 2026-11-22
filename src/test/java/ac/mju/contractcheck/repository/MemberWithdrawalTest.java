@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import ac.mju.contractcheck.client.StorageClient;
+import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
@@ -16,6 +17,7 @@ import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.service.AuthService;
 import ac.mju.contractcheck.service.MemberService;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,6 +55,12 @@ class MemberWithdrawalTest {
 
     @Autowired
     ContractRepository contracts;
+
+    @Autowired
+    ClauseRepository clauseRepository;
+
+    @Autowired
+    ClauseJpaRepository clauseRows;
 
     @Autowired
     FindByIndexNameSessionRepository<? extends Session> sessions;
@@ -138,6 +146,25 @@ class MemberWithdrawalTest {
         assertThat(contracts.findOwned(second.id(), username)).isEmpty();
         assertThat(contracts.findOwned(withoutObject.id(), username)).isEmpty();
         assertThat(contracts.findOwned(othersContract.id(), otherName)).isPresent();
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-014 탈퇴하면 계약의 조항도 지우고 다른 회원의 조항은 그대로 둔다")
+    void withdrawalDeletesClausesOfContracts() {
+        Member member = signUp();
+        String username = String.valueOf(member.id());
+        Contract contract = saveContract(username, "contracts/" + username + "/clauses");
+        clauseRepository.replaceAll(contract.id(), username, List.of(new ClauseDraft(1, "제1조(목적)", "본문"), new ClauseDraft(2, "제2조(보증금)", "본문")));
+        Member other = signUp();
+        String otherName = String.valueOf(other.id());
+        Contract othersContract = saveContract(otherName, "contracts/" + otherName + "/clauses");
+        clauseRepository.replaceAll(othersContract.id(), otherName, List.of(new ClauseDraft(1, "제1조(목적)", "본문")));
+
+        members.withdraw(username);
+
+        assertThat(clauseRows.findAll()).extracting(ClauseEntity::getContractId)
+                .doesNotContain(contract.id())
+                .contains(othersContract.id());
     }
 
     @Test

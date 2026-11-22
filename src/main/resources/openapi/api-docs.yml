@@ -216,7 +216,7 @@ paths:
   "PATCH /api/v1/clauses/{id}":
     tag: clauses
     summary: 조항 수정
-    description: 본인 소유의 조항 번호, 제목, 본문을 수정한다. 없거나 소유자가 아니면 404(CLAUSE_NOT_FOUND)다.
+    description: 본인 소유의 조항 번호, 제목, 본문을 수정한다. 번호는 1 이상, 제목은 200자 이내, 본문은 공백만이면 안 된다. 없거나 소유자가 아니면 404(CLAUSE_NOT_FOUND)다. 수정 후 재분석 필요 표시는 스펙 미정이라 needsReanalysis는 항상 false다.
     auth: login
     requestBody: 수정할 조항 본문, 번호, 제목. 전달한 값만 반영된다.
     params:
@@ -225,6 +225,7 @@ paths:
         description: 조항 ID
     responses:
       "200": 수정된 조항
+      "400": 번호·제목·본문이 형식에 맞지 않음 (VALIDATION_ERROR)
       "401": 로그인되어 있지 않음
       "404": 조항을 찾을 수 없음
 
