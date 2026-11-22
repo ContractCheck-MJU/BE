@@ -97,7 +97,7 @@ paths:
   "DELETE /api/v1/members/me":
     tag: members
     summary: 회원 탈퇴
-    description: 로그인한 사용자의 users.status를 WITHDRAWN으로 바꾸고 이메일·닉네임을 비우며 소셜 계정 연결과 모든 기기의 로그인 세션을 삭제한다. 계약서·분석 데이터와 S3 원본 삭제는 계약 저장소가 영속화되는 FR-UPL-01에서 이어서 구현한다. 마지막 ADMIN은 탈퇴할 수 없다. 응답 본문은 없다.
+    description: 로그인한 사용자의 계약서 원본(저장소 객체)과 contracts 행을 삭제하고, users.status를 WITHDRAWN으로 바꾸며 이메일·닉네임을 비우고 소셜 계정 연결과 모든 기기의 로그인 세션을 삭제한다. 조항·분석 등 계약에 딸린 데이터 삭제는 각 저장소가 영속화되는 FR에서 이어서 구현한다. 마지막 ADMIN은 탈퇴할 수 없으며 이때는 아무것도 삭제하지 않는다. 저장소 삭제가 실패하면 500으로 끝나고 계정과 계약은 그대로라 다시 시도할 수 있다. 응답 본문은 없다.
     auth: login
     responses:
       "204": 탈퇴 완료

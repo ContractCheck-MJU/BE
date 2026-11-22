@@ -52,6 +52,16 @@ public class ContractRepository {
         contracts.deleteById(id);
     }
 
+    /** 회원이 가진 모든 계약의 저장소 객체 키. 저장소 키가 없는 계약은 뺀다. */
+    public @NonNull List<String> findS3KeysByOwner(String owner) {
+        return OwnerId.parse(owner).map(contracts::findS3KeysByUserId).orElseGet(List::of);
+    }
+
+    /** 회원이 가진 모든 계약 행을 지운다. 트랜잭션 안에서 부른다. */
+    public void deleteAllByOwner(String owner) {
+        OwnerId.parse(owner).ifPresent(contracts::deleteByUserId);
+    }
+
     private Contract toContract(ContractEntity entity) {
         return new Contract(
                 entity.getId(),
