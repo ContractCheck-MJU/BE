@@ -1,5 +1,6 @@
 # 로컬 실행: cp .env.example .env 후 DB_PASSWORD를 설정하고 docker compose up --build
-# 앱 http://localhost:8080, PostgreSQL localhost:5432
+# 앱 http://localhost:8080, PostgreSQL localhost:5432, 계약서 저장소(S3 호환 SeaweedFS) http://localhost:9000
+# 저장소 접속 키는 .env의 STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY를 쓴다. 버킷은 seaweedfs-init이 만든다.
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -17,11 +18,45 @@ services:
       timeout: 5s
       retries: 20
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.port=9000
+    environment:
+      AWS_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY:?STORAGE_ACCESS_KEY를 .env에 설정하세요}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_SECRET_KEY:?STORAGE_SECRET_KEY를 .env에 설정하세요}
+    ports:
+      - "9000:9000"
+      - "8888:8888" # 파일 목록 확인용 filer 웹 화면(로컬 전용)
+    volumes:
+      - seaweedfsdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  seaweedfs-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - aws --endpoint-url http://seaweedfs:9000 s3api head-bucket --bucket "$$STORAGE_BUCKET" 2>/dev/null || aws --endpoint-url http://seaweedfs:9000 s3api create-bucket --bucket "$$STORAGE_BUCKET"
+    environment:
+      AWS_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY:?STORAGE_ACCESS_KEY를 .env에 설정하세요}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_SECRET_KEY:?STORAGE_SECRET_KEY를 .env에 설정하세요}
+      AWS_DEFAULT_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-contractcheck}
+    restart: "no"
+
   app:
     build: .
     depends_on:
       postgres:
         condition: service_healthy
+      seaweedfs-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     environment:
@@ -36,12 +71,14 @@ services:
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-unset}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
-      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://localhost:9000}
+      STORAGE_ENDPOINT: http://seaweedfs:9000
       STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-contractcheck}
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-unset}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-unset}
-      STORAGE_SSE: ${STORAGE_SSE:-true}
+      # 로컬 SeaweedFS에는 SSE-S3 키 설정이 없어 암호화 지정 업로드가 실패하므로 끈다.
+      STORAGE_SSE: "false"
 
 volumes:
   pgdata:
+  seaweedfsdata:
