@@ -2,7 +2,14 @@ package ac.mju.contractcheck.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import ac.mju.contractcheck.client.StorageClient;
+import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -11,6 +18,7 @@ import ac.mju.contractcheck.service.MemberService;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +27,15 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * FR-AUTH-03 회원 탈퇴. 관리자 행은 ADMIN 지정 경로가 스펙에 없어 패키지 비공개 JPA 저장소로 직접 만든다.
- * 클래스 단위 @Transactional이라 테스트마다 롤백되어 서로 데이터를 공유하지 않는다.
+ * 저장소(SeaweedFS)는 mock한다. 클래스 단위 @Transactional이라 테스트마다 롤백되어 서로 데이터를 공유하지 않는다.
+ * 트랜잭션 밖 호출을 확인하는 테스트만 트랜잭션 없이 돌고, 고유한 회원을 만들어 서로 겹치지 않는다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -40,7 +52,13 @@ class MemberWithdrawalTest {
     MemberJpaRepository users;
 
     @Autowired
+    ContractRepository contracts;
+
+    @Autowired
     FindByIndexNameSessionRepository<? extends Session> sessions;
+
+    @MockitoBean
+    StorageClient storage;
 
     @Test
     @DisplayName("TC-AUTH-014 탈퇴하면 개인정보를 비우고 모든 기기의 세션을 지우며 이후 조회는 401을 응답한다")
@@ -100,6 +118,87 @@ class MemberWithdrawalTest {
     }
 
     @Test
+    @DisplayName("TC-AUTH-014 탈퇴하면 계약 행과 저장소 원본을 지우고 다른 회원의 계약은 그대로 둔다")
+    void withdrawalDeletesContractsAndStoredOriginals() {
+        Member member = signUp();
+        String username = String.valueOf(member.id());
+        Contract first = saveContract(username, "contracts/" + username + "/first");
+        Contract second = saveContract(username, "contracts/" + username + "/second");
+        Contract withoutObject = saveContract(username, null);
+        Member other = signUp();
+        String otherName = String.valueOf(other.id());
+        Contract othersContract = saveContract(otherName, "contracts/" + otherName + "/kept");
+
+        members.withdraw(username);
+
+        verify(storage).delete(first.s3Key());
+        verify(storage).delete(second.s3Key());
+        verify(storage, never()).delete(othersContract.s3Key());
+        assertThat(contracts.findOwned(first.id(), username)).isEmpty();
+        assertThat(contracts.findOwned(second.id(), username)).isEmpty();
+        assertThat(contracts.findOwned(withoutObject.id(), username)).isEmpty();
+        assertThat(contracts.findOwned(othersContract.id(), otherName)).isPresent();
+    }
+
+    @Test
+    @DisplayName("계약서가 없는 회원도 저장소를 건드리지 않고 탈퇴한다")
+    void withdrawalWithoutContractsDoesNotTouchStorage() {
+        Member member = signUp();
+
+        members.withdraw(String.valueOf(member.id()));
+
+        verify(storage, never()).delete(anyString());
+        assertThat(users.findById(member.id()).orElseThrow().getStatus()).isEqualTo("WITHDRAWN");
+    }
+
+    @Test
+    @DisplayName("저장소 삭제가 실패하면 탈퇴하지 않고 계정·계약 행·세션이 그대로 남는다")
+    void storageFailureKeepsAccountContractsAndSessions() {
+        Member member = signUp();
+        String username = String.valueOf(member.id());
+        Contract contract = saveContract(username, "contracts/" + username + "/stuck");
+        createSession(username);
+        doThrow(new IllegalStateException("저장소 장애")).when(storage).delete(contract.s3Key());
+
+        assertThatThrownBy(() -> members.withdraw(username)).isInstanceOf(IllegalStateException.class);
+
+        assertThat(users.findById(member.id()).orElseThrow().getStatus()).isEqualTo("ACTIVE");
+        assertThat(contracts.findOwned(contract.id(), username)).isPresent();
+        assertThat(sessions.findByPrincipalName(username)).hasSize(1);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("저장소 원본 삭제는 트랜잭션 밖에서 호출된다")
+    void storageDeletionRunsOutsideTransaction() {
+        Member member = signUp();
+        String username = String.valueOf(member.id());
+        saveContract(username, "contracts/" + username + "/outside");
+        AtomicBoolean transactionActive = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            transactionActive.set(TransactionSynchronizationManager.isActualTransactionActive());
+            return null;
+        }).when(storage).delete(anyString());
+
+        members.withdraw(username);
+
+        assertThat(transactionActive).isFalse();
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-015 마지막 ADMIN 탈퇴를 거절할 때는 저장소 원본도 지우지 않는다")
+    void lastAdminRejectionKeepsStoredOriginals() {
+        long adminId = createAdmin();
+        String username = String.valueOf(adminId);
+        Contract contract = saveContract(username, "contracts/" + username + "/admin");
+
+        assertThatThrownBy(() -> members.withdraw(username)).isInstanceOf(ConflictException.class);
+
+        verify(storage, never()).delete(anyString());
+        assertThat(contracts.findOwned(contract.id(), username)).isPresent();
+    }
+
+    @Test
     @DisplayName("TC-AUTH-013 닉네임만 바뀌고 role은 그대로 유지된다")
     void updateChangesOnlyNickname() {
         Member member = signUp();
@@ -109,6 +208,10 @@ class MemberWithdrawalTest {
         assertThat(updated.nickname()).isEqualTo("새닉");
         assertThat(updated.role()).isEqualTo("USER");
         assertThat(members.me(String.valueOf(member.id())).nickname()).isEqualTo("새닉");
+    }
+
+    private Contract saveContract(String owner, String s3Key) {
+        return contracts.save(new Contract(0, owner, "계약서", "MONTHLY", s3Key, "UPLOADED", "", Instant.now(), null));
     }
 
     private long createAdmin() {
