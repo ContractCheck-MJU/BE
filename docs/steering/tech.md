@@ -34,6 +34,10 @@ OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키�
 
 신뢰도·근거 점수 등 임계값은 `RiskPolicy`에 둔다. 코드에 매직 넘버로 하드코딩하지 않는다. ([anti-patterns.md](anti-patterns.md) 21)
 
+## RAG 데이터 적재
+
+법령·판례 임베딩(`DATA/law-embedding`, `DATA/precedent-search`)은 `scripts/ingest.sh`로 `legal_documents`·`legal_chunks`에 적재한다. 로컬 Postgres를 띄운 뒤 BE 디렉터리에서 실행하고, DATA 파일이 바뀌면 같은 명령을 다시 돌린다. 멱등이라 바뀐 문서만 갱신하고 나머지는 건너뛴다. 옵션은 `--source laws|precedents`, `--dry-run`(검증만), `--force`(변경 없어도 다시 씀)다. 실행마다 `ingest_jobs`에 이력이 남고, 문서 하나가 실패해도 나머지는 계속하며 종료 코드가 1이 된다. 새 소스는 `scripts/ingest_rag.py`의 `SOURCES`에 추가한다. `kftc_cases`는 DATA에 데이터가 없어 아직 소스가 없다. 이 스크립트는 FR-ADM-01의 관리자 적재 API가 생기기 전의 운영 수단이다.
+
 ## 프로필과 환경변수
 
 - `local`(기본), `dev`, `prod`는 같은 PostgreSQL이다. 접속은 `application.yml`의 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`만 쓴다. 프로필 파일은 이 데이터소스를 덮어쓰지 않는다. 비밀번호는 YAML에 적지 않는다.
