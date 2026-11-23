@@ -3,7 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
-import ac.mju.contractcheck.repository.NotificationRepository;
+import ac.mju.contractcheck.repository.memory.NotificationRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Explanation;
-import ac.mju.contractcheck.repository.ExplanationRepository;
+import ac.mju.contractcheck.repository.memory.ExplanationRepository;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

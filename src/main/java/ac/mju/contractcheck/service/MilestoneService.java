@@ -3,7 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.service.ContractService;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Milestone;
-import ac.mju.contractcheck.repository.MilestoneRepository;
+import ac.mju.contractcheck.repository.memory.MilestoneRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

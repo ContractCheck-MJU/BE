@@ -60,7 +60,7 @@ prod 프로필에서는 Swagger UI와 `/v3/api-docs`를 열지 않는다. ([secu
 - 스키마 변경은 Flyway만 사용한다. 새 파일은 `src/main/resources/db/migration/V{n}__설명.sql`이다. 이미 적용된 마이그레이션은 고치지 않는다.
 - `ddl-auto`는 `validate`다. `update`로 스키마를 맞추지 않는다. 스키마는 pgvector가 필요하다. ([anti-patterns.md](anti-patterns.md) 13)
 - 새 버전 번호는 쓰기 전에 팀에 알린다. ([workflow.md](workflow.md))
-- 현재 repository는 인메모리 구현이다. JPA·JDBC로 바꿀 때 클래스·메서드 시그니처는 유지한다.
+- 계약·조항·이용권·회원은 JPA로 영속화돼 있고, 나머지는 `repository.memory`의 인메모리 임시 구현이다. JPA·JDBC로 바꿀 때 클래스·메서드 시그니처는 유지하고, 영속화가 끝나면 `repository`로 옮긴다.
 - 연관 로딩은 필요한 것만 조회한다. 기본 EAGER나 무분별한 `@OneToMany`로 N+1을 만들지 않는다. ([anti-patterns.md](anti-patterns.md) 10·11)
 
 ## 로깅
