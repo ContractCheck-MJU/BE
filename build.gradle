@@ -54,6 +54,29 @@ dependencyManagement {
     }
 }
 
+// 실제 SeaweedFS가 필요한 통합 테스트(@Tag("storage"))는 test와 CI에서 제외하고 storageTest로만 돌린다.
+// 먼저 docker compose up -d seaweedfs seaweedfs-init 으로 저장소를 띄운다. 접속 키는 .env의 STORAGE_* 만 넘긴다.
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'storage'
+    }
+}
+
+tasks.register('storageTest', Test) {
+    description = '실제 SeaweedFS(S3 호환)를 쓰는 통합 테스트를 실행한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'storage'
+    }
+    def envFile = file('.env')
+    if (envFile.exists()) {
+        envFile.eachLine { line ->
+            def m = line =~ /^(STORAGE_(?:ENDPOINT|REGION|BUCKET|ACCESS_KEY|SECRET_KEY))=(.*)$/
+            if (m.matches() && !System.getenv(m[0][1])) {
+                environment m[0][1], m[0][2]
+            }
+        }
+    }
 }
