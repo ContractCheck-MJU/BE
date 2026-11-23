@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
@@ -22,6 +23,8 @@ public class CreditService {
 
     @NonNull
     private final CreditRepository credits;
+    @NonNull
+    private final TransactionTemplate transaction;
 
 
     /**
@@ -38,7 +41,8 @@ public class CreditService {
      * FR-CRD-02 유료 차감
      * 분석 1건에 대해 이용권 1회를 차감한다(무료 우선 → 유료, USE 원장 기록). 이용권이 없으면 402 CREDIT_INSUFFICIENT이다.
      * 같은 지갑을 동시에 바꿔 낙관적 락이 충돌하면 잔액을 다시 읽어 최대 {@value #MAX_ATTEMPTS}번 시도한다.
-     * 트랜잭션은 저장소 호출 단위이며 외부 API는 부르지 않는다.
+     * 시도마다 새 트랜잭션을 열고(지갑 갱신과 USE 원장 기록을 함께 성공·실패시킨다) 재시도 루프는 트랜잭션 밖에 둔다.
+     * 충돌 예외가 트랜잭션 밖으로 나가야 다음 시도가 깨끗한 상태로 지갑을 다시 읽는다. 외부 API는 부르지 않는다.
      *
      * TODO(FR-CRD-02): 분석 실패 시 자동 복구(RESTORE, 같은 analysisId 중복 방지 TC-CRD-008)는 구현하지 않았다.
      * 스펙 미정: credit_ledger에는 무료·유료 구분이 없어 복구분을 어느 쪽에 되돌릴지 정해야 한다.
@@ -47,7 +51,8 @@ public class CreditService {
     public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                if (credits.use(owner, analysisId) == CreditUseResult.INSUFFICIENT) {
+                CreditUseResult result = transaction.execute(status -> credits.use(owner, analysisId));
+                if (result == CreditUseResult.INSUFFICIENT) {
                     throw new CreditInsufficientException();
                 }
                 return;

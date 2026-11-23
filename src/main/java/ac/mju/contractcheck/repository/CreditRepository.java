@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * V1__init.sql의 {@code credit_wallets}, {@code credit_ledger}에 저장한다.
@@ -41,9 +40,9 @@ public class CreditRepository {
     /**
      * 분석 1건에 대해 이용권 1회를 차감하고 USE 원장을 남긴다. 차감 규칙(무료 우선 → 유료)은 {@link CreditAccount#useOne()}이 정하고,
      * 저장소는 지갑을 읽어 도메인에 맡긴 결과를 저장한다. 지갑 version으로 낙관적 락을 건다.
+     * 지갑 갱신과 원장 기록을 한 번에 성공·실패시키는 트랜잭션은 호출하는 service가 시도마다 연다(충돌 예외가 트랜잭션 밖으로 나가야 다시 시도할 수 있다).
      * 동시에 같은 지갑을 바꾼 요청이 있으면 {@link ObjectOptimisticLockingFailureException}이 나므로 호출자가 다시 시도한다.
      */
-    @Transactional
     public @NonNull CreditUseResult use(UserId owner, long analysisId) {
         long userId = owner.value();
         CreditWalletEntity wallet = wallets.findById(userId)

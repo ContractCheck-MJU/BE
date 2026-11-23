@@ -13,6 +13,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -36,6 +37,7 @@ public class ClauseService {
      * TODO(FR-UPL-02): OCR이 끝나면 이 메서드를 부르고 contracts.status를 OCR에서 SPLIT으로 바꾼다. 지금은 호출하는 곳이 없다.
      * 스펙 미정: 분할 대상이 OCR 원문인지 마스킹본인지(FR-UPL-04), 번호·문단 조항의 title(지금은 빈 문자열), 첫 조항 앞 문구 처리.
      */
+    @Transactional
     public StoredClauses split(UserId owner, long contractId, String rawText) {
         contracts.get(owner, contractId);
         ClauseSplitResult result = splitter.split(rawText);
@@ -64,6 +66,7 @@ public class ClauseService {
      * 스펙 미정: 수정 후 재분석 필요를 표시하는 방법(clauses에 플래그 컬럼이 없어 needsReanalysis는 항상 false),
      * 수정 즉시 재분석을 자동 시작할지, 번호가 다른 조항과 겹칠 때의 처리.
      */
+    @Transactional
     public Clause update(UserId owner, long id, Integer no, String title, String text) {
         validateEdit(no, title, text);
         Clause clause = clauses.findOwned(id, owner)
