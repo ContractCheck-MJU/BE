@@ -11,7 +11,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** V1__init.sql의 {@code users}. 저장소 안에서만 쓰고 밖으로는 domain.Member로 바꿔 내보낸다. */
+/** V1__init.sql의 {@code users} 매핑. 저장소 안에서만 쓰고 밖으로는 domain.Member로 바꿔 내보낸다. 업무 규칙은 두지 않는다. */
 @Entity
 @Table(name = "users")
 @Getter
@@ -52,9 +52,9 @@ class MemberEntity {
         this.updatedAt = now;
     }
 
-    /** 탈퇴: 상태를 WITHDRAWN으로 바꾸고 개인정보(이메일·닉네임)를 비운다. */
-    void withdraw(Instant now) {
-        this.status = "WITHDRAWN";
+    /** 탈퇴한 회원(개인정보 필드가 없는 도메인 객체)을 반영한다. 도메인에 없는 값인 이메일·닉네임 컬럼은 NULL이 된다. */
+    void applyWithdrawn(String status, Instant now) {
+        this.status = status;
         this.email = null;
         this.nickname = null;
         this.updatedAt = now;

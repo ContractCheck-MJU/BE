@@ -88,7 +88,7 @@ public class MemberService {
             rejectLastAdmin(member);
             erasers.forEach(eraser -> eraser.deleteAllByOwner(username));
             contracts.deleteAllByOwner(username);
-            members.markWithdrawn(username);
+            members.markWithdrawn(member.withdraw());
             sessions.findByPrincipalName(username).keySet().forEach(sessions::deleteById);
         });
         log.info("회원 탈퇴 username={}", username);

@@ -2,6 +2,7 @@ package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
+import ac.mju.contractcheck.domain.WithdrawnMember;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.NonNull;
@@ -19,7 +20,6 @@ public class MemberRepository {
     private static final String ROLE_USER = "USER";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_WITHDRAWN = "WITHDRAWN";
 
     @NonNull
     private final MemberJpaRepository users;
@@ -45,7 +45,7 @@ public class MemberRepository {
     public @NonNull Optional<Member> findByUsername(String username) {
         return OwnerId.parse(username)
                 .flatMap(users::findById)
-                .filter(user -> !STATUS_WITHDRAWN.equals(user.getStatus()))
+                .filter(user -> !WithdrawnMember.STATUS.equals(user.getStatus()))
                 .map(user -> toMember(user, providerOf(user.getId())));
     }
 
@@ -60,10 +60,10 @@ public class MemberRepository {
         return users.countByRoleAndStatus(ROLE_ADMIN, STATUS_ACTIVE);
     }
 
-    /** 탈퇴 처리. 상태를 WITHDRAWN으로 바꾸고 개인정보를 비우며 소셜 계정 연결을 끊는다. */
-    public void markWithdrawn(String username) {
-        OwnerId.parse(username).flatMap(users::findById).ifPresent(user -> {
-            user.withdraw(Instant.now());
+    /** 탈퇴 처리. 도메인이 정한 탈퇴 상태를 반영해 개인정보 컬럼을 비우고 소셜 계정 연결을 끊는다. */
+    public void markWithdrawn(@NonNull WithdrawnMember withdrawn) {
+        users.findById(withdrawn.id()).ifPresent(user -> {
+            user.applyWithdrawn(WithdrawnMember.STATUS, Instant.now());
             users.save(user);
             accounts.deleteByUserId(user.getId());
         });
