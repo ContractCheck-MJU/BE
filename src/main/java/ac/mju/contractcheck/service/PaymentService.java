@@ -3,7 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
-import ac.mju.contractcheck.repository.PaymentRepository;
+import ac.mju.contractcheck.repository.memory.PaymentRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

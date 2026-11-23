@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.repository;
+package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.IngestJob;
 import java.util.Optional;

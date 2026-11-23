@@ -1,7 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.IngestJob;
-import ac.mju.contractcheck.repository.IngestJobRepository;
+import ac.mju.contractcheck.repository.memory.IngestJobRepository;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Comparison;
-import ac.mju.contractcheck.repository.ComparisonRepository;
+import ac.mju.contractcheck.repository.memory.ComparisonRepository;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

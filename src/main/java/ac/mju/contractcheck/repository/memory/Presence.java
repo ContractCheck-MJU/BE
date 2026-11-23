@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.repository;
+package ac.mju.contractcheck.repository.memory;
 
 import java.util.Optional;
 import java.util.function.Function;

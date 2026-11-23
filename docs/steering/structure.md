@@ -51,7 +51,7 @@ flowchart LR
 
 - **controller**: HTTP 진입점. 요청 바인딩, 인증 주체 전달, DTO 변환, 상태 코드. 유스케이스를 여기에 두지 않는다. ([anti-patterns.md](anti-patterns.md) 2)
 - **service**: 유스케이스. 트랜잭션 경계, 권한·소유자 확인 후의 처리, 클라이언트 호출. 만능 클래스로 키우지 않는다.
-- **repository**: 저장과 조회. 현재는 인메모리이며, 영속화할 때 시그니처를 유지한다. ([tech.md](tech.md))
+- **repository**: 저장과 조회. DB에 저장하는 클래스(계약·조항·이용권·회원, 근거 검색)는 `repository`에 두고, 아직 인메모리(`ConcurrentHashMap`)인 임시 구현은 `repository.memory`에 모은다. 영속화할 때 시그니처를 유지하고 `memory`에서 `repository`로 옮긴다. ([tech.md](tech.md))
 - **domain**: 모델과 순수 규칙(`RiskLevelResolver`, `RiskPolicy` 등).
 - **dto**: 요청·응답 레코드만 `dto/<기능>/`에 둔다. 공통 래퍼는 `dto.common`이다. 이름은 `<기능><동작>Request` / `<기능><동작>Response`다. 도메인에서 만들 때는 DTO의 `from(...)` 팩토리를 쓴다. 컨트롤러는 domain·entity를 HTTP 응답으로 직접 반환하지 않는다. API마다 DTO를 두고, 여러 API가 하나의 DTO를 공유하지 않는다. `Map<String, Object>`로 요청·응답을 만들지 않는다. ([anti-patterns.md](anti-patterns.md) 6·8·9)
 - **config**: 보안, 분석, OpenAPI, 필터·인터셉터·AOP 등록.

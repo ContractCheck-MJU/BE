@@ -1,6 +1,6 @@
 package ac.mju.contractcheck.service;
 
-import ac.mju.contractcheck.repository.PrecedentRepository;
+import ac.mju.contractcheck.repository.memory.PrecedentRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
