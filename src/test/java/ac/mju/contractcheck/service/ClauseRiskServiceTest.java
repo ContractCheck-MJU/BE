@@ -146,6 +146,27 @@ class ClauseRiskServiceTest {
     }
 
     @Test
+    @DisplayName("분류 결과 개수가 조항 수와 다르면 인덱스 오류가 아니라 InferenceException이다")
+    void classificationCountMismatchIsRejected() {
+        when(inference.classify(any())).thenReturn(List.of(classified("1", false, "", 0.0)));
+
+        assertThatThrownBy(() -> service.assess(List.of(clause(1, "가"), clause(2, "나"))))
+                .isInstanceOf(InferenceException.class).hasMessageContaining("분류");
+        verifyNoInteractions(embeddingModel, evidenceRetriever);
+    }
+
+    @Test
+    @DisplayName("임베딩 개수가 조항 수와 다르면 InferenceException이고 근거 검색은 하지 않는다")
+    void embeddingCountMismatchIsRejected() {
+        when(inference.classify(any())).thenReturn(List.of(classified("1", true, "면책", 0.9), classified("2", true, "면책", 0.9)));
+        when(embeddingModel.embed(any(List.class))).thenReturn(List.of(new float[] {1f}));
+
+        assertThatThrownBy(() -> service.assess(List.of(clause(1, "가"), clause(2, "나"))))
+                .isInstanceOf(InferenceException.class).hasMessageContaining("임베딩");
+        verifyNoInteractions(evidenceRetriever);
+    }
+
+    @Test
     @DisplayName("추론 서버에는 조항 id를 문자열 키로, 본문을 그대로 보낸다")
     void sendsClauseIdAndText() {
         stub(List.of(classified("5", false, "", 0.0)), List.of(new float[] {1f}));

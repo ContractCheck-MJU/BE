@@ -1,6 +1,8 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.InferenceClient;
+import ac.mju.contractcheck.client.InferenceException;
+import ac.mju.contractcheck.domain.Classification;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseClassification;
 import ac.mju.contractcheck.domain.ClauseRisk;
@@ -9,8 +11,8 @@ import ac.mju.contractcheck.domain.EvidenceHit;
 import ac.mju.contractcheck.domain.RiskAssessment;
 import ac.mju.contractcheck.domain.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,33 +59,40 @@ public class ClauseRiskService {
         if (clauses.isEmpty()) {
             return List.of();
         }
+        List<ClauseClassification> classifications = classify(clauses);
+        List<float[]> embeddings = embed(clauses);
+
+        List<ClauseRisk> risks = IntStream.range(0, clauses.size())
+                .mapToObj(index -> assessOne(clauses.get(index), classifications.get(index), embeddings.get(index)))
+                .toList();
+        log.info("조항 위험 판정 완료 clauses={} flagged={}", clauses.size(),
+                risks.stream().filter(risk -> risk.assessment().level() != RiskLevel.SAFE).count());
+        return risks;
+    }
+
+    private List<ClauseClassification> classify(List<Clause> clauses) {
         List<ClauseClassification> classifications = inference.classify(
                 clauses.stream().map(clause -> new ClauseText(String.valueOf(clause.id()), clause.text())).toList());
-        List<float[]> embeddings = embeddingModel.embed(clauses.stream().map(Clause::text).toList());
+        return requireSameSize(classifications, clauses.size(), "분류");
+    }
 
-        List<ClauseRisk> risks = new ArrayList<>(clauses.size());
-        int riskyCount = 0;
-        for (int index = 0; index < clauses.size(); index++) {
-            ClauseClassification result = classifications.get(index);
-            float[] embedding = embeddings.get(index);
-            List<EvidenceHit> hits = List.of();
-            if (result.classification().risky()) {
-                riskyCount++;
-                hits = evidenceRetriever.search(embedding, EvidenceRetriever.DEFAULT_LIMIT);
-            }
-            RiskAssessment assessment = result.classification().risky()
-                    ? resolver.resolve(result.classification(), hits.stream().map(EvidenceHit::similarity).toList())
-                    : new RiskAssessment(RiskLevel.SAFE, false, false);
-            risks.add(new ClauseRisk(
-                    clauses.get(index).id(),
-                    result.riskType(),
-                    result.classification().probability(),
-                    assessment,
-                    result.modelVersion(),
-                    embedding,
-                    hits));
+    private List<float[]> embed(List<Clause> clauses) {
+        return requireSameSize(embeddingModel.embed(clauses.stream().map(Clause::text).toList()), clauses.size(), "임베딩");
+    }
+
+    /** 위험 후보만 근거를 검색한다. 비위험 처리(SAFE)는 RiskLevelResolver가 정하므로 여기서 따로 분기하지 않는다. */
+    private ClauseRisk assessOne(Clause clause, ClauseClassification result, float[] embedding) {
+        Classification classification = result.classification();
+        List<EvidenceHit> hits = classification.risky() ? evidenceRetriever.search(embedding, EvidenceRetriever.DEFAULT_LIMIT) : List.of();
+        RiskAssessment assessment = resolver.resolve(classification, hits.stream().map(EvidenceHit::similarity).toList());
+        return new ClauseRisk(clause.id(), result.riskType(), classification.probability(), assessment, result.modelVersion(), embedding, hits);
+    }
+
+    /** 결과 순서로 조항과 짝을 짓기 때문에 개수가 다르면 잘못된 짝이 생기기 전에 실패시킨다. */
+    private static <T> List<T> requireSameSize(List<T> results, int expected, String step) {
+        if (results.size() != expected) {
+            throw new InferenceException(step + " 결과 개수가 조항 수와 다릅니다. expected=" + expected + " actual=" + results.size());
         }
-        log.info("조항 위험 판정 완료 clauses={} risky={}", clauses.size(), riskyCount);
-        return risks;
+        return results;
     }
 }
