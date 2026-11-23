@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.dto.contract.ContractDetail;
 import ac.mju.contractcheck.dto.contract.ContractItem;
@@ -70,14 +71,14 @@ public class ContractRestController {
     /**
      * FR-UPL-02 OCR 변환
      *
-     * TODO(FR-UPL-02): contracts.status에 따라 실제 진행률을 계산한다. 현재는 UPLOADED이면 10, 그 외 100으로 고정한다. 상세 파이프라인은 ContractService.status.
-     * 스펙 미정: progress 산출 방식.
+     * 처리 단계(UPLOADED → OCR → SPLIT, 실패는 FAILED)와 진행률, 실패 사유(errorMessage)를 돌려준다.
+     * 스펙 미정: progress 산출 방식(단계별 고정값 UPLOADED 10·OCR 50·SPLIT 100).
      */
     @GetMapping("/api/v1/contracts/{id}/status")
     public ContractStatus status(Authentication authentication, @PathVariable long id) {
         Contract contract = contracts.status(currentUser.userId(authentication), id);
         String errorMessage = contract.errorMessage() == null ? "" : contract.errorMessage();
-        return new ContractStatus(contract.status(), "UPLOADED".equals(contract.status()) ? 10 : 100, errorMessage);
+        return new ContractStatus(contract.status(), ContractState.progressOf(contract.status()), errorMessage);
     }
 
     /** FR-UPL-01 계약서 업로드 */

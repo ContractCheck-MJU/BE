@@ -39,9 +39,17 @@ class ContractEntity {
     @Column(columnDefinition = "TEXT")
     private String maskedText;
 
+    @Column(length = 200)
+    private String errorMessage;
+
     private Instant createdAt;
 
-    ContractEntity(Long userId, String title, String contractType, String s3Key, String status, Instant createdAt) {
+    /** id가 null이면 새 행, 있으면 그 행을 도메인 값으로 갱신(merge)한다. ocr_raw처럼 매핑하지 않은 컬럼은 건드리지 않는다. */
+    ContractEntity(Long id, Long userId, String title, String contractType, String s3Key, String status,
+            String maskedText, String errorMessage, Instant createdAt) {
+        this.id = id;
+        this.maskedText = maskedText;
+        this.errorMessage = errorMessage;
         this.userId = userId;
         this.title = title;
         this.contractType = contractType;

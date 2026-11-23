@@ -38,7 +38,8 @@ public class ClauseService {
      * OCR 원문을 조항으로 나눠 저장한다. 그 계약에 이미 있던 조항은 모두 지우고 새 결과로 바꾼다.
      * 없는 계약과 타인 계약은 404 CONTRACT_NOT_FOUND다. 조항 패턴이 없으면 문단 단위로 대체 분할하고 paragraphFallback을 true로 돌려준다(TC-UPL-012).
      *
-     * TODO(FR-UPL-02): OCR이 끝나면 이 메서드를 부르고 contracts.status를 OCR에서 SPLIT으로 바꾼다. 지금은 호출하는 곳이 없다.
+     * OCR이 끝나면 ContractProcessor가 이 메서드를 부르고 contracts.status를 SPLIT으로 바꾼다.
+     *
      * 스펙 미정: 분할 대상이 OCR 원문인지 마스킹본인지(FR-UPL-04), 번호·문단 조항의 title(지금은 빈 문자열), 첫 조항 앞 문구 처리.
      */
     @Transactional
