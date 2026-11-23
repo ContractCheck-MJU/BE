@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Milestone;
+import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Repository;
  * (due_date, remind_days INT[], done). 소유자 확인은 milestones.user_id로 한다.
  */
 @Repository
-public class MilestoneRepository {
+public class MilestoneRepository implements OwnedDataEraser {
     private final AtomicLong sequence = new AtomicLong(1);
     private final ConcurrentHashMap<Long, Milestone> store = new ConcurrentHashMap<>();
 
@@ -41,5 +42,11 @@ public class MilestoneRepository {
 
     public void delete(long id) {
         store.remove(id);
+    }
+
+    /** 탈퇴 시 소유자의 데이터를 모두 지운다(FR-AUTH-03). */
+    @Override
+    public void deleteAllByOwner(String owner) {
+        store.values().removeIf(item -> item.owner().equals(owner));
     }
 }

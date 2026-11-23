@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Comparison;
+import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Repository;
  * 소유자 확인은 comparisons.user_id로 한다.
  */
 @Repository
-public class ComparisonRepository {
+public class ComparisonRepository implements OwnedDataEraser {
     private final AtomicLong sequence = new AtomicLong(1);
     private final ConcurrentHashMap<Long, Comparison> store = new ConcurrentHashMap<>();
 
@@ -26,5 +27,11 @@ public class ComparisonRepository {
 
     public @NonNull Optional<Comparison> findOwned(long id, String owner) {
         return Presence.owned(store.get(id), owner, Comparison::owner);
+    }
+
+    /** 탈퇴 시 소유자의 데이터를 모두 지운다(FR-AUTH-03). */
+    @Override
+    public void deleteAllByOwner(String owner) {
+        store.values().removeIf(item -> item.owner().equals(owner));
     }
 }

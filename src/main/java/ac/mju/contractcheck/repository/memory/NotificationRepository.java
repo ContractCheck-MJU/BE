@@ -2,6 +2,7 @@ package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
+import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Repository;
  * {@code push_subscriptions} 테이블에 매핑한다. 읽음은 notifications.read_at으로 표현한다.
  */
 @Repository
-public class NotificationRepository {
+public class NotificationRepository implements OwnedDataEraser {
     private final ConcurrentHashMap<Long, Notification> notifications = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, NotificationSettings> settings = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> pushSubscriptions = new ConcurrentHashMap<>();
@@ -42,5 +43,13 @@ public class NotificationRepository {
 
     public void savePush(String owner, String endpoint) {
         pushSubscriptions.put(owner, endpoint);
+    }
+
+    /** 탈퇴 시 알림·알림 설정·푸시 구독을 모두 지운다(FR-AUTH-03). */
+    @Override
+    public void deleteAllByOwner(String owner) {
+        notifications.values().removeIf(item -> item.owner().equals(owner));
+        settings.remove(owner);
+        pushSubscriptions.remove(owner);
     }
 }
