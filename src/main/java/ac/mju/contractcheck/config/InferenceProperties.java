@@ -20,4 +20,20 @@ public record InferenceProperties(
         @DefaultValue("3") int maxAttempts,
         @DefaultValue("200ms") Duration retryBackoff,
         @DefaultValue("64") int batchSize) {
+
+    /** 잘못된 값이면 호출할 때가 아니라 시작할 때 실패한다(배치 0이면 분할이 끝나지 않고, 시도 0이면 한 번도 부르지 않는다). */
+    public InferenceProperties {
+        if (timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException("contractcheck.inference.timeout은 0보다 커야 합니다.");
+        }
+        if (maxAttempts < 1) {
+            throw new IllegalArgumentException("contractcheck.inference.max-attempts는 1 이상이어야 합니다.");
+        }
+        if (retryBackoff.isNegative()) {
+            throw new IllegalArgumentException("contractcheck.inference.retry-backoff는 0 이상이어야 합니다.");
+        }
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("contractcheck.inference.batch-size는 1 이상이어야 합니다.");
+        }
+    }
 }
