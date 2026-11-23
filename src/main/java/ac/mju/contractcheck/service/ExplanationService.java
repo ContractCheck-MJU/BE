@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Explanation;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.memory.ExplanationRepository;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import lombok.NonNull;
@@ -31,7 +32,7 @@ public class ExplanationService {
      * 6. 반환: 설명·수정 문구·citations. 현재 DTO from()이 인용을 빈 목록으로 넣으므로 매핑을 수정해야 한다.
      *    스펙 미정: tone 허용 값, tone·재생성 횟수 저장 컬럼(explanations에 없음).
      */
-    public Explanation create(String owner, long clauseId, String tone) {
+    public Explanation create(UserId owner, long clauseId, String tone) {
         Explanation saved = explanations.save(new Explanation(0, clauseId, owner, tone == null ? "기본" : tone, "", ""));
         log.info("설명 생성 explanationId={} clauseId={} owner={}", saved.id(), clauseId, owner);
         return saved;
@@ -48,7 +49,7 @@ public class ExplanationService {
      * 5. 예외/에러코드: EXPLANATION_NOT_FOUND(404).
      * 6. 반환: text, suggestion, citations(source_type, source_id, score).
      */
-    public Explanation get(String owner, long id) {
+    public Explanation get(UserId owner, long id) {
         return explanations.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("EXPLANATION_NOT_FOUND", "설명을 찾을 수 없습니다."));
     }

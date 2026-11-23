@@ -30,7 +30,7 @@ public class CreditRestController {
     /** FR-CRD-01 무료 횟수 */
     @GetMapping("/api/v1/credits/me")
     public CreditBalance me(Authentication authentication) {
-        CreditAccount account = credits.me(currentUser.username(authentication));
+        CreditAccount account = credits.me(currentUser.userId(authentication));
         return new CreditBalance(account.freeRemaining(), account.paidRemaining());
     }
 
@@ -42,7 +42,7 @@ public class CreditRestController {
     @GetMapping("/api/v1/credits/me/ledger")
     public PageResponse<LedgerItem> ledger(Authentication authentication, @RequestParam(defaultValue = "0") int page) {
         return new PageResponse<>(
-                credits.ledger(currentUser.username(authentication)).stream().map(LedgerItem::from).toList(),
+                credits.ledger(currentUser.userId(authentication)).stream().map(LedgerItem::from).toList(),
                 page);
     }
 }

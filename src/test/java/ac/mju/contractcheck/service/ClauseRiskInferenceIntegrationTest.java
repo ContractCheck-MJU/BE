@@ -11,6 +11,7 @@ import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
 import ac.mju.contractcheck.domain.RiskPolicy;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.EvidenceRepository;
 import java.time.Duration;
 import java.util.List;
@@ -59,7 +60,7 @@ class ClauseRiskInferenceIntegrationTest {
                 13L, "임대인은 계약 존속 중 주택을 사용·수익에 필요한 상태로 유지하여야 하고, 임차인은 임대인의 동의 없이 주택의 구조를 변경하지 못한다.",
                 15L, "임차인은 임대인의 사전 동의 없이 반려동물을 사육하지 않는다.");
         List<Clause> clauses = texts.entrySet().stream().sorted(Map.Entry.comparingByKey())
-                .map(e -> new Clause(e.getKey(), 1L, "1", e.getKey().intValue(), "제" + e.getKey() + "조", e.getValue(), "")).toList();
+                .map(e -> new Clause(e.getKey(), 1L, new UserId(1), e.getKey().intValue(), "제" + e.getKey() + "조", e.getValue(), "")).toList();
 
         Map<Long, ClauseRisk> risks = service.assess(clauses).stream().collect(Collectors.toMap(ClauseRisk::clauseId, Function.identity()));
 
@@ -79,7 +80,7 @@ class ClauseRiskInferenceIntegrationTest {
     @Test
     @DisplayName("TC-ANL-017 실제 서버: 위험 확률 0.52 조항은 CAUTION + lowConfidence다")
     void lowConfidenceClauseIsCaution() {
-        Clause clause = new Clause(12L, 1L, "1", 12, "제12조", "전구·수도꼭지 패킹 등 간단한 소모품 교체는 임차인이 부담한다.", "");
+        Clause clause = new Clause(12L, 1L, new UserId(1), 12, "제12조", "전구·수도꼭지 패킹 등 간단한 소모품 교체는 임차인이 부담한다.", "");
 
         ClauseRisk risk = service.assess(List.of(clause)).get(0);
 

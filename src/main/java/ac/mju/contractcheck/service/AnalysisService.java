@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Analysis;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.memory.AnalysisRepository;
 import ac.mju.contractcheck.service.ContractService;
 import ac.mju.contractcheck.global.error.NotFoundException;
@@ -25,7 +26,7 @@ public class AnalysisService {
      *
      * TODO(FR-ANL-01): 조항을 배치 분류·임베딩하고, 위험 조항만 Claude에 병렬 질의한 뒤 분석을 비동기로 접수한다.
      * 1. 입력 검증: contracts.id가 존재하고 조항 분할까지 끝났는지 확인한다. 아니면 CONTRACT_NOT_READY(409). 이미 진행 중이면 ANALYSIS_IN_PROGRESS(409).
-     * 2. 권한/소유자 확인: contracts.user_id가 현재 사용자인지 본다. 아니면 CONTRACT_NOT_FOUND(404). 소유자 문자열(username)이 아니라 users.id를 쓴다.
+     * 2. 권한/소유자 확인: contracts.user_id가 현재 사용자인지 본다. 아니면 CONTRACT_NOT_FOUND(404). 소유자는 UserId(users.id)로 받는다.
      * 3. DB/외부 호출: credit_wallets에서 free_remaining을 먼저, 모자라면 paid_remaining을 차감하고 version으로 낙관적 락을 건다.
      *    credit_ledger에 type=USE, amount=1, ref_type=ANALYSIS, ref_id=analyses.id를 남긴다. 잔여 0이면 CREDIT_INSUFFICIENT(402, TC-CRD-002/004).
      *    동일 계약 재분석은 TC-CRD-006을 따른다. 설명·비교·일정 생성은 차감하지 않는다(TC-CRD-009).
@@ -41,7 +42,7 @@ public class AnalysisService {
      *    FR-UPL-01 업로드 '차감 예약'과 본 단계 USE의 원장 경계, contracts.status(UPLOADED/OCR/SPLIT)와 분석 상태의 동기화,
      *    분석 시작·종료 시각 컬럼(analyses에는 created_at만 있음), risk_type 허용 값 목록.
      */
-    public Analysis start(String owner, long contractId) {
+    public Analysis start(UserId owner, long contractId) {
         contracts.get(owner, contractId);
         Analysis saved = analyses.save(new Analysis(0, contractId, owner, "ACCEPTED", 0, ""));
         log.info("분석 시작 analysisId={} contractId={} owner={}", saved.id(), contractId, owner);
@@ -59,7 +60,7 @@ public class AnalysisService {
      * 5. 예외/에러코드: ANALYSIS_NOT_FOUND(404).
      * 6. 반환: 분석 헤더. 조항별 결과는 results()에서 채운다.
      */
-    public Analysis get(String owner, long id) {
+    public Analysis get(UserId owner, long id) {
         return analyses.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("ANALYSIS_NOT_FOUND", "분석 결과를 찾을 수 없습니다."));
     }

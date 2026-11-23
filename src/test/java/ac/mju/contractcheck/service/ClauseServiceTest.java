@@ -9,6 +9,7 @@ import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.StoredClauses;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import java.util.UUID;
@@ -47,7 +48,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("TC-UPL-010 분할한 조항은 번호 순서대로 저장되고 목록으로 조회된다")
     void splitStoresClausesInOrder() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
 
         StoredClauses stored = clauses.split(owner, contract.id(), THREE_ARTICLES);
@@ -67,7 +68,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("TC-UPL-012 조항 패턴이 없으면 문단으로 대체 분할해 저장하고 대체 분할 표시를 돌려준다")
     void splitFallsBackToParagraphs() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
 
         StoredClauses stored = clauses.split(owner, contract.id(), "첫 문단입니다.\n\n둘째 문단입니다.");
@@ -79,7 +80,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("다시 분할하면 이전 조항은 지우고 새 결과로 바꾼다")
     void resplitReplacesPreviousClauses() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
         clauses.split(owner, contract.id(), THREE_ARTICLES);
 
@@ -91,7 +92,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("빈 원문으로 분할하면 이전 조항을 지우고 조항 0건이며 대체 분할도 아니다")
     void splitOfBlankTextClearsClauses() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
         clauses.split(owner, contract.id(), THREE_ARTICLES);
 
@@ -105,7 +106,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("분할하지 않은 계약의 조항 목록은 비어 있다")
     void listOfUnsplitContractIsEmpty() {
-        String owner = newOwner();
+        UserId owner = newOwner();
 
         assertThat(clauses.list(owner, newContract(owner).id())).isEmpty();
     }
@@ -113,7 +114,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("TC-UPL-013 조항 수정은 전달한 값만 바꾸고 저장된다")
     void updateChangesOnlyGivenFields() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
         Clause second = clauses.split(owner, contract.id(), THREE_ARTICLES).clauses().get(1);
 
@@ -129,7 +130,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("조항 번호와 제목도 수정할 수 있다")
     void updateCanChangeNumberAndTitle() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
         Clause first = clauses.split(owner, contract.id(), THREE_ARTICLES).clauses().get(0);
 
@@ -143,7 +144,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("수정 값이 어긋나면 400 VALIDATION_ERROR이고 조항은 그대로다")
     void invalidEditIsRejected() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract contract = newContract(owner);
         Clause first = clauses.split(owner, contract.id(), THREE_ARTICLES).clauses().get(0);
 
@@ -157,8 +158,8 @@ class ClauseServiceTest {
     @Test
     @DisplayName("TC-UPL-016 타인의 계약 조항은 분할·조회·수정 모두 404이고 데이터가 바뀌지 않는다")
     void strangerCannotTouchClauses() {
-        String owner = newOwner();
-        String stranger = newOwner();
+        UserId owner = newOwner();
+        UserId stranger = newOwner();
         Contract contract = newContract(owner);
         Clause first = clauses.split(owner, contract.id(), THREE_ARTICLES).clauses().get(0);
 
@@ -179,7 +180,7 @@ class ClauseServiceTest {
     @Test
     @DisplayName("계약을 지우면 그 조항도 함께 지우고 다른 계약의 조항은 그대로 둔다")
     void deletingContractDeletesItsClauses() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract doomed = newContract(owner);
         Contract kept = newContract(owner);
         clauses.split(owner, doomed.id(), THREE_ARTICLES);
@@ -205,7 +206,7 @@ class ClauseServiceTest {
                 .isEqualTo(code);
     }
 
-    private Contract newContract(String owner) {
+    private Contract newContract(UserId owner) {
         byte[] content = new byte[64];
         content[0] = '%';
         content[1] = 'P';
@@ -214,9 +215,9 @@ class ClauseServiceTest {
         return contracts.upload(owner, new MockMultipartFile("file", "lease.pdf", "application/pdf", content), "계약서", "MONTHLY");
     }
 
-    private String newOwner() {
+    private UserId newOwner() {
         String providerUserId = UUID.randomUUID().toString();
-        return String.valueOf(auth.signIn(
-                new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id());
+        return auth.signIn(
+                new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
     }
 }

@@ -2,6 +2,7 @@ package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.PageSlice;
+import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -30,28 +31,20 @@ public class ContractRepository {
     private final ClauseJpaRepository clauses;
 
     public @NonNull Contract save(@NonNull Contract contract) {
-        long userId = OwnerId.parse(contract.owner()).orElseThrow();
         ContractEntity saved = contracts.save(new ContractEntity(
-                userId, contract.title(), contract.contractType(), contract.s3Key(), contract.status(),
+                contract.owner().value(), contract.title(), contract.contractType(), contract.s3Key(), contract.status(),
                 contract.createdAt() == null ? Instant.now() : contract.createdAt()));
         return toContract(saved);
     }
 
-    public @NonNull Optional<Contract> findOwned(long id, String owner) {
-        return OwnerId.parse(owner)
-                .flatMap(userId -> contracts.findByIdAndUserId(id, userId))
-                .map(this::toContract);
+    public @NonNull Optional<Contract> findOwned(long id, UserId owner) {
+        return contracts.findByIdAndUserId(id, owner.value()).map(this::toContract);
     }
 
-    public @NonNull PageSlice<Contract> findPage(String owner, int page, int size) {
-        return OwnerId.parse(owner)
-                .map(userId -> {
-                    Page<ContractEntity> found = contracts.findByUserIdOrderByCreatedAtDescIdDesc(
-                            userId, PageRequest.of(page, size));
-                    List<Contract> items = found.getContent().stream().map(this::toContract).toList();
-                    return new PageSlice<>(items, found.getTotalElements());
-                })
-                .orElseGet(() -> new PageSlice<>(List.of(), 0));
+    public @NonNull PageSlice<Contract> findPage(UserId owner, int page, int size) {
+        Page<ContractEntity> found = contracts.findByUserIdOrderByCreatedAtDescIdDesc(owner.value(), PageRequest.of(page, size));
+        List<Contract> items = found.getContent().stream().map(this::toContract).toList();
+        return new PageSlice<>(items, found.getTotalElements());
     }
 
     @Transactional
@@ -61,23 +54,21 @@ public class ContractRepository {
     }
 
     /** 회원이 가진 모든 계약의 저장소 객체 키. 저장소 키가 없는 계약은 뺀다. */
-    public @NonNull List<String> findS3KeysByOwner(String owner) {
-        return OwnerId.parse(owner).map(contracts::findS3KeysByUserId).orElseGet(List::of);
+    public @NonNull List<String> findS3KeysByOwner(UserId owner) {
+        return contracts.findS3KeysByUserId(owner.value());
     }
 
     /** 회원이 가진 모든 계약 행과 그 조항을 지운다. */
     @Transactional
-    public void deleteAllByOwner(String owner) {
-        OwnerId.parse(owner).ifPresent(userId -> {
-            clauses.deleteAllByUserId(userId);
-            contracts.deleteByUserId(userId);
-        });
+    public void deleteAllByOwner(UserId owner) {
+        clauses.deleteAllByUserId(owner.value());
+        contracts.deleteByUserId(owner.value());
     }
 
     private Contract toContract(ContractEntity entity) {
         return new Contract(
                 entity.getId(),
-                String.valueOf(entity.getUserId()),
+                new UserId(entity.getUserId()),
                 entity.getTitle(),
                 entity.getContractType(),
                 entity.getS3Key(),

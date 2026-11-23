@@ -18,6 +18,7 @@ import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.Milestone;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.memory.AnalysisRepository;
 import ac.mju.contractcheck.repository.memory.ComparisonRepository;
 import ac.mju.contractcheck.repository.memory.ExplanationRepository;
@@ -93,15 +94,15 @@ class MemberWithdrawalTest {
     @DisplayName("TC-AUTH-014 탈퇴하면 개인정보를 비우고 모든 기기의 세션을 지우며 이후 조회는 401을 응답한다")
     void withdrawalRemovesSessionsAndPersonalData() {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        UserId username = member.id();
         createSession(username);
         createSession(username);
-        assertThat(sessions.findByPrincipalName(username)).hasSize(2);
+        assertThat(sessions.findByPrincipalName(username.principalName())).hasSize(2);
 
         members.withdraw(username);
 
-        assertThat(sessions.findByPrincipalName(username)).isEmpty();
-        MemberEntity row = users.findById(member.id()).orElseThrow();
+        assertThat(sessions.findByPrincipalName(username.principalName())).isEmpty();
+        MemberEntity row = users.findById(member.id().value()).orElseThrow();
         assertThat(row.getStatus()).isEqualTo("WITHDRAWN");
         assertThat(row.getEmail()).isNull();
         assertThat(row.getNickname()).isNull();
@@ -113,7 +114,7 @@ class MemberWithdrawalTest {
     void rejoinAfterWithdrawalCreatesNewMember() {
         OAuthProfile profile = profile();
         Member first = auth.signIn(profile);
-        members.withdraw(String.valueOf(first.id()));
+        members.withdraw(first.id());
 
         Member second = auth.signIn(profile);
 
@@ -125,7 +126,7 @@ class MemberWithdrawalTest {
     @DisplayName("TC-AUTH-015 마지막 ADMIN이 탈퇴하면 409 LAST_ADMIN을 응답하고 계정이 유지된다")
     void lastAdminCannotWithdraw() {
         long adminId = createAdmin();
-        String username = String.valueOf(adminId);
+        UserId username = new UserId(adminId);
 
         assertThatThrownBy(() -> members.withdraw(username))
                 .isInstanceOf(ConflictException.class)
@@ -141,7 +142,7 @@ class MemberWithdrawalTest {
         long first = createAdmin();
         createAdmin();
 
-        members.withdraw(String.valueOf(first));
+        members.withdraw(new UserId(first));
 
         assertThat(users.findById(first).orElseThrow().getStatus()).isEqualTo("WITHDRAWN");
     }
@@ -150,12 +151,12 @@ class MemberWithdrawalTest {
     @DisplayName("TC-AUTH-014 탈퇴하면 계약 행과 저장소 원본을 지우고 다른 회원의 계약은 그대로 둔다")
     void withdrawalDeletesContractsAndStoredOriginals() {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        UserId username = member.id();
         Contract first = saveContract(username, "contracts/" + username + "/first");
         Contract second = saveContract(username, "contracts/" + username + "/second");
         Contract withoutObject = saveContract(username, null);
         Member other = signUp();
-        String otherName = String.valueOf(other.id());
+        UserId otherName = other.id();
         Contract othersContract = saveContract(otherName, "contracts/" + otherName + "/kept");
 
         members.withdraw(username);
@@ -173,11 +174,11 @@ class MemberWithdrawalTest {
     @DisplayName("TC-AUTH-014 탈퇴하면 계약의 조항도 지우고 다른 회원의 조항은 그대로 둔다")
     void withdrawalDeletesClausesOfContracts() {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        UserId username = member.id();
         Contract contract = saveContract(username, "contracts/" + username + "/clauses");
         clauseRepository.replaceAll(contract.id(), username, List.of(new ClauseDraft(1, "제1조(목적)", "본문"), new ClauseDraft(2, "제2조(보증금)", "본문")));
         Member other = signUp();
-        String otherName = String.valueOf(other.id());
+        UserId otherName = other.id();
         Contract othersContract = saveContract(otherName, "contracts/" + otherName + "/clauses");
         clauseRepository.replaceAll(othersContract.id(), otherName, List.of(new ClauseDraft(1, "제1조(목적)", "본문")));
 
@@ -193,8 +194,8 @@ class MemberWithdrawalTest {
     void withdrawalDeletesDependentData() {
         Member member = signUp();
         Member other = signUp();
-        String owner = String.valueOf(member.id());
-        String otherOwner = String.valueOf(other.id());
+        UserId owner = member.id();
+        UserId otherOwner = other.id();
         Seeded mine = seed(owner);
         Seeded theirs = seed(otherOwner);
 
@@ -218,7 +219,7 @@ class MemberWithdrawalTest {
     @Test
     @DisplayName("마지막 ADMIN 탈퇴를 거절하면 종속 데이터도 지우지 않는다")
     void lastAdminRejectionKeepsDependentData() {
-        String owner = String.valueOf(createAdmin());
+        UserId owner = new UserId(createAdmin());
         Seeded mine = seed(owner);
 
         assertThatThrownBy(() -> members.withdraw(owner)).isInstanceOf(ConflictException.class);
@@ -230,7 +231,7 @@ class MemberWithdrawalTest {
     private record Seeded(long analysis, long comparison, long explanation) {}
 
     /** 한 회원 몫의 인메모리 종속 데이터를 한 세트 만든다. 설정은 기본값(emailEnabled=true)과 다르게 저장한다. */
-    private Seeded seed(String owner) {
+    private Seeded seed(UserId owner) {
         long analysis = analyses.save(new Analysis(0, 1L, owner, "DONE", 50, "요약")).id();
         long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L)).id();
         long explanation = explanations.save(new Explanation(0, 1L, owner, "기본", "설명", "제안")).id();
@@ -246,26 +247,26 @@ class MemberWithdrawalTest {
     void withdrawalWithoutContractsDoesNotTouchStorage() {
         Member member = signUp();
 
-        members.withdraw(String.valueOf(member.id()));
+        members.withdraw(member.id());
 
         verify(storage, never()).delete(anyString());
-        assertThat(users.findById(member.id()).orElseThrow().getStatus()).isEqualTo("WITHDRAWN");
+        assertThat(users.findById(member.id().value()).orElseThrow().getStatus()).isEqualTo("WITHDRAWN");
     }
 
     @Test
     @DisplayName("저장소 삭제가 실패하면 탈퇴하지 않고 계정·계약 행·세션이 그대로 남는다")
     void storageFailureKeepsAccountContractsAndSessions() {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        UserId username = member.id();
         Contract contract = saveContract(username, "contracts/" + username + "/stuck");
         createSession(username);
         doThrow(new IllegalStateException("저장소 장애")).when(storage).delete(contract.s3Key());
 
         assertThatThrownBy(() -> members.withdraw(username)).isInstanceOf(IllegalStateException.class);
 
-        assertThat(users.findById(member.id()).orElseThrow().getStatus()).isEqualTo("ACTIVE");
+        assertThat(users.findById(member.id().value()).orElseThrow().getStatus()).isEqualTo("ACTIVE");
         assertThat(contracts.findOwned(contract.id(), username)).isPresent();
-        assertThat(sessions.findByPrincipalName(username)).hasSize(1);
+        assertThat(sessions.findByPrincipalName(username.principalName())).hasSize(1);
     }
 
     @Test
@@ -273,7 +274,7 @@ class MemberWithdrawalTest {
     @DisplayName("저장소 원본 삭제는 트랜잭션 밖에서 호출된다")
     void storageDeletionRunsOutsideTransaction() {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        UserId username = member.id();
         saveContract(username, "contracts/" + username + "/outside");
         AtomicBoolean transactionActive = new AtomicBoolean(true);
         doAnswer(invocation -> {
@@ -290,7 +291,7 @@ class MemberWithdrawalTest {
     @DisplayName("TC-AUTH-015 마지막 ADMIN 탈퇴를 거절할 때는 저장소 원본도 지우지 않는다")
     void lastAdminRejectionKeepsStoredOriginals() {
         long adminId = createAdmin();
-        String username = String.valueOf(adminId);
+        UserId username = new UserId(adminId);
         Contract contract = saveContract(username, "contracts/" + username + "/admin");
 
         assertThatThrownBy(() -> members.withdraw(username)).isInstanceOf(ConflictException.class);
@@ -304,14 +305,14 @@ class MemberWithdrawalTest {
     void updateChangesOnlyNickname() {
         Member member = signUp();
 
-        Member updated = members.update(String.valueOf(member.id()), "새닉", null);
+        Member updated = members.update(member.id(), "새닉", null);
 
         assertThat(updated.nickname()).isEqualTo("새닉");
         assertThat(updated.role()).isEqualTo("USER");
-        assertThat(members.me(String.valueOf(member.id())).nickname()).isEqualTo("새닉");
+        assertThat(members.me(member.id()).nickname()).isEqualTo("새닉");
     }
 
-    private Contract saveContract(String owner, String s3Key) {
+    private Contract saveContract(UserId owner, String s3Key) {
         return contracts.save(new Contract(0, owner, "계약서", "MONTHLY", s3Key, "UPLOADED", "", Instant.now(), null));
     }
 
@@ -320,9 +321,9 @@ class MemberWithdrawalTest {
                 UUID.randomUUID() + "@example.com", "관리자", "ADMIN", "ACTIVE", Instant.now())).getId();
     }
 
-    private void createSession(String principalName) {
+    private void createSession(UserId userId) {
         Session session = sessions.createSession();
-        session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, principalName);
+        session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, userId.principalName());
         save(session);
     }
 

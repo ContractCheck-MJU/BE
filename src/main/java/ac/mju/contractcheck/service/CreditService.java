@@ -3,6 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.repository.CreditRepository;
 import lombok.NonNull;
@@ -29,7 +30,7 @@ public class CreditService {
      * 무료 2회와 GRANT 원장으로 만들어지며(AuthService), 조회 시 만들어 주지 않는다.
      * 스펙 미정: 지갑이 없는 회원(가입 오류)에 돌려줄 전용 오류 코드. 지금은 서버 오류로 드러낸다.
      */
-    public CreditAccount me(String owner) {
+    public CreditAccount me(UserId owner) {
         return credits.account(owner);
     }
 
@@ -43,7 +44,7 @@ public class CreditService {
      * 스펙 미정: credit_ledger에는 무료·유료 구분이 없어 복구분을 어느 쪽에 되돌릴지 정해야 한다.
      * 호출은 FR-ANL-01에서 분석을 접수할 때 한다.
      */
-    public void use(String owner, long analysisId) {
+    public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 if (credits.use(owner, analysisId) == CreditUseResult.INSUFFICIENT) {
@@ -69,7 +70,7 @@ public class CreditService {
      * 5. 예외/에러코드: 없음(빈 목록 허용).
      * 6. 반환: 원장 페이지.
      */
-    public List<LedgerEntry> ledger(String owner) {
+    public List<LedgerEntry> ledger(UserId owner) {
         return credits.ledger(owner);
     }
 }

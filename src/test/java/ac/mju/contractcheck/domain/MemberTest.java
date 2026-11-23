@@ -13,14 +13,14 @@ class MemberTest {
 
     private static final Instant JOINED = Instant.parse("2026-11-01T00:00:00Z");
 
-    private final Member member = new Member(7L, "7", "a@test.com", "닉네임", "kakao", "USER", true, JOINED);
+    private final Member member = new Member(new UserId(7), "a@test.com", "닉네임", "kakao", "USER", true, JOINED);
 
     @Test
     @DisplayName("TC-AUTH-014 탈퇴하면 같은 회원의 WITHDRAWN 상태가 되고 가입 시각은 유지된다")
     void withdrawKeepsIdentityOnly() {
         WithdrawnMember withdrawn = member.withdraw();
 
-        assertThat(withdrawn.id()).isEqualTo(7L);
+        assertThat(withdrawn.id()).isEqualTo(new UserId(7));
         assertThat(withdrawn.createdAt()).isEqualTo(JOINED);
         assertThat(WithdrawnMember.STATUS).isEqualTo("WITHDRAWN");
     }

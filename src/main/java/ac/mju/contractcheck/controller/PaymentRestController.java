@@ -50,16 +50,16 @@ public class PaymentRestController {
     /** FR-PAY-01 결제 요청 */
     @PostMapping("/api/v1/payments/orders")
     public ResponseEntity<PaymentOrder> order(Authentication authentication, @RequestBody PaymentOrderRequest request) {
-        Payment payment = payments.order(currentUser.username(authentication), request.productId());
+        Payment payment = payments.order(currentUser.userId(authentication), request.productId());
         return ResponseEntity.created(java.net.URI.create("/api/v1/payments/" + payment.id()))
-                .body(new PaymentOrder(payment.orderId(), payment.amount(), payment.orderName(), currentUser.username(authentication)));
+                .body(new PaymentOrder(payment.orderId(), payment.amount(), payment.orderName(), payment.owner().principalName()));
     }
 
     /** FR-PAY-02 결제 승인 */
     @PostMapping("/api/v1/payments/confirm")
     public ConfirmedPayment confirm(Authentication authentication, @RequestBody PaymentConfirmRequest request) {
         Payment payment = payments.confirm(
-                currentUser.username(authentication), request.paymentKey(), request.orderId(), request.amount());
+                currentUser.userId(authentication), request.paymentKey(), request.orderId(), request.amount());
         return new ConfirmedPayment(payment.id(), payment.status(), payment.creditsAdded());
     }
 
@@ -79,7 +79,7 @@ public class PaymentRestController {
      */
     @GetMapping("/api/v1/payments")
     public PageResponse<PaymentItem> list(Authentication authentication, @RequestParam(defaultValue = "0") int page) {
-        return new PageResponse<>(payments.list(currentUser.username(authentication)).stream().map(PaymentItem::from).toList(), page);
+        return new PageResponse<>(payments.list(currentUser.userId(authentication)).stream().map(PaymentItem::from).toList(), page);
     }
 
     /**
@@ -89,7 +89,7 @@ public class PaymentRestController {
      */
     @PostMapping("/api/v1/payments/{id}/cancel")
     public CanceledPayment cancel(Authentication authentication, @PathVariable long id, @RequestBody PaymentCancelRequest request) {
-        Payment payment = payments.cancel(currentUser.username(authentication), id);
+        Payment payment = payments.cancel(currentUser.userId(authentication), id);
         return new CanceledPayment(payment.status(), request.reason() == null ? "" : request.reason());
     }
 }

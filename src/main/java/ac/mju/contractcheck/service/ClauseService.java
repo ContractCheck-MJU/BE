@@ -4,6 +4,7 @@ import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseSplitResult;
 import ac.mju.contractcheck.domain.ClauseSplitter;
 import ac.mju.contractcheck.domain.StoredClauses;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.repository.ClauseRepository;
@@ -35,7 +36,7 @@ public class ClauseService {
      * TODO(FR-UPL-02): OCR이 끝나면 이 메서드를 부르고 contracts.status를 OCR에서 SPLIT으로 바꾼다. 지금은 호출하는 곳이 없다.
      * 스펙 미정: 분할 대상이 OCR 원문인지 마스킹본인지(FR-UPL-04), 번호·문단 조항의 title(지금은 빈 문자열), 첫 조항 앞 문구 처리.
      */
-    public StoredClauses split(String owner, long contractId, String rawText) {
+    public StoredClauses split(UserId owner, long contractId, String rawText) {
         contracts.get(owner, contractId);
         ClauseSplitResult result = splitter.split(rawText);
         List<Clause> saved = clauses.replaceAll(contractId, owner, result.clauses());
@@ -49,7 +50,7 @@ public class ClauseService {
      *
      * TODO(FR-ANL-02): 분석이 영속화되면 risk_results를 조인해 위험 등급을 함께 내린다(지금은 빈 문자열).
      */
-    public List<Clause> list(String owner, long contractId) {
+    public List<Clause> list(UserId owner, long contractId) {
         contracts.get(owner, contractId);
         return clauses.findByContract(contractId, owner);
     }
@@ -63,7 +64,7 @@ public class ClauseService {
      * 스펙 미정: 수정 후 재분석 필요를 표시하는 방법(clauses에 플래그 컬럼이 없어 needsReanalysis는 항상 false),
      * 수정 즉시 재분석을 자동 시작할지, 번호가 다른 조항과 겹칠 때의 처리.
      */
-    public Clause update(String owner, long id, Integer no, String title, String text) {
+    public Clause update(UserId owner, long id, Integer no, String title, String text) {
         validateEdit(no, title, text);
         Clause clause = clauses.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("CLAUSE_NOT_FOUND", "조항을 찾을 수 없습니다."));

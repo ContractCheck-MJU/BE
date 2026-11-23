@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Milestone;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.List;
 import java.util.Optional;
@@ -26,17 +27,17 @@ public class MilestoneRepository implements OwnedDataEraser {
         return stored;
     }
 
-    public List<Milestone> findByOwner(String owner) {
+    public List<Milestone> findByOwner(UserId owner) {
         return store.values().stream().filter(item -> item.owner().equals(owner)).toList();
     }
 
-    public List<Milestone> findByContract(String owner, long contractId) {
+    public List<Milestone> findByContract(UserId owner, long contractId) {
         return store.values().stream()
                 .filter(item -> item.owner().equals(owner) && item.contractId() == contractId)
                 .toList();
     }
 
-    public @NonNull Optional<Milestone> findOwned(long id, String owner) {
+    public @NonNull Optional<Milestone> findOwned(long id, UserId owner) {
         return Presence.owned(store.get(id), owner, Milestone::owner);
     }
 
@@ -46,7 +47,7 @@ public class MilestoneRepository implements OwnedDataEraser {
 
     /** 탈퇴 시 소유자의 데이터를 모두 지운다(FR-AUTH-03). */
     @Override
-    public void deleteAllByOwner(String owner) {
+    public void deleteAllByOwner(UserId owner) {
         store.values().removeIf(item -> item.owner().equals(owner));
     }
 }

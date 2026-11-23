@@ -35,7 +35,7 @@ public class ComparisonRestController {
     @PostMapping("/api/v1/comparisons")
     public ResponseEntity<CreatedComparison> create(Authentication authentication, @RequestBody CreateComparison request) {
         Comparison comparison = comparisons.create(
-                currentUser.username(authentication), request.beforeContractId(), request.afterContractId());
+                currentUser.userId(authentication), request.beforeContractId(), request.afterContractId());
         return ResponseEntity.created(java.net.URI.create("/api/v1/comparisons/" + comparison.id()))
                 .body(new CreatedComparison(comparison.id()));
     }
@@ -47,7 +47,7 @@ public class ComparisonRestController {
      */
     @GetMapping("/api/v1/comparisons/{id}")
     public ComparisonResult get(Authentication authentication, @PathVariable long id) {
-        comparisons.get(currentUser.username(authentication), id);
+        comparisons.get(currentUser.userId(authentication), id);
         return new ComparisonResult(List.of());
     }
 }

@@ -61,7 +61,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         return new DefaultOAuth2User(
                 List.of(new SimpleGrantedAuthority("ROLE_" + member.role())),
-                Map.of(USER_ID_ATTRIBUTE, member.id()),
+                Map.of(USER_ID_ATTRIBUTE, member.id().value()),
                 USER_ID_ATTRIBUTE);
     }
 }

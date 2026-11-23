@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.repository.memory;
 
+import ac.mju.contractcheck.domain.UserId;
 import java.util.Optional;
 import java.util.function.Function;
 import lombok.NonNull;
@@ -20,11 +21,11 @@ final class Presence {
         return Optional.of(found);
     }
 
-    static <T> @NonNull Optional<T> owned(T found, String owner, Function<T, String> ownerOf) {
+    static <T> @NonNull Optional<T> owned(T found, UserId owner, Function<T, UserId> ownerOf) {
         if (found == null) {
             return Optional.empty();
         }
-        String foundOwner = ownerOf.apply(found);
+        UserId foundOwner = ownerOf.apply(found);
         if (foundOwner == null || !foundOwner.equals(owner)) {
             return Optional.empty();
         }

@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.service.ContractService;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Milestone;
@@ -33,7 +34,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: 날짜 검증 실패, CONTRACT_NOT_FOUND(404).
      * 6. 반환: 생성된 목록. 스펙 미정: 수동 추가분 보존 여부, 도메인 단일 remindDays와 컬럼 INT[] 매핑.
      */
-    public List<Milestone> generate(String owner, long contractId, String contractDate, String balanceDate, String moveInDate, String endDate) {
+    public List<Milestone> generate(UserId owner, long contractId, String contractDate, String balanceDate, String moveInDate, String endDate) {
         contracts.get(owner, contractId);
         log.info("일정 생성 contractId={} owner={}", contractId, owner);
         return List.of(
@@ -54,7 +55,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: 없음(빈 목록 허용).
      * 6. 반환: 일정 목록.
      */
-    public List<Milestone> list(String owner) {
+    public List<Milestone> list(UserId owner) {
         return milestones.findByOwner(owner);
     }
 
@@ -69,7 +70,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: CONTRACT_NOT_FOUND(404), 검증 오류.
      * 6. 반환: 생성된 일정.
      */
-    public Milestone create(String owner, long contractId, String type, String title, String dueDate, int remindDays) {
+    public Milestone create(UserId owner, long contractId, String type, String title, String dueDate, int remindDays) {
         contracts.get(owner, contractId);
         return milestones.save(new Milestone(0, owner, contractId, type, title, dueDate, remindDays, false));
     }
@@ -85,7 +86,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: MILESTONE_NOT_FOUND(404).
      * 6. 반환: 수정된 일정.
      */
-    public Milestone update(String owner, long id, String title, String dueDate, Integer remindDays, Boolean done) {
+    public Milestone update(UserId owner, long id, String title, String dueDate, Integer remindDays, Boolean done) {
         Milestone milestone = owned(owner, id);
         return milestones.save(milestone.withUpdate(title, dueDate, remindDays, done));
     }
@@ -101,7 +102,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: MILESTONE_NOT_FOUND(404).
      * 6. 반환: 204. 스펙 미정: 이미 발송된 알림을 남길지 여부.
      */
-    public void delete(String owner, long id) {
+    public void delete(UserId owner, long id) {
         owned(owner, id);
         milestones.delete(id);
         log.info("일정 삭제 milestoneId={} owner={}", id, owner);
@@ -118,7 +119,7 @@ public class MilestoneService {
      * 5. 예외/에러코드: CONTRACT_NOT_FOUND(404).
      * 6. 반환: text/calendar 본문.
      */
-    public String ics(String owner, long contractId) {
+    public String ics(UserId owner, long contractId) {
         contracts.get(owner, contractId);
         StringBuilder calendar = new StringBuilder("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//contractcheck//KR\r\n");
         for (Milestone milestone : milestones.findByContract(owner, contractId)) {
@@ -130,7 +131,7 @@ public class MilestoneService {
         return calendar.toString();
     }
 
-    private Milestone owned(String owner, long id) {
+    private Milestone owned(UserId owner, long id) {
         return milestones.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("MILESTONE_NOT_FOUND", "마일스톤을 찾을 수 없습니다."));
     }

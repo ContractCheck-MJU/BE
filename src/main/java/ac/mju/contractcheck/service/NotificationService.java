@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
@@ -41,7 +42,7 @@ public class NotificationService {
      * 5. 예외/에러코드: 없음(빈 목록 허용).
      * 6. 반환: 알림 페이지. 도메인 boolean read와 read_at 컬럼을 매핑한다.
      */
-    public List<Notification> list(String owner) {
+    public List<Notification> list(UserId owner) {
         return notifications.findByOwner(owner);
     }
 
@@ -56,7 +57,7 @@ public class NotificationService {
      * 5. 예외/에러코드: NOTIFICATION_NOT_FOUND(404).
      * 6. 반환: 204.
      */
-    public void markRead(String owner, long id) {
+    public void markRead(UserId owner, long id) {
         Notification notification = notifications.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다."));
         notifications.save(notification.markRead());
@@ -74,7 +75,7 @@ public class NotificationService {
      * 5. 예외/에러코드: 검증 실패 시 시트 코드.
      * 6. 반환: 저장된 설정.
      */
-    public NotificationSettings updateSettings(String owner, boolean emailEnabled, boolean pushEnabled, List<Integer> remindDays) {
+    public NotificationSettings updateSettings(UserId owner, boolean emailEnabled, boolean pushEnabled, List<Integer> remindDays) {
         return notifications.saveSettings(new NotificationSettings(owner, emailEnabled, pushEnabled, remindDays));
     }
 
@@ -89,7 +90,7 @@ public class NotificationService {
      * 5. 예외/에러코드: 검증 실패, 중복 endpoint.
      * 6. 반환: 201/204.
      */
-    public void subscribe(String owner, String endpoint) {
+    public void subscribe(UserId owner, String endpoint) {
         notifications.savePush(owner, endpoint);
     }
 }

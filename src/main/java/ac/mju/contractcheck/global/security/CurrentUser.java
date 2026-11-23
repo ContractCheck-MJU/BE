@@ -14,9 +14,4 @@ public class CurrentUser {
         return UserId.parse(authentication.getName())
                 .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("회원 ID가 아닌 인증 주체"));
     }
-
-    /** 마이그레이션 중에만 쓴다. 모든 호출이 {@link #userId}로 바뀌면 지운다. */
-    public String username(Authentication authentication) {
-        return authentication.getName();
-    }
 }

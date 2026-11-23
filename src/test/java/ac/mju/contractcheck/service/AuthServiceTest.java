@@ -7,6 +7,7 @@ import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.CreditRepository;
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import java.util.List;
@@ -40,12 +41,12 @@ class AuthServiceTest {
 
         Member member = auth.signIn(profile);
 
-        assertThat(member.id()).isPositive();
+        assertThat(member.id().value()).isPositive();
         assertThat(member.role()).isEqualTo("USER");
         assertThat(member.provider()).isEqualTo("kakao");
         assertThat(member.email()).isEqualTo(profile.email());
         assertThat(member.nickname()).isEqualTo(profile.nickname());
-        String owner = String.valueOf(member.id());
+        UserId owner = member.id();
         CreditAccount account = credits.account(owner);
         assertThat(account.freeRemaining()).isEqualTo(2);
         assertThat(account.paidRemaining()).isZero();
@@ -64,7 +65,7 @@ class AuthServiceTest {
         Member second = auth.signIn(profile);
 
         assertThat(second.id()).isEqualTo(first.id());
-        String owner = String.valueOf(first.id());
+        UserId owner = first.id();
         assertThat(credits.account(owner).freeRemaining()).isEqualTo(2);
         assertThat(credits.ledger(owner)).hasSize(1);
     }

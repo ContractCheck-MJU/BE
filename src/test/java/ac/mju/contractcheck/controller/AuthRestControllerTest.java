@@ -36,9 +36,9 @@ class AuthRestControllerTest {
     void meReturnsCurrentMember() throws Exception {
         Member member = signUp();
 
-        mvc.perform(get("/api/v1/auth/me").with(user(String.valueOf(member.id()))))
+        mvc.perform(get("/api/v1/auth/me").with(user(member.id().principalName())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(member.id()))
+                .andExpect(jsonPath("$.id").value(member.id().value()))
                 .andExpect(jsonPath("$.nickname").value(member.nickname()))
                 .andExpect(jsonPath("$.role").value("USER"))
                 .andExpect(jsonPath("$.provider").value("kakao"));
@@ -65,7 +65,7 @@ class AuthRestControllerTest {
     void logoutReturnsNoContent() throws Exception {
         Member member = signUp();
 
-        mvc.perform(post("/api/v1/auth/logout").with(user(String.valueOf(member.id()))).with(csrf()))
+        mvc.perform(post("/api/v1/auth/logout").with(user(member.id().principalName())).with(csrf()))
                 .andExpect(status().isNoContent());
     }
 
@@ -74,7 +74,7 @@ class AuthRestControllerTest {
     void logoutWithoutCsrfIsForbidden() throws Exception {
         Member member = signUp();
 
-        mvc.perform(post("/api/v1/auth/logout").with(user(String.valueOf(member.id()))))
+        mvc.perform(post("/api/v1/auth/logout").with(user(member.id().principalName())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CSRF_INVALID"));
     }

@@ -42,7 +42,7 @@ public class MilestoneRestController {
     @PostMapping("/api/v1/contracts/{id}/milestones/generate")
     public ItemsResponse<MilestoneItem> generate(Authentication authentication, @PathVariable long id, @RequestBody MilestoneGenerateRequest request) {
         List<Milestone> created = milestones.generate(
-                currentUser.username(authentication), id,
+                currentUser.userId(authentication), id,
                 request.contractDate(), request.balanceDate(), request.moveInDate(), request.endDate());
         return new ItemsResponse<>(created.stream().map(MilestoneItem::from).toList());
     }
@@ -54,14 +54,14 @@ public class MilestoneRestController {
      */
     @GetMapping("/api/v1/milestones")
     public ItemsResponse<MilestoneItem> list(Authentication authentication, @RequestParam(required = false) String from, @RequestParam(required = false) String to) {
-        return new ItemsResponse<>(milestones.list(currentUser.username(authentication)).stream().map(MilestoneItem::from).toList());
+        return new ItemsResponse<>(milestones.list(currentUser.userId(authentication)).stream().map(MilestoneItem::from).toList());
     }
 
     /** FR-MIL-02 일정 관리 */
     @PostMapping("/api/v1/milestones")
     public ResponseEntity<MilestoneItem> create(Authentication authentication, @RequestBody MilestoneCreateRequest request) {
         Milestone milestone = milestones.create(
-                currentUser.username(authentication), request.contractId(), request.type(), request.title(), request.dueDate(), request.remindDays());
+                currentUser.userId(authentication), request.contractId(), request.type(), request.title(), request.dueDate(), request.remindDays());
         return ResponseEntity.created(java.net.URI.create("/api/v1/milestones/" + milestone.id())).body(MilestoneItem.from(milestone));
     }
 
@@ -69,19 +69,19 @@ public class MilestoneRestController {
     @PatchMapping("/api/v1/milestones/{id}")
     public MilestoneItem update(Authentication authentication, @PathVariable long id, @RequestBody MilestoneUpdateRequest request) {
         return MilestoneItem.from(milestones.update(
-                currentUser.username(authentication), id, request.title(), request.dueDate(), request.remindDays(), request.done()));
+                currentUser.userId(authentication), id, request.title(), request.dueDate(), request.remindDays(), request.done()));
     }
 
     /** FR-MIL-02 일정 관리 */
     @DeleteMapping("/api/v1/milestones/{id}")
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable long id) {
-        milestones.delete(currentUser.username(authentication), id);
+        milestones.delete(currentUser.userId(authentication), id);
         return ResponseEntity.noContent().build();
     }
 
     /** FR-MIL-03 .ics 내보내기 */
     @GetMapping(value = "/api/v1/contracts/{id}/milestones.ics", produces = "text/calendar")
     public ResponseEntity<String> ics(Authentication authentication, @PathVariable long id) {
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/calendar")).body(milestones.ics(currentUser.username(authentication), id));
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/calendar")).body(milestones.ics(currentUser.userId(authentication), id));
     }
 }

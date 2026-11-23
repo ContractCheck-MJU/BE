@@ -4,7 +4,7 @@ import java.time.Instant;
 
 public record Contract(
         long id,
-        String owner,
+        UserId owner,
         String title,
         String contractType,
         String s3Key,

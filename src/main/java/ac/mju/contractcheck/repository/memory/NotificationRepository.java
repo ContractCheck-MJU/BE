@@ -2,6 +2,7 @@ package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.List;
 import java.util.Optional;
@@ -16,14 +17,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class NotificationRepository implements OwnedDataEraser {
     private final ConcurrentHashMap<Long, Notification> notifications = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, NotificationSettings> settings = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> pushSubscriptions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UserId, NotificationSettings> settings = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UserId, String> pushSubscriptions = new ConcurrentHashMap<>();
 
-    public List<Notification> findByOwner(String owner) {
+    public List<Notification> findByOwner(UserId owner) {
         return notifications.values().stream().filter(item -> item.owner().equals(owner)).toList();
     }
 
-    public @NonNull Optional<Notification> findOwned(long id, String owner) {
+    public @NonNull Optional<Notification> findOwned(long id, UserId owner) {
         return Presence.owned(notifications.get(id), owner, Notification::owner);
     }
 
@@ -32,7 +33,7 @@ public class NotificationRepository implements OwnedDataEraser {
         return notification;
     }
 
-    public NotificationSettings settings(String owner) {
+    public NotificationSettings settings(UserId owner) {
         return settings.getOrDefault(owner, new NotificationSettings(owner, true, false, List.of(30, 7, 1)));
     }
 
@@ -41,13 +42,13 @@ public class NotificationRepository implements OwnedDataEraser {
         return value;
     }
 
-    public void savePush(String owner, String endpoint) {
+    public void savePush(UserId owner, String endpoint) {
         pushSubscriptions.put(owner, endpoint);
     }
 
     /** 탈퇴 시 알림·알림 설정·푸시 구독을 모두 지운다(FR-AUTH-03). */
     @Override
-    public void deleteAllByOwner(String owner) {
+    public void deleteAllByOwner(UserId owner) {
         notifications.values().removeIf(item -> item.owner().equals(owner));
         settings.remove(owner);
         pushSubscriptions.remove(owner);

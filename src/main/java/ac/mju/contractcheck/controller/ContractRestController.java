@@ -45,7 +45,7 @@ public class ContractRestController {
             @RequestParam("file") MultipartFile file,
             @RequestParam String title,
             @RequestParam String contractType) {
-        Contract contract = contracts.upload(currentUser.username(authentication), file, title, contractType);
+        Contract contract = contracts.upload(currentUser.userId(authentication), file, title, contractType);
         return ResponseEntity.created(java.net.URI.create("/api/v1/contracts/" + contract.id()))
                 .body(new UploadedContract(contract.id(), contract.status()));
     }
@@ -56,7 +56,7 @@ public class ContractRestController {
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        PageSlice<Contract> found = contracts.list(currentUser.username(authentication), page, size);
+        PageSlice<Contract> found = contracts.list(currentUser.userId(authentication), page, size);
         List<ContractItem> items = found.items().stream().map(ContractItem::from).toList();
         return new ContractPage(items, page, size, (int) found.total());
     }
@@ -64,7 +64,7 @@ public class ContractRestController {
     /** FR-UPL-01 계약서 업로드 */
     @GetMapping("/api/v1/contracts/{id}")
     public ContractDetail detail(Authentication authentication, @PathVariable long id) {
-        return ContractDetail.from(contracts.get(currentUser.username(authentication), id));
+        return ContractDetail.from(contracts.get(currentUser.userId(authentication), id));
     }
 
     /**
@@ -75,7 +75,7 @@ public class ContractRestController {
      */
     @GetMapping("/api/v1/contracts/{id}/status")
     public ContractStatus status(Authentication authentication, @PathVariable long id) {
-        Contract contract = contracts.status(currentUser.username(authentication), id);
+        Contract contract = contracts.status(currentUser.userId(authentication), id);
         String errorMessage = contract.errorMessage() == null ? "" : contract.errorMessage();
         return new ContractStatus(contract.status(), "UPLOADED".equals(contract.status()) ? 10 : 100, errorMessage);
     }
@@ -83,13 +83,13 @@ public class ContractRestController {
     /** FR-UPL-01 계약서 업로드 */
     @GetMapping("/api/v1/contracts/{id}/file-url")
     public FileUrl fileUrl(Authentication authentication, @PathVariable long id) {
-        return contracts.fileUrl(currentUser.username(authentication), id);
+        return contracts.fileUrl(currentUser.userId(authentication), id);
     }
 
     /** FR-UPL-01 계약서 업로드 */
     @DeleteMapping("/api/v1/contracts/{id}")
     public ResponseEntity<Void> delete(Authentication authentication, @PathVariable long id) {
-        contracts.delete(currentUser.username(authentication), id);
+        contracts.delete(currentUser.userId(authentication), id);
         return ResponseEntity.noContent().build();
     }
 }

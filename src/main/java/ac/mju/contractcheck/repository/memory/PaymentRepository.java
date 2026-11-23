@@ -2,6 +2,7 @@ package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
+import ac.mju.contractcheck.domain.UserId;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,11 +42,11 @@ public class PaymentRepository {
         return payments.values().stream().filter(payment -> payment.orderId().equals(orderId)).findFirst();
     }
 
-    public @NonNull Optional<Payment> findOwned(long id, String owner) {
+    public @NonNull Optional<Payment> findOwned(long id, UserId owner) {
         return Presence.owned(payments.get(id), owner, Payment::owner);
     }
 
-    public List<Payment> findByOwner(String owner) {
+    public List<Payment> findByOwner(UserId owner) {
         return payments.values().stream().filter(payment -> payment.owner().equals(owner)).toList();
     }
 }
