@@ -60,9 +60,10 @@ dependencyManagement {
 // 실제 외부 서버가 필요한 통합 테스트는 test와 CI에서 제외하고 전용 태스크로만 돌린다. 접속 정보는 .env의 해당 키만 넘긴다(이미 환경변수면 그 값을 쓴다).
 //  - storageTest  (@Tag("storage"))   : docker compose up -d seaweedfs seaweedfs-init
 //  - inferenceTest(@Tag("inference")) : 추론 서버(DATA의 api.mock_inference, 8000번)와 로컬 Postgres(근거 데이터는 scripts/ingest.sh로 적재)
+//  - postgresTest (@Tag("postgres"))  : 로컬 Postgres에 임시 스키마를 만들어 Flyway 마이그레이션 동작을 확인(docker compose up -d postgres)
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'storage', 'inference'
+        excludeTags 'storage', 'inference', 'postgres'
     }
 }
 
@@ -98,4 +99,15 @@ tasks.register('inferenceTest', Test) {
         includeTags 'inference'
     }
     envFromDotenv(it, /^((?:INFERENCE_(?:BASE_URL|API_KEY))|(?:DB_(?:URL|USERNAME|PASSWORD)))=(.*)$/)
+}
+
+tasks.register('postgresTest', Test) {
+    description = '로컬 Postgres에서 Flyway 마이그레이션(FK 삭제 규칙 등)을 확인한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'postgres'
+    }
+    envFromDotenv(it, /^(DB_(?:URL|USERNAME|PASSWORD))=(.*)$/)
 }
