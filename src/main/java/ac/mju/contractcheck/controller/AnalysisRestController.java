@@ -2,7 +2,9 @@ package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.dto.analysis.AcceptedAnalysis;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.analysis.AnalysisResponse;
+import ac.mju.contractcheck.dto.analysis.ClauseResultResponse;
 import ac.mju.contractcheck.global.security.CurrentUser;
 import ac.mju.contractcheck.service.AnalysisService;
 
@@ -33,17 +35,15 @@ public class AnalysisRestController {
     @PostMapping("/api/v1/contracts/{id}/analyses")
     public ResponseEntity<AcceptedAnalysis> start(Authentication authentication, @PathVariable long id) {
         Analysis analysis = analyses.start(currentUser.userId(authentication), id);
-        return ResponseEntity.accepted().body(new AcceptedAnalysis(analysis.id(), analysis.status()));
+        return ResponseEntity.accepted().body(new AcceptedAnalysis(analysis.id(), analysis.status().name()));
     }
 
-    /**
-     * FR-ANL-02 분석 결과 조회
-     *
-     * TODO(FR-ANL-02): 경로의 id로 risk_results를 조회해 응답에 넣는다. 현재 analyses.results()가 분석 ID를 쓰지 않아 항상 빈 목록이다.
-     */
+    /** FR-ANL-02 분석 결과 조회 */
     @GetMapping("/api/v1/analyses/{id}")
     public AnalysisResponse get(Authentication authentication, @PathVariable long id) {
-        Analysis analysis = analyses.get(currentUser.userId(authentication), id);
-        return new AnalysisResponse(analysis.overallScore(), analysis.summary(), analyses.results());
+        UserId owner = currentUser.userId(authentication);
+        Analysis analysis = analyses.get(owner, id);
+        List<ClauseResultResponse> results = analyses.results(owner, id).stream().map(ClauseResultResponse::from).toList();
+        return new AnalysisResponse(analysis.status().name(), analysis.overallScore(), analysis.summary(), results);
     }
 }
