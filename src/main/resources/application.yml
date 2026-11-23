@@ -87,6 +87,11 @@ contractcheck:
     secret-key: ${STORAGE_SECRET_KEY:unset}
     path-style: true
     server-side-encryption: ${STORAGE_SSE:true}
+  # OCR 구현체(FR-UPL-02). apple-vision은 macOS 로컬 시연용이고, 운영은 upstage(구현 예정)로 바꾼다. 구현체 추가·교체 방법은 OcrClient를 본다.
+  # 첫 Apple Vision 인식은 모델을 불러오느라 수십 초 걸릴 수 있어 제한 시간을 넉넉히 둔다.
+  ocr:
+    provider: ${OCR_PROVIDER:apple-vision}
+    timeout: ${OCR_TIMEOUT:120s}
   session:
     cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:

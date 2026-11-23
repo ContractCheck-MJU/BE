@@ -19,6 +19,8 @@
 
 외부 클라이언트(`InferenceClient`, `OcrClient`, `LlmClient`, `PaymentGatewayClient`)는 mock한다. 테스트에서 실제 외부 API를 호출하지 않는다. ([anti-patterns.md](anti-patterns.md) 27)
 
+예외로, 이 컴퓨터에서 도는 `AppleVisionOcrClient`(외부 서비스가 아님)는 `client.mac.AppleVisionOcrClientTest`가 실제 Vision으로 검증한다. macOS가 아니거나 `swiftc`가 없으면 자동으로 건너뛰므로 Linux CI에서는 돌지 않는다. macOS에서는 처음 실행 때 헬퍼 컴파일과 모델 로딩으로 1분 가까이 걸린다. 서비스 테스트는 `OcrClient`를 mock한다.
+
 운영 코드에 개발용·가짜 로그인 엔드포인트를 두지 않는다. 예전의 dev login은 고의로 제거했다. ([security.md](security.md))
 
 ## 실행 환경

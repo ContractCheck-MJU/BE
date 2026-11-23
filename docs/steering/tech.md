@@ -18,6 +18,10 @@ Spring이 DB, 인증, OCR(Upstage), Claude, Toss 결제를 소유한다.
 
 외부 API는 서비스당 클라이언트 인터페이스 하나(`InferenceClient`, `OcrClient`, `LlmClient`, `PaymentGatewayClient`)를 통해서만 호출한다. `RestClient`를 여러 서비스에 흩뜨리지 않는다. 설정은 YAML과 환경변수다. 타임아웃·재시도·실패 처리를 빠뜨리지 않는다. 테스트에서는 이 클라이언트를 mock한다. ([testing.md](testing.md), [anti-patterns.md](anti-patterns.md) 15·16)
 
+OCR 구현체는 `contractcheck.ocr.provider`(환경변수 `OCR_PROVIDER`)로 고른다. 서비스는 `OcrClient`만 부르고, 구현체는 `@ConditionalOnProperty`로 등록한다. 지금은 `apple-vision`(macOS 로컬 시연용, `client.mac.AppleVisionOcrClient`)뿐이고 기본값이다. 운영은 Linux라 Apple Vision을 쓸 수 없어 prod 프로필 기본값을 `upstage`로 두었다. Upstage 구현체(스펙: Upstage Document Parse)는 아직 없다. 추가할 때는 `OcrClient`를 구현하고 `@ConditionalOnProperty(..., havingValue = "upstage")`만 달면 서비스 코드는 바꾸지 않는다. Apple Vision 구현체는 Xcode Command Line Tools(`swiftc`)가 필요하고, 처음 쓸 때 `ocr/apple-vision/main.swift`를 한 번 컴파일한다.
+
+OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키지로 묶는다. macOS 전용은 `client.mac`이다. 공통 인터페이스·예외는 `client`에 둔다.
+
 트랜잭션 안에서 외부 API를 호출하지 않는다. ([anti-patterns.md](anti-patterns.md) 12)
 
 외부로 텍스트를 보내기 전에 개인정보를 마스킹한다. ([security.md](security.md), [anti-patterns.md](anti-patterns.md) 20)
