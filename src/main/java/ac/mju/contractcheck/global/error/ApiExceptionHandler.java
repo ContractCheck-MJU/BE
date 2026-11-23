@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.global.error;
 
+import ac.mju.contractcheck.client.InferenceException;
 import ac.mju.contractcheck.global.filter.MdcRequestIdFilter;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,15 @@ public class ApiExceptionHandler {
         String traceId = traceId();
         log.warn("이용권 부족 code={} traceId={}", exception.code(), traceId);
         return ResponseEntity.status(402).body(new ApiError(exception.code(), exception.getMessage(), traceId));
+    }
+
+    /** 추론 서버(FastAPI)를 쓸 수 없을 때. 상세 원인은 로그에만 남기고 응답에는 담지 않는다. */
+    @ExceptionHandler(InferenceException.class)
+    public ResponseEntity<ApiError> inferenceUnavailable(InferenceException exception) {
+        String traceId = traceId();
+        log.error("추론 서버 이용 불가 traceId={} reason={}", traceId, exception.getMessage());
+        return ResponseEntity.status(503)
+                .body(new ApiError("INFERENCE_UNAVAILABLE", "분석 서버 점검 중입니다. 잠시 후 다시 시도해 주세요.", traceId));
     }
 
     /** 요청 본문·파라미터 검증 실패. 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다. */
