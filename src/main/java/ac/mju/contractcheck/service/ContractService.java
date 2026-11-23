@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -40,6 +41,8 @@ public class ContractService {
     private final CreditService credits;
     @NonNull
     private final StorageClient storage;
+    @NonNull
+    private final TransactionTemplate transaction;
 
     /*
      * TODO(FR-UPL-04): 개인정보 마스킹. 조항 분할이 끝난 직후, classify/embed/Claude 등 외부 전송 전에 수행한다.
@@ -148,7 +151,7 @@ public class ContractService {
     public void delete(UserId owner, long id) {
         Contract contract = owned(owner, id);
         storage.delete(contract.s3Key());
-        contracts.delete(id);
+        transaction.executeWithoutResult(status -> contracts.delete(id));
         log.info("계약서 삭제 contractId={} userId={}", id, owner);
     }
 
