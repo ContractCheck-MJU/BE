@@ -3,7 +3,6 @@ package ac.mju.contractcheck.repository;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -16,10 +15,10 @@ import org.springframework.stereotype.Repository;
  * V1__init.sql의 {@code contracts}에 저장한다. 소유자 확인은 contracts.user_id로 하며,
  * 다른 회원의 계약은 없는 것과 같게 {@link Optional#empty()}를 돌려준다.
  * errorMessage에 해당하는 컬럼은 스키마에 없어 저장하지 않는다(OCR 실패 표현은 FR-UPL-02에서 정한다).
- * 계약을 지우면 하위 데이터(조항·분석·위험 결과·설명·비교)는 DB가 ON DELETE CASCADE로 함께 지우고, 일정은 계약 연결만 끊는다
- * (V2__contract_descendants_on_delete.sql). 그래서 이후 영속화되는 하위 테이블의 삭제를 이 클래스에 추가하지 않는다.
- * 이 클래스는 트랜잭션을 열지 않는다. 조항과 계약을 함께 지우는 메서드(delete, deleteAllByOwner)는 호출하는 service가 연 트랜잭션 안에서 실행해야 한다.
- * 조항(clauses)만 코드에서도 지우는 것은 H2 테스트 스키마가 엔티티에서 만들어져 FK·cascade가 없기 때문이다(운영에서는 중복 삭제가 무해하다).
+ * 이 클래스는 contracts 행만 다룬다. 계약을 지우면 하위 데이터(조항·분석·위험 결과·설명·비교)는 DB가 ON DELETE CASCADE로 함께 지우고
+ * 일정은 계약 연결만 끊는다(V2__contract_descendants_on_delete.sql). 코드에서 조항을 먼저 지우는 것은 H2 테스트 스키마가
+ * 엔티티에서 만들어져 FK·cascade가 없기 때문이며(운영에서는 중복 삭제가 무해하다), 그 순서는 호출하는 service
+ * (ContractService.delete, MemberService.withdraw)가 정한다. 트랜잭션은 열지 않고, 삭제 메서드는 호출하는 service가 연 트랜잭션 안에서 실행한다.
  */
 @Repository
 @RequiredArgsConstructor
@@ -27,13 +26,11 @@ public class ContractRepository {
 
     @NonNull
     private final ContractJpaRepository contracts;
-    @NonNull
-    private final ClauseJpaRepository clauses;
 
     public @NonNull Contract save(@NonNull Contract contract) {
         ContractEntity saved = contracts.save(new ContractEntity(
                 contract.owner().value(), contract.title(), contract.contractType(), contract.s3Key(), contract.status(),
-                contract.createdAt() == null ? Instant.now() : contract.createdAt()));
+                contract.createdAt()));
         return toContract(saved);
     }
 
@@ -48,7 +45,6 @@ public class ContractRepository {
     }
 
     public void delete(long id) {
-        clauses.deleteByContractId(id);
         contracts.deleteById(id);
     }
 
@@ -59,7 +55,6 @@ public class ContractRepository {
 
     /** 회원이 가진 모든 계약 행과 그 조항을 지운다. */
     public void deleteAllByOwner(UserId owner) {
-        clauses.deleteAllByUserId(owner.value());
         contracts.deleteByUserId(owner.value());
     }
 

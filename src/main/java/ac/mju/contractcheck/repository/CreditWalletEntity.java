@@ -25,15 +25,15 @@ class CreditWalletEntity {
     @Version
     private Long version;
 
-    /** 저장된 잔여를 바꾼다. 어떻게 차감하는지는 도메인(CreditAccount)이 정하고, 이 클래스는 값만 옮겨 담는다. */
-    void changeRemaining(int freeRemaining, int paidRemaining) {
-        this.freeRemaining = freeRemaining;
-        this.paidRemaining = paidRemaining;
-    }
-
     CreditWalletEntity(Long userId, int freeRemaining, int paidRemaining) {
         this.userId = userId;
         this.freeRemaining = freeRemaining;
         this.paidRemaining = paidRemaining;
+    }
+
+    /** 읽어 둔 지갑을 도메인 값으로 다시 만든다. version이 저장된 값과 다르면 저장할 때 낙관적 락 충돌이다. */
+    CreditWalletEntity(Long userId, int freeRemaining, int paidRemaining, Long version) {
+        this(userId, freeRemaining, paidRemaining);
+        this.version = version;
     }
 }

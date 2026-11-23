@@ -1,8 +1,6 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.CreditAccount;
-import ac.mju.contractcheck.domain.CreditPolicy;
-import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -12,15 +10,13 @@ import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 
 /**
- * V1__init.sql의 {@code credit_wallets}, {@code credit_ledger}에 저장한다.
- * 무료 2회 GRANT는 조회 시점이 아니라 최초 가입 트랜잭션에서 {@link #grantSignup}으로 기록한다(TC-CRD-001).
+ * V1__init.sql의 {@code credit_wallets}, {@code credit_ledger} 행을 읽고 쓴다. 무엇을 얼마나 지급·차감할지, 차감 순서,
+ * 지갑이 없을 때의 판단 같은 업무 규칙은 {@code CreditService}와 {@code domain}이 정하고 이 클래스는 저장만 한다.
+ * 트랜잭션은 열지 않는다. 지갑 갱신과 원장 기록을 묶는 일은 호출하는 service가 한다.
  */
-@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class CreditRepository {
@@ -30,40 +26,29 @@ public class CreditRepository {
     @NonNull
     private final CreditLedgerJpaRepository ledgers;
 
-    /** 가입한 회원에게 무료 이용권 지갑과 GRANT 원장 1건을 만든다. 가입 트랜잭션 안에서 호출한다. */
-    public void grantSignup(long userId) {
-        wallets.save(new CreditWalletEntity(userId, CreditPolicy.SIGNUP_FREE_CREDITS, 0));
-        ledgers.save(new CreditLedgerEntity(userId, LedgerType.GRANT.name(), CreditPolicy.SIGNUP_FREE_CREDITS, null, null, Instant.now()));
-        log.info("무료 이용권 지급 userId={} amount={}", userId, CreditPolicy.SIGNUP_FREE_CREDITS);
+    /** 지갑 행을 만든다. 가입 트랜잭션 안에서 호출한다. */
+    public void createAccount(@NonNull CreditAccount account) {
+        wallets.save(new CreditWalletEntity(account.owner().value(), account.freeRemaining(), account.paidRemaining()));
+    }
+
+    /** 지갑을 version과 함께 읽는다. 이어서 {@link #saveAccount}에 그대로 넘기면 읽은 시점의 version으로 낙관적 락을 검사한다. */
+    public @NonNull Optional<CreditAccount> findAccount(UserId owner) {
+        return wallets.findById(owner.value()).map(wallet -> toAccount(owner, wallet));
     }
 
     /**
-     * 분석 1건에 대해 이용권 1회를 차감하고 USE 원장을 남긴다. 차감 규칙(무료 우선 → 유료)은 {@link CreditAccount#useOne()}이 정하고,
-     * 저장소는 지갑을 읽어 도메인에 맡긴 결과를 저장한다. 지갑 version으로 낙관적 락을 건다.
-     * 지갑 갱신과 원장 기록을 한 번에 성공·실패시키는 트랜잭션은 호출하는 service가 시도마다 연다(충돌 예외가 트랜잭션 밖으로 나가야 다시 시도할 수 있다).
-     * 동시에 같은 지갑을 바꾼 요청이 있으면 {@link ObjectOptimisticLockingFailureException}이 나므로 호출자가 다시 시도한다.
+     * 읽어 온 지갑(version 포함)의 잔여를 저장하고 바로 flush한다. 읽은 뒤 다른 요청이 지갑을 바꿔 version이 다르면
+     * ObjectOptimisticLockingFailureException이다.
      */
-    public @NonNull CreditUseResult use(UserId owner, long analysisId) {
-        long userId = owner.value();
-        CreditWalletEntity wallet = wallets.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
-        Optional<CreditAccount> after = toAccount(owner, wallet).useOne();
-        if (after.isEmpty()) {
-            return CreditUseResult.INSUFFICIENT;
-        }
-        wallet.changeRemaining(after.get().freeRemaining(), after.get().paidRemaining());
-        wallets.saveAndFlush(wallet);
-        ledgers.save(new CreditLedgerEntity(
-                userId, LedgerType.USE.name(), 1, LedgerRefType.ANALYSIS.name(), analysisId, Instant.now()));
-        log.info("이용권 차감 userId={} analysisId={}", userId, analysisId);
-        return CreditUseResult.USED;
+    public void saveAccount(@NonNull CreditAccount account) {
+        wallets.saveAndFlush(new CreditWalletEntity(
+                account.owner().value(), account.freeRemaining(), account.paidRemaining(), account.version()));
     }
 
-    /** 지갑이 없으면 조회 시 만들어 주지 않고 가입 오류로 본다. 전용 오류 코드는 스펙 미정이다. */
-    public @NonNull CreditAccount account(UserId owner) {
-        return wallets.findById(owner.value())
-                .map(wallet -> toAccount(owner, wallet))
-                .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
+    /** 원장에 한 줄을 남긴다. 종류와 참조 이름이 DB 값(문자열)으로 저장된다. refType·refId는 없을 수 있다. */
+    public void appendLedger(UserId owner, @NonNull LedgerType type, int amount, LedgerRefType refType, Long refId) {
+        ledgers.save(new CreditLedgerEntity(
+                owner.value(), type.name(), amount, refType == null ? null : refType.name(), refId, Instant.now()));
     }
 
     public @NonNull List<LedgerEntry> ledger(UserId owner) {
@@ -73,7 +58,7 @@ public class CreditRepository {
     }
 
     private CreditAccount toAccount(UserId owner, CreditWalletEntity wallet) {
-        return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining());
+        return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining(), wallet.getVersion());
     }
 
     private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {

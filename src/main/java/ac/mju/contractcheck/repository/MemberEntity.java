@@ -47,16 +47,14 @@ class MemberEntity {
         this.updatedAt = now;
     }
 
-    void changeNickname(String nickname, Instant now) {
+    /** 도메인 회원의 값으로 users 행을 다시 만든다. save가 id로 찾아 갱신(merge)한다. 도메인에 없는 값(이메일·닉네임이 null)은 NULL이 된다. */
+    MemberEntity(Long id, String email, String nickname, String role, String status, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.email = email;
         this.nickname = nickname;
-        this.updatedAt = now;
-    }
-
-    /** 탈퇴한 회원(개인정보 필드가 없는 도메인 객체)을 반영한다. 도메인에 없는 값인 이메일·닉네임 컬럼은 NULL이 된다. */
-    void applyWithdrawn(String status, Instant now) {
+        this.role = role;
         this.status = status;
-        this.email = null;
-        this.nickname = null;
-        this.updatedAt = now;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }

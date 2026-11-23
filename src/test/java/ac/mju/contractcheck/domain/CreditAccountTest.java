@@ -58,4 +58,14 @@ class CreditAccountTest {
         assertThatThrownBy(() -> new CreditAccount(new UserId(1), -1, 0)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new CreditAccount(new UserId(1), 0, -1)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("낙관적 락에 쓰는 version은 차감해도 그대로 운반하고, 새 지갑은 version이 없다")
+    void versionIsCarriedThroughUse() {
+        assertThat(new CreditAccount(new UserId(1), 2, 0).version()).isNull();
+
+        CreditAccount after = new CreditAccount(new UserId(1), 2, 0, 5L).useOne().orElseThrow();
+
+        assertThat(after.version()).isEqualTo(5L);
+    }
 }

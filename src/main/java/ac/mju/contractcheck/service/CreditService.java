@@ -1,11 +1,15 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditPolicy;
 import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.LedgerRefType;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.repository.CreditRepository;
+import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +38,18 @@ public class CreditService {
      * 스펙 미정: 지갑이 없는 회원(가입 오류)에 돌려줄 전용 오류 코드. 지금은 서버 오류로 드러낸다.
      */
     public CreditAccount me(UserId owner) {
-        return credits.account(owner);
+        return credits.findAccount(owner).orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
+    }
+
+    /**
+     * FR-CRD-01 무료 횟수
+     * 가입한 회원에게 정책(무료 {@value ac.mju.contractcheck.domain.CreditPolicy#SIGNUP_FREE_CREDITS}회)대로 지갑을 만들고 GRANT 원장 1건을 남긴다.
+     * 가입 트랜잭션(AuthService.signIn) 안에서 호출하며 여기서 트랜잭션을 열지 않는다(TC-CRD-001).
+     */
+    public void grantSignup(UserId owner) {
+        credits.createAccount(new CreditAccount(owner, CreditPolicy.SIGNUP_FREE_CREDITS, 0));
+        credits.appendLedger(owner, LedgerType.GRANT, CreditPolicy.SIGNUP_FREE_CREDITS, null, null);
+        log.info("무료 이용권 지급 userId={} amount={}", owner, CreditPolicy.SIGNUP_FREE_CREDITS);
     }
 
     /**
@@ -51,7 +66,7 @@ public class CreditService {
     public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                CreditUseResult result = transaction.execute(status -> credits.use(owner, analysisId));
+                CreditUseResult result = transaction.execute(status -> useOnce(owner, analysisId));
                 if (result == CreditUseResult.INSUFFICIENT) {
                     throw new CreditInsufficientException();
                 }
@@ -61,6 +76,18 @@ public class CreditService {
             }
         }
         throw new IllegalStateException("이용권 차감 동시성 충돌이 계속된다");
+    }
+
+    /** 지갑을 읽어 도메인 규칙(무료 우선 → 유료)으로 차감하고, 지갑 저장과 USE 원장 기록을 이어서 한다. 호출하는 쪽이 연 트랜잭션 안에서 실행한다. */
+    private CreditUseResult useOnce(UserId owner, long analysisId) {
+        Optional<CreditAccount> after = me(owner).useOne();
+        if (after.isEmpty()) {
+            return CreditUseResult.INSUFFICIENT;
+        }
+        credits.saveAccount(after.get());
+        credits.appendLedger(owner, LedgerType.USE, 1, LedgerRefType.ANALYSIS, analysisId);
+        log.info("이용권 차감 userId={} analysisId={}", owner, analysisId);
+        return CreditUseResult.USED;
     }
 
     /**

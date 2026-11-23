@@ -1,9 +1,10 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.MemberRole;
+import ac.mju.contractcheck.domain.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.domain.WithdrawnMember;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.NonNull;
@@ -18,10 +19,6 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MemberRepository {
 
-    private static final String ROLE_USER = "USER";
-    private static final String ROLE_ADMIN = "ADMIN";
-    private static final String STATUS_ACTIVE = "ACTIVE";
-
     @NonNull
     private final MemberJpaRepository users;
     @NonNull
@@ -33,40 +30,41 @@ public class MemberRepository {
                         .map(user -> toMember(user, account.getProvider())));
     }
 
-    /** 신규 회원과 소셜 계정 연결을 한 번에 만든다. 같은 이메일이 이미 있으면 무결성 예외가 난다. */
-    public @NonNull Member register(@NonNull OAuthProfile profile) {
-        Instant now = Instant.now();
+    /**
+     * users 행을 한 줄 만든다. 기본 권한·상태는 호출하는 service가 정해 넘긴다. 같은 이메일이 이미 있으면 무결성 예외가 난다(바로 flush).
+     * 소셜 계정 연결은 {@link #linkSocialAccount}로 service가 이어서 한다.
+     */
+    public @NonNull Member insert(@NonNull OAuthProfile profile, @NonNull MemberRole role, @NonNull MemberStatus status) {
         MemberEntity user = users.saveAndFlush(
-                new MemberEntity(profile.email(), profile.nickname(), ROLE_USER, STATUS_ACTIVE, now));
-        accounts.save(new OAuthAccountEntity(user.getId(), profile.provider(), profile.providerUserId(), now));
+                new MemberEntity(profile.email(), profile.nickname(), role.name(), status.name(), Instant.now()));
         return toMember(user, profile.provider());
     }
 
-    /** 탈퇴한 회원은 없는 회원으로 본다. */
-    public @NonNull Optional<Member> findActive(UserId id) {
-        return users.findById(id.value())
-                .filter(user -> !WithdrawnMember.STATUS.equals(user.getStatus()))
-                .map(user -> toMember(user, providerOf(user.getId())));
+    /** 회원과 소셜 계정(제공자·제공자 회원 ID)의 연결 행을 한 줄 만든다. */
+    public void linkSocialAccount(@NonNull UserId id, @NonNull OAuthProfile profile) {
+        accounts.save(new OAuthAccountEntity(id.value(), profile.provider(), profile.providerUserId(), Instant.now()));
     }
 
-    /** 프로필 중 users에 있는 값(닉네임)만 저장한다. */
-    public Member save(Member member) {
-        MemberEntity user = users.findById(member.id().value()).orElseThrow();
-        user.changeNickname(member.nickname(), Instant.now());
-        return toMember(users.save(user), providerOf(user.getId()));
+    /** 상태와 상관없이 id로 읽는다. 탈퇴 회원을 없는 회원으로 볼지는 호출하는 service가 {@code Member.active()}로 정한다. */
+    public @NonNull Optional<Member> findById(UserId id) {
+        return users.findById(id.value()).map(user -> toMember(user, providerOf(user.getId())));
     }
 
-    public long countActiveAdmins() {
-        return users.countByRoleAndStatus(ROLE_ADMIN, STATUS_ACTIVE);
+    /** 도메인 회원의 값(이메일·닉네임·권한·상태)을 users 행에 반영한다. 이메일·닉네임이 null이면 NULL로 저장된다. */
+    public @NonNull Member save(@NonNull Member member) {
+        MemberEntity saved = users.save(new MemberEntity(
+                member.id().value(), member.email(), member.nickname(), member.role(), member.status().name(),
+                member.createdAt(), Instant.now()));
+        return toMember(saved, providerOf(saved.getId()));
     }
 
-    /** 탈퇴 처리. 도메인이 정한 탈퇴 상태를 반영해 개인정보 컬럼을 비우고 소셜 계정 연결을 끊는다. */
-    public void markWithdrawn(@NonNull WithdrawnMember withdrawn) {
-        users.findById(withdrawn.id().value()).ifPresent(user -> {
-            user.applyWithdrawn(WithdrawnMember.STATUS, Instant.now());
-            users.save(user);
-            accounts.deleteByUserId(user.getId());
-        });
+    public long countByRoleAndStatus(@NonNull MemberRole role, @NonNull MemberStatus status) {
+        return users.countByRoleAndStatus(role.name(), status.name());
+    }
+
+    /** 회원의 소셜 계정 연결(oauth_accounts)을 모두 지운다. 탈퇴 때 연결을 끊을지는 호출하는 service가 정한다. 호출하는 쪽 트랜잭션 안에서 실행한다. */
+    public void deleteSocialAccounts(@NonNull UserId id) {
+        accounts.deleteByUserId(id.value());
     }
 
     private String providerOf(Long userId) {
@@ -82,6 +80,7 @@ public class MemberRepository {
                 user.getNickname(),
                 provider,
                 user.getRole(),
+                MemberStatus.valueOf(user.getStatus()),
                 true,
                 user.getCreatedAt());
     }

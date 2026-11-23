@@ -8,7 +8,6 @@ import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.repository.CreditRepository;
 import com.navercorp.fixturemonkey.FixtureMonkey;
 import java.util.List;
 import net.jqwik.api.Arbitraries;
@@ -32,7 +31,7 @@ class AuthServiceTest {
     AuthService auth;
 
     @Autowired
-    CreditRepository credits;
+    CreditService credits;
 
     @Test
     @DisplayName("TC-AUTH-001·TC-CRD-001 최초 로그인은 USER 회원과 무료 2회 지갑·GRANT 원장 1건을 만든다")
@@ -47,7 +46,7 @@ class AuthServiceTest {
         assertThat(member.email()).isEqualTo(profile.email());
         assertThat(member.nickname()).isEqualTo(profile.nickname());
         UserId owner = member.id();
-        CreditAccount account = credits.account(owner);
+        CreditAccount account = credits.me(owner);
         assertThat(account.freeRemaining()).isEqualTo(2);
         assertThat(account.paidRemaining()).isZero();
         List<LedgerEntry> ledger = credits.ledger(owner);
@@ -66,7 +65,7 @@ class AuthServiceTest {
 
         assertThat(second.id()).isEqualTo(first.id());
         UserId owner = first.id();
-        assertThat(credits.account(owner).freeRemaining()).isEqualTo(2);
+        assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
         assertThat(credits.ledger(owner)).hasSize(1);
     }
 
