@@ -22,6 +22,10 @@ OCR 구현체는 `contractcheck.ocr.provider`(환경변수 `OCR_PROVIDER`)로 �
 
 OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키지로 묶는다. macOS 전용은 `client.mac`이다. 공통 인터페이스·예외는 `client`에 둔다.
 
+추론 서버(FastAPI)는 `InferenceClient`(`HttpInferenceClient`)로만 부른다. 경로는 `POST /classify`, `POST /embed`이고 `X-Internal-Api-Key`를 붙인다. 접속은 `contractcheck.inference.*`(`INFERENCE_BASE_URL`, `INFERENCE_API_KEY`)다. 64개씩 배치로 보내고, 제한 시간 10초, 5xx·연결 실패는 최대 3회 시도하며 4xx는 재시도하지 않는다. 실패하면 `InferenceException`이고 API로는 503 `INFERENCE_UNAVAILABLE`이다. 서킷브레이커(Resilience4j)는 의존성 합의 전이라 아직 없다. HTTP/1.1로 고정한다(JDK 기본 h2c 업그레이드를 uvicorn이 400으로 거절한다). 로컬에서는 DATA의 모의 서버(`api.mock_inference`, 분류는 키워드 규칙의 가짜 값·임베딩은 실제 BGE-M3)를 8000번으로 띄운다. 실제 서버와 붙이는 통합 테스트는 `./gradlew inferenceTest`다.
+
+RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `InferenceEmbeddingModel`(추론 서버 `/embed`를 감싼 `EmbeddingModel`), 근거 검색은 `EvidenceRetriever`(`DocumentRetriever`, `legal_chunks` native SQL)다. Spring AI의 VectorStore와 그 테이블은 쓰지 않고, 스타터(자동 설정)도 넣지 않았다. Claude 호출(`ChatClient`)은 FR-EXP-01에서 `EvidenceRetriever`를 어드바이저에 꽂아 붙인다.
+
 트랜잭션 안에서 외부 API를 호출하지 않는다. ([anti-patterns.md](anti-patterns.md) 12)
 
 외부로 텍스트를 보내기 전에 개인정보를 마스킹한다. ([security.md](security.md), [anti-patterns.md](anti-patterns.md) 20)

@@ -26,6 +26,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-session-jdbc'
     implementation 'software.amazon.awssdk:s3'
+    // RAG(EmbeddingModel·DocumentRetriever·ChatClient). 스타터는 쓰지 않아 자동 설정·키 요구가 없다. VectorStore 테이블은 쓰지 않는다.
+    implementation 'org.springframework.ai:spring-ai-rag'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-logging'
@@ -47,18 +49,32 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
-// AWS SDK v2는 Boot BOM이 관리하지 않아 BOM을 가져온다. SeaweedFS(S3 호환)에 endpointOverride로 연결한다.
+// AWS SDK v2와 Spring AI는 Boot BOM이 관리하지 않아 BOM을 가져온다. SeaweedFS(S3 호환)에 endpointOverride로 연결한다.
 dependencyManagement {
     imports {
         mavenBom 'software.amazon.awssdk:bom:2.31.30'
+        mavenBom 'org.springframework.ai:spring-ai-bom:2.1.0'
     }
 }
 
-// 실제 SeaweedFS가 필요한 통합 테스트(@Tag("storage"))는 test와 CI에서 제외하고 storageTest로만 돌린다.
-// 먼저 docker compose up -d seaweedfs seaweedfs-init 으로 저장소를 띄운다. 접속 키는 .env의 STORAGE_* 만 넘긴다.
+// 실제 외부 서버가 필요한 통합 테스트는 test와 CI에서 제외하고 전용 태스크로만 돌린다. 접속 정보는 .env의 해당 키만 넘긴다(이미 환경변수면 그 값을 쓴다).
+//  - storageTest  (@Tag("storage"))   : docker compose up -d seaweedfs seaweedfs-init
+//  - inferenceTest(@Tag("inference")) : 추론 서버(DATA의 api.mock_inference, 8000번)와 로컬 Postgres(근거 데이터는 scripts/ingest.sh로 적재)
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'storage'
+        excludeTags 'storage', 'inference'
+    }
+}
+
+def envFromDotenv = { Test task, String pattern ->
+    def envFile = file('.env')
+    if (envFile.exists()) {
+        envFile.eachLine { line ->
+            def m = line =~ pattern
+            if (m.matches() && !System.getenv(m[0][1])) {
+                task.environment m[0][1], m[0][2]
+            }
+        }
     }
 }
 
@@ -70,13 +86,16 @@ tasks.register('storageTest', Test) {
     useJUnitPlatform {
         includeTags 'storage'
     }
-    def envFile = file('.env')
-    if (envFile.exists()) {
-        envFile.eachLine { line ->
-            def m = line =~ /^(STORAGE_(?:ENDPOINT|REGION|BUCKET|ACCESS_KEY|SECRET_KEY))=(.*)$/
-            if (m.matches() && !System.getenv(m[0][1])) {
-                environment m[0][1], m[0][2]
-            }
-        }
+    envFromDotenv(it, /^(STORAGE_(?:ENDPOINT|REGION|BUCKET|ACCESS_KEY|SECRET_KEY))=(.*)$/)
+}
+
+tasks.register('inferenceTest', Test) {
+    description = '실제 추론 서버(FastAPI)와 로컬 Postgres(pgvector)를 쓰는 통합 테스트를 실행한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'inference'
     }
+    envFromDotenv(it, /^((?:INFERENCE_(?:BASE_URL|API_KEY))|(?:DB_(?:URL|USERNAME|PASSWORD)))=(.*)$/)
 }

@@ -53,6 +53,14 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(402).body(new ApiError(exception.code(), exception.getMessage(), traceId));
     }
 
+    /** 외부 시스템(추론 서버 등)을 쓸 수 없을 때. 상태·코드·문구는 예외가 정하고, 내부 원인은 로그에만 남긴다. */
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ApiError> externalServiceUnavailable(ExternalServiceException exception) {
+        String traceId = traceId();
+        log.error("외부 연동 이용 불가 code={} traceId={} reason={}", exception.code(), traceId, exception.getMessage());
+        return ResponseEntity.status(exception.status()).body(new ApiError(exception.code(), exception.publicMessage(), traceId));
+    }
+
     /** 요청 본문·파라미터 검증 실패. 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다. */
     @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
     public ResponseEntity<ApiError> invalidRequest(Exception exception) {

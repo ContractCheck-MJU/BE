@@ -92,6 +92,15 @@ contractcheck:
   ocr:
     provider: ${OCR_PROVIDER:apple-vision}
     timeout: ${OCR_TIMEOUT:120s}
+  # Python 추론 서버(FastAPI, 내부망). POST /classify, /embed. 키(X-Internal-Api-Key)는 환경변수로만 주입한다.
+  # 타임아웃 10초·배치 64는 스펙시트 값이고, 재시도 횟수(총 3회)는 스펙에 없어 제안값이다. 서킷브레이커는 아직 없다(NFR-03).
+  inference:
+    base-url: ${INFERENCE_BASE_URL:http://localhost:8000}
+    api-key: ${INFERENCE_API_KEY:unset}
+    timeout: 10s
+    max-attempts: 3
+    retry-backoff: 200ms
+    batch-size: 64
   session:
     cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:
