@@ -49,7 +49,7 @@ class AuthServiceTest {
         CreditAccount account = credits.me(owner);
         assertThat(account.freeRemaining()).isEqualTo(2);
         assertThat(account.paidRemaining()).isZero();
-        List<LedgerEntry> ledger = credits.ledger(owner);
+        List<LedgerEntry> ledger = credits.ledger(owner, 0, 20).items();
         assertThat(ledger).hasSize(1);
         assertThat(ledger.get(0).type()).isEqualTo("GRANT");
         assertThat(ledger.get(0).amount()).isEqualTo(2);
@@ -66,7 +66,7 @@ class AuthServiceTest {
         assertThat(second.id()).isEqualTo(first.id());
         UserId owner = first.id();
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
-        assertThat(credits.ledger(owner)).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 20).items()).hasSize(1);
     }
 
     @Test

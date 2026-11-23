@@ -1,9 +1,10 @@
 package ac.mju.contractcheck.repository;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface CreditLedgerJpaRepository extends JpaRepository<CreditLedgerEntity, Long> {
 
-    List<CreditLedgerEntity> findByUserIdOrderByCreatedAtDescIdDesc(Long userId);
+    Page<CreditLedgerEntity> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 }

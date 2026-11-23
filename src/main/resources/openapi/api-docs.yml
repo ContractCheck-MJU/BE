@@ -324,15 +324,19 @@ paths:
   "GET /api/v1/credits/me/ledger":
     tag: credits
     summary: 내 크레딧 사용 내역
-    description: 로그인한 사용자의 크레딧 원장을 반환한다. page를 받지만, 현재 구현은 전체 목록을 반환하고 요청한 page 값만 응답에 싣는다.
+    description: 로그인한 사용자의 크레딧 원장을 최신순으로 한 페이지 반환한다. total은 전체 건수다. page가 0 미만이거나 size가 1 미만이면 400이다.
     auth: login
     params:
       - name: page
         in: query
-        description: 페이지 번호(기본 0). 현재는 슬라이스에 사용되지 않고 응답에만 실린다.
+        description: 페이지 번호(기본 0)
+      - name: size
+        in: query
+        description: 페이지 크기(기본 20)
     responses:
-      "200": 원장 항목 목록과 page
-      "401": 로그인되어 있지 않음
+      "200": 원장 항목 목록과 page, size, total
+      "400": page·size 값 오류 (VALIDATION_ERROR)
+      "401": 로그인되어 있지 않음 (UNAUTHORIZED)
 
   "POST /api/v1/contracts/{id}/milestones/generate":
     tag: milestones
@@ -694,8 +698,14 @@ schemas:
   LedgerItem:
     type: 원장 유형
     amount: 변동량
-    refId: 관련 참조 ID
+    refType: 관련 참조 유형. 없으면 빈 문자열
+    refId: 관련 참조 ID. 없으면 빈 문자열
     createdAt: 발생 시각
+  LedgerPage:
+    items: 원장 항목 목록
+    page: 요청한 페이지 번호
+    size: 요청한 페이지 크기
+    total: 전체 원장 건수
   MilestoneItem:
     id: 일정 ID
     type: 일정 유형(CONTRACT, BALANCE, MOVE_IN, END 등)
@@ -795,9 +805,6 @@ schemas:
     items: 상품 목록
   ItemsResponseMapStringObject:
     items: 검색 결과 목록
-  PageResponseLedgerItem:
-    items: 원장 항목 목록
-    page: 요청한 페이지 번호
   PageResponseNotificationItem:
     items: 알림 목록
     page: 요청한 페이지 번호

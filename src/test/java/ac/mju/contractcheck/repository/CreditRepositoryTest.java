@@ -2,11 +2,13 @@ package ac.mju.contractcheck.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import java.util.List;
 import java.util.Optional;
@@ -76,10 +78,35 @@ class CreditRepositoryTest {
         credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
         credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L);
 
-        List<LedgerEntry> ledger = credits.ledger(OWNER);
+        List<LedgerEntry> ledger = credits.findLedgerPage(OWNER, 0, 20).items();
 
         assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
-        assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("55");
-        assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("");
+        assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type()))
+                .extracting(LedgerEntry::refType, LedgerEntry::refId)
+                .containsExactly(tuple("ANALYSIS", "55"));
+        assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type()))
+                .extracting(LedgerEntry::refType, LedgerEntry::refId)
+                .containsExactly(tuple("", ""));
+    }
+
+    @Test
+    @DisplayName("원장 페이지는 최신순으로 잘라 전체 건수와 함께 돌려주고 타인 원장은 섞이지 않는다")
+    void findLedgerPageSlicesNewestFirstAndIsolatesOwner() {
+        UserId other = new UserId(990_002L);
+        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 11L);
+        credits.appendLedger(other, LedgerType.GRANT, 2, null, null);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 22L);
+
+        PageSlice<LedgerEntry> firstPage = credits.findLedgerPage(OWNER, 0, 2);
+        PageSlice<LedgerEntry> secondPage = credits.findLedgerPage(OWNER, 1, 2);
+        PageSlice<LedgerEntry> emptyPage = credits.findLedgerPage(new UserId(990_003L), 0, 20);
+
+        assertThat(firstPage.total()).isEqualTo(3);
+        assertThat(firstPage.items()).extracting(LedgerEntry::refId).containsExactly("22", "11");
+        assertThat(secondPage.total()).isEqualTo(3);
+        assertThat(secondPage.items()).extracting(LedgerEntry::type).containsExactly("GRANT");
+        assertThat(emptyPage.total()).isZero();
+        assertThat(emptyPage.items()).isEmpty();
     }
 }
