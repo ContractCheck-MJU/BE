@@ -5,7 +5,6 @@ import ac.mju.contractcheck.domain.MemberRole;
 import ac.mju.contractcheck.domain.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.domain.WithdrawnMember;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.NonNull;
@@ -46,30 +45,21 @@ public class MemberRepository {
         accounts.save(new OAuthAccountEntity(id.value(), profile.provider(), profile.providerUserId(), Instant.now()));
     }
 
-    /** 탈퇴한 회원은 없는 회원으로 본다. */
-    public @NonNull Optional<Member> findActive(UserId id) {
-        return users.findById(id.value())
-                .filter(user -> !WithdrawnMember.STATUS.equals(user.getStatus()))
-                .map(user -> toMember(user, providerOf(user.getId())));
+    /** 상태와 상관없이 id로 읽는다. 탈퇴 회원을 없는 회원으로 볼지는 호출하는 service가 {@code Member.active()}로 정한다. */
+    public @NonNull Optional<Member> findById(UserId id) {
+        return users.findById(id.value()).map(user -> toMember(user, providerOf(user.getId())));
     }
 
-    /** 프로필 중 users에 있는 값(닉네임)만 저장한다. */
-    public Member save(Member member) {
-        MemberEntity user = users.findById(member.id().value()).orElseThrow();
-        user.changeNickname(member.nickname(), Instant.now());
-        return toMember(users.save(user), providerOf(user.getId()));
+    /** 도메인 회원의 값(이메일·닉네임·권한·상태)을 users 행에 반영한다. 이메일·닉네임이 null이면 NULL로 저장된다. */
+    public @NonNull Member save(@NonNull Member member) {
+        MemberEntity saved = users.save(new MemberEntity(
+                member.id().value(), member.email(), member.nickname(), member.role(), member.status().name(),
+                member.createdAt(), Instant.now()));
+        return toMember(saved, providerOf(saved.getId()));
     }
 
     public long countByRoleAndStatus(@NonNull MemberRole role, @NonNull MemberStatus status) {
         return users.countByRoleAndStatus(role.name(), status.name());
-    }
-
-    /** 탈퇴 처리. 도메인이 정한 탈퇴 상태를 반영해 개인정보 컬럼을 비운다. 소셜 계정 연결 삭제는 {@link #deleteSocialAccounts}로 service가 한다. */
-    public void markWithdrawn(@NonNull WithdrawnMember withdrawn) {
-        users.findById(withdrawn.id().value()).ifPresent(user -> {
-            user.applyWithdrawn(WithdrawnMember.STATUS, Instant.now());
-            users.save(user);
-        });
     }
 
     /** 회원의 소셜 계정 연결(oauth_accounts)을 모두 지운다. 탈퇴 때 연결을 끊을지는 호출하는 service가 정한다. 호출하는 쪽 트랜잭션 안에서 실행한다. */
@@ -90,6 +80,7 @@ public class MemberRepository {
                 user.getNickname(),
                 provider,
                 user.getRole(),
+                MemberStatus.valueOf(user.getStatus()),
                 true,
                 user.getCreatedAt());
     }

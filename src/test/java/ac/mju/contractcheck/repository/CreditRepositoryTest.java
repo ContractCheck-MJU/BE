@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,18 +43,31 @@ class CreditRepositoryTest {
     void storesWhateverItIsGiven() {
         credits.createAccount(new CreditAccount(OWNER, 7, 3));
 
-        assertThat(credits.findAccount(OWNER)).contains(new CreditAccount(OWNER, 7, 3));
+        assertThat(credits.findAccount(OWNER)).hasValueSatisfying(
+                account -> assertThat(account).extracting(CreditAccount::freeRemaining, CreditAccount::paidRemaining).containsExactly(7, 3));
     }
 
     @Test
     @DisplayName("지갑 저장은 받은 잔여를 그대로 반영한다(차감 규칙을 적용하지 않는다)")
     void saveAccountWritesGivenBalances() {
         credits.createAccount(new CreditAccount(OWNER, 2, 0));
-        credits.findAccount(OWNER);
+        CreditAccount loaded = credits.findAccount(OWNER).orElseThrow();
 
-        credits.saveAccount(new CreditAccount(OWNER, 0, 9));
+        credits.saveAccount(new CreditAccount(OWNER, 0, 9, loaded.version()));
 
-        assertThat(credits.findAccount(OWNER)).contains(new CreditAccount(OWNER, 0, 9));
+        assertThat(credits.findAccount(OWNER)).hasValueSatisfying(
+                account -> assertThat(account).extracting(CreditAccount::freeRemaining, CreditAccount::paidRemaining).containsExactly(0, 9));
+    }
+
+    @Test
+    @DisplayName("읽은 뒤 다른 저장이 먼저 일어났으면(version이 낡았으면) 저장이 낙관적 락 충돌이다")
+    void staleVersionIsRejected() {
+        credits.createAccount(new CreditAccount(OWNER, 2, 0));
+        CreditAccount readEarlier = credits.findAccount(OWNER).orElseThrow();
+        credits.saveAccount(new CreditAccount(OWNER, 1, 0, readEarlier.version()));
+
+        assertThatThrownBy(() -> credits.saveAccount(new CreditAccount(OWNER, 0, 0, readEarlier.version())))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     @Test

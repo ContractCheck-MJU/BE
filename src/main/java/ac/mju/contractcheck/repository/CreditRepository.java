@@ -31,23 +31,18 @@ public class CreditRepository {
         wallets.save(new CreditWalletEntity(account.owner().value(), account.freeRemaining(), account.paidRemaining()));
     }
 
-    /**
-     * 지갑을 읽는다. 호출하는 service의 트랜잭션 안에서 읽으면 이 엔티티가 영속성 컨텍스트에 올라가
-     * 이어지는 {@link #saveAccount}가 읽은 시점의 version으로 낙관적 락을 검사한다.
-     */
+    /** 지갑을 version과 함께 읽는다. 이어서 {@link #saveAccount}에 그대로 넘기면 읽은 시점의 version으로 낙관적 락을 검사한다. */
     public @NonNull Optional<CreditAccount> findAccount(UserId owner) {
         return wallets.findById(owner.value()).map(wallet -> toAccount(owner, wallet));
     }
 
     /**
-     * 읽어 둔 지갑에 잔여를 반영하고 바로 flush한다(version이 다르면 ObjectOptimisticLockingFailureException).
-     * 지갑이 없으면 호출 순서가 잘못된 것이라 IllegalStateException이다.
+     * 읽어 온 지갑(version 포함)의 잔여를 저장하고 바로 flush한다. 읽은 뒤 다른 요청이 지갑을 바꿔 version이 다르면
+     * ObjectOptimisticLockingFailureException이다.
      */
     public void saveAccount(@NonNull CreditAccount account) {
-        CreditWalletEntity wallet = wallets.findById(account.owner().value())
-                .orElseThrow(() -> new IllegalStateException("저장할 이용권 지갑이 없다"));
-        wallet.changeRemaining(account.freeRemaining(), account.paidRemaining());
-        wallets.saveAndFlush(wallet);
+        wallets.saveAndFlush(new CreditWalletEntity(
+                account.owner().value(), account.freeRemaining(), account.paidRemaining(), account.version()));
     }
 
     /** 원장에 한 줄을 남긴다. 종류와 참조 이름이 DB 값(문자열)으로 저장된다. refType·refId는 없을 수 있다. */
@@ -63,7 +58,7 @@ public class CreditRepository {
     }
 
     private CreditAccount toAccount(UserId owner, CreditWalletEntity wallet) {
-        return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining());
+        return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining(), wallet.getVersion());
     }
 
     private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {

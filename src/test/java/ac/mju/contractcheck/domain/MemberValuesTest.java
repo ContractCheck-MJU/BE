@@ -16,9 +16,8 @@ class MemberValuesTest {
     }
 
     @Test
-    @DisplayName("상태 이름은 스펙의 DB 값(ACTIVE·WITHDRAWN)과 같고 탈퇴 상태 상수와 일치한다")
+    @DisplayName("상태 이름은 스펙의 DB 값(ACTIVE·WITHDRAWN)과 같다")
     void statusNamesAreDatabaseValues() {
         assertThat(Arrays.stream(MemberStatus.values()).map(Enum::name)).containsExactlyInAnyOrder("ACTIVE", "WITHDRAWN");
-        assertThat(WithdrawnMember.STATUS).isEqualTo(MemberStatus.WITHDRAWN.name());
     }
 }

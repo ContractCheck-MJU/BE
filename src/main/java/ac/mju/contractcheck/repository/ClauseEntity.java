@@ -38,9 +38,9 @@ class ClauseEntity {
         this.text = text;
     }
 
-    void edit(int clauseNo, String title, String text) {
-        this.clauseNo = clauseNo;
-        this.title = title;
-        this.text = text;
+    /** 이미 저장된 조항을 도메인 값으로 다시 만든다. save가 id로 찾아 갱신(merge)한다. */
+    ClauseEntity(Long id, Long contractId, int clauseNo, String title, String text) {
+        this(contractId, clauseNo, title, text);
+        this.id = id;
     }
 }

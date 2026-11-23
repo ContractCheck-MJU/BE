@@ -47,7 +47,7 @@ public class MemberService {
      * 세션 주체(users.id) 본인의 회원 정보를 읽는다. 행이 없거나 탈퇴한 회원이면 만들어 주지 않고 401로 이어진다.
      */
     public Member me(UserId userId) {
-        return members.findActive(userId)
+        return members.findById(userId).filter(Member::active)
                 .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("회원 행이 없는 세션"));
     }
 
@@ -93,7 +93,7 @@ public class MemberService {
             erasers.forEach(eraser -> eraser.deleteAllByOwner(userId));
             clauses.deleteAllByOwner(userId);
             contracts.deleteAllByOwner(userId);
-            members.markWithdrawn(member.withdraw());
+            members.save(member.withdraw());
             members.deleteSocialAccounts(userId);
             sessions.findByPrincipalName(userId.principalName()).keySet().forEach(sessions::deleteById);
         });

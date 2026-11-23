@@ -14,7 +14,6 @@ import ac.mju.contractcheck.domain.MemberRole;
 import ac.mju.contractcheck.domain.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.domain.WithdrawnMember;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
@@ -86,8 +85,8 @@ class ServiceOrchestrationTest {
     @DisplayName("회원 탈퇴: 조항 삭제 → 계약 삭제 → 탈퇴 처리 → 소셜 계정 연결 삭제 순서이고 원본(S3)은 그보다 먼저다")
     void withdrawOrder() {
         MemberRepository members = mock(MemberRepository.class);
-        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", true, Instant.now());
-        when(members.findActive(OWNER)).thenReturn(Optional.of(member));
+        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
+        when(members.findById(OWNER)).thenReturn(Optional.of(member));
         when(contractRepository.findS3KeysByOwner(OWNER)).thenReturn(List.of("contracts/7/a"));
         MemberService service = new MemberService(
                 members, contractRepository, clauseRepository, List.of(), storage,
@@ -99,7 +98,8 @@ class ServiceOrchestrationTest {
         order.verify(storage).delete("contracts/7/a");
         order.verify(clauseRepository).deleteAllByOwner(OWNER);
         order.verify(contractRepository).deleteAllByOwner(OWNER);
-        order.verify(members).markWithdrawn(any(WithdrawnMember.class));
+        order.verify(members).save(org.mockito.ArgumentMatchers.argThat(
+                saved -> saved.status() == MemberStatus.WITHDRAWN && saved.email() == null && saved.nickname() == null));
         order.verify(members).deleteSocialAccounts(OWNER);
     }
 
@@ -109,7 +109,7 @@ class ServiceOrchestrationTest {
         MemberRepository members = mock(MemberRepository.class);
         CreditService credits = mock(CreditService.class);
         OAuthProfile profile = new OAuthProfile("kakao", "k-1", "a@test.com", "닉네임");
-        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", true, Instant.now());
+        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
         when(members.findByProviderAccount("kakao", "k-1")).thenReturn(Optional.empty());
         when(members.insert(profile, MemberRole.USER, MemberStatus.ACTIVE)).thenReturn(created);
         AuthService service = new AuthService(mock(MemberService.class), members, credits);

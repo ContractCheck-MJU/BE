@@ -41,11 +41,11 @@ public class ClauseRepository {
         return clauses.findOwned(id, owner.value()).map(entity -> toClause(entity, owner));
     }
 
-    /** 번호·제목·본문을 저장한다. 없는 조항이면 예외가 난다. 소유자 확인은 호출하는 service가 {@link #findOwned}로 먼저 한다. 조회와 수정이 한 트랜잭션이도록 호출하는 service가 트랜잭션을 연다. */
+    /** 번호·제목·본문을 저장한다. 도메인 조항의 번호·제목·본문을 id로 찾아 그대로 반영한다. 소유자 확인은 호출하는 service가 {@link #findOwned}로 먼저 한다. 조회와 수정이 한 트랜잭션이도록 호출하는 service가 트랜잭션을 연다. */
     public @NonNull Clause save(@NonNull Clause clause) {
-        ClauseEntity entity = clauses.findById(clause.id()).orElseThrow();
-        entity.edit(clause.no(), clause.title(), clause.text());
-        return toClause(clauses.save(entity), clause.owner());
+        ClauseEntity saved = clauses.save(
+                new ClauseEntity(clause.id(), clause.contractId(), clause.no(), clause.title(), clause.text()));
+        return toClause(saved, clause.owner());
     }
 
     /** 계약 하나의 조항을 모두 지운다. 벌크 삭제라 호출하는 쪽이 트랜잭션을 열어야 한다. */
