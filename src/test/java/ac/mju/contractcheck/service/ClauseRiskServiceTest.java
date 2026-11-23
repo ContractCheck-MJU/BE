@@ -22,6 +22,7 @@ import ac.mju.contractcheck.domain.EvidenceHit;
 import ac.mju.contractcheck.domain.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
 import ac.mju.contractcheck.domain.RiskPolicy;
+import ac.mju.contractcheck.domain.UserId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -182,7 +183,7 @@ class ClauseRiskServiceTest {
     }
 
     private static Clause clause(long id, String text) {
-        return new Clause(id, 1L, "1", (int) id, "제" + id + "조", text, "");
+        return new Clause(id, 1L, new UserId(1), (int) id, "제" + id + "조", text, "");
     }
 
     private static ClauseClassification classified(String id, boolean risky, String riskType, double probability) {

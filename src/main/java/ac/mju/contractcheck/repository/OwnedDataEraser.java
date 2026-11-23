@@ -1,5 +1,7 @@
 package ac.mju.contractcheck.repository;
 
+import ac.mju.contractcheck.domain.UserId;
+
 /**
  * 회원이 소유한 데이터를 탈퇴 때 지우는 저장소가 구현한다(FR-AUTH-03). {@code MemberService}는 이 인터페이스 목록만 알고,
  * 새 저장소가 생겨도 탈퇴 코드를 고치지 않는다. 구현체는 스프링 빈이면 자동으로 포함된다.
@@ -11,5 +13,5 @@ package ac.mju.contractcheck.repository;
 public interface OwnedDataEraser {
 
     /** 해당 소유자의 데이터를 모두 지운다. 없으면 아무것도 하지 않는다. 다른 소유자의 데이터는 건드리지 않는다. */
-    void deleteAllByOwner(String owner);
+    void deleteAllByOwner(UserId owner);
 }

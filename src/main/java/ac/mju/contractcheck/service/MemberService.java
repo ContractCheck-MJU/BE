@@ -2,6 +2,7 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.repository.ContractRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
@@ -42,8 +43,8 @@ public class MemberService {
      * FR-AUTH-02 세션 관리·로그아웃, FR-AUTH-03 내 정보·탈퇴
      * 세션 주체(users.id) 본인의 회원 정보를 읽는다. 행이 없거나 탈퇴한 회원이면 만들어 주지 않고 401로 이어진다.
      */
-    public Member me(String username) {
-        return members.findByUsername(username)
+    public Member me(UserId userId) {
+        return members.findActive(userId)
                 .orElseThrow(() -> new AuthenticationCredentialsNotFoundException("회원 행이 없는 세션"));
     }
 
@@ -55,13 +56,13 @@ public class MemberService {
      * 매핑이 정해질 때까지 notifyEmail은 저장하지 않고 응답에도 싣지 않는다.
      */
     @Transactional
-    public Member update(String username, String nickname, Boolean notifyEmail) {
-        Member current = me(username);
+    public Member update(UserId userId, String nickname, Boolean notifyEmail) {
+        Member current = me(userId);
         Member updated = current.withProfile(
                 nickname == null || nickname.isBlank() ? current.nickname() : nickname,
                 notifyEmail == null ? current.notifyEmail() : notifyEmail);
         Member saved = members.save(updated);
-        log.info("회원 정보 수정 username={}", username);
+        log.info("회원 정보 수정 userId={}", userId);
         return saved;
     }
 
@@ -80,18 +81,18 @@ public class MemberService {
      * 탈퇴 후 같은 소셜 계정 재가입 때 무료 2회를 다시 지급할지(지금은 새 회원으로 가입해 다시 지급된다),
      * 탈퇴 API의 429(3회/일/사용자) 한도 구현 방식(코드베이스에 한도 장치가 아직 없다).
      */
-    public void withdraw(String username) {
-        Member member = me(username);
+    public void withdraw(UserId userId) {
+        Member member = me(userId);
         rejectLastAdmin(member);
-        contracts.findS3KeysByOwner(username).forEach(storage::delete);
+        contracts.findS3KeysByOwner(userId).forEach(storage::delete);
         transaction.executeWithoutResult(status -> {
             rejectLastAdmin(member);
-            erasers.forEach(eraser -> eraser.deleteAllByOwner(username));
-            contracts.deleteAllByOwner(username);
+            erasers.forEach(eraser -> eraser.deleteAllByOwner(userId));
+            contracts.deleteAllByOwner(userId);
             members.markWithdrawn(member.withdraw());
-            sessions.findByPrincipalName(username).keySet().forEach(sessions::deleteById);
+            sessions.findByPrincipalName(userId.principalName()).keySet().forEach(sessions::deleteById);
         });
-        log.info("회원 탈퇴 username={}", username);
+        log.info("회원 탈퇴 userId={}", userId);
     }
 
     private void rejectLastAdmin(Member member) {

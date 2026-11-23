@@ -2,6 +2,7 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.CreditRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
 import lombok.NonNull;
@@ -43,7 +44,7 @@ public class AuthService {
 
     private Member register(OAuthProfile profile) {
         Member member = memberRepository.register(profile);
-        credits.grantSignup(member.id());
+        credits.grantSignup(member.id().value());
         log.info("신규 가입 userId={} provider={}", member.id(), profile.provider());
         return member;
     }
@@ -52,7 +53,7 @@ public class AuthService {
      * FR-AUTH-02 세션 관리·로그아웃
      * 세션 주체(users.id)로 현재 회원을 조회한다. 세션은 있으나 users 행이 없으면 회원을 만들지 않고 401로 이어진다.
      */
-    public Member me(String username) {
-        return members.me(username);
+    public Member me(UserId userId) {
+        return members.me(userId);
     }
 }

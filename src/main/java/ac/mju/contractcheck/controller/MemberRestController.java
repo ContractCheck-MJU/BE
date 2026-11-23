@@ -38,13 +38,13 @@ public class MemberRestController {
     /** FR-AUTH-03 내 정보·탈퇴 */
     @GetMapping("/api/v1/members/me")
     public MemberResponse me(Authentication authentication) {
-        return MemberResponse.from(members.me(currentUser.username(authentication)));
+        return MemberResponse.from(members.me(currentUser.userId(authentication)));
     }
 
     /** FR-AUTH-03 내 정보·탈퇴 */
     @PatchMapping("/api/v1/members/me")
     public MemberResponse update(Authentication authentication, @Valid @RequestBody UpdateMemberRequest request) {
-        Member member = members.update(currentUser.username(authentication), request.nickname(), request.notifyEmail());
+        Member member = members.update(currentUser.userId(authentication), request.nickname(), request.notifyEmail());
         return MemberResponse.from(member);
     }
 
@@ -52,7 +52,7 @@ public class MemberRestController {
     @DeleteMapping("/api/v1/members/me")
     public ResponseEntity<Void> withdraw(
             Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
-        members.withdraw(currentUser.username(authentication));
+        members.withdraw(currentUser.userId(authentication));
         expireSessionCookie(request, response);
         return ResponseEntity.noContent().build();
     }

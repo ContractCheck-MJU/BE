@@ -31,13 +31,13 @@ public class ClauseRestController {
     /** FR-UPL-03 조항 분할 */
     @GetMapping("/api/v1/contracts/{id}/clauses")
     public ItemsResponse<ClauseItem> list(Authentication authentication, @PathVariable long id) {
-        return new ItemsResponse<>(clauses.list(currentUser.username(authentication), id).stream().map(ClauseItem::from).toList());
+        return new ItemsResponse<>(clauses.list(currentUser.userId(authentication), id).stream().map(ClauseItem::from).toList());
     }
 
     /** FR-UPL-03 조항 분할 */
     @PatchMapping("/api/v1/clauses/{id}")
     public ClauseItem update(Authentication authentication, @PathVariable long id, @RequestBody ClauseUpdateRequest request) {
-        Clause clause = clauses.update(currentUser.username(authentication), id, request.no(), request.title(), request.text());
+        Clause clause = clauses.update(currentUser.userId(authentication), id, request.no(), request.title(), request.text());
         return ClauseItem.from(clause);
     }
 }

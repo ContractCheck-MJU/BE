@@ -5,6 +5,7 @@ import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.ContractFileType;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.PageSlice;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.contract.FileUrl;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
@@ -61,7 +62,7 @@ public class ContractService {
      * TODO(FR-UPL-02): 업로드 직후 비동기 OCR을 시작한다.
      * 스펙 미정: 업로드 한도 429 RATE_LIMITED(시간당 10회, TC-UPL-005), 원본 보관 90일 만료 삭제 배치.
      */
-    public Contract upload(String owner, MultipartFile file, String title, String contractType) {
+    public Contract upload(UserId owner, MultipartFile file, String title, String contractType) {
         validateMetadata(title, contractType);
         byte[] content = read(file);
         if (content.length > MAX_UPLOAD_BYTES) {
@@ -91,7 +92,7 @@ public class ContractService {
      * FR-UPL-01 계약서 업로드
      * 내 계약 목록을 최신순으로 한 페이지 돌려준다(OFFSET/LIMIT, 전체 건수 포함). 빈 목록은 허용한다.
      */
-    public PageSlice<Contract> list(String owner, int page, int size) {
+    public PageSlice<Contract> list(UserId owner, int page, int size) {
         if (page < 0 || size < 1) {
             throw new ApiException(400, "VALIDATION_ERROR", "page는 0 이상, size는 1 이상이어야 합니다.");
         }
@@ -103,7 +104,7 @@ public class ContractService {
      * 내 계약의 메타데이터를 조회한다. 없는 계약과 타인 계약은 모두 404 CONTRACT_NOT_FOUND다.
      * 원본 파일은 fileUrl로만 제공한다.
      */
-    public Contract get(String owner, long id) {
+    public Contract get(UserId owner, long id) {
         return owned(owner, id);
     }
 
@@ -121,7 +122,7 @@ public class ContractService {
      * 5. 예외/에러코드: 시트 OCR 실패 코드. 스펙 미정: 실패 시 contracts.status 값(스키마에 FAILED 제약이 없음).
      * 6. 반환: 현재 status. 스펙 미정: 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
      */
-    public Contract status(String owner, long id) {
+    public Contract status(UserId owner, long id) {
         return owned(owner, id);
     }
 
@@ -130,7 +131,7 @@ public class ContractService {
      * 원본 열람용 사전서명 URL을 5분 유효로 발급한다(TC-UPL-017). 없는 계약과 타인 계약은 404다.
      * 스펙 미정: 원본 보관 90일이 지난 계약의 오류 코드.
      */
-    public FileUrl fileUrl(String owner, long id) {
+    public FileUrl fileUrl(UserId owner, long id) {
         Contract contract = owned(owner, id);
         String url = storage.presignGet(contract.s3Key(), FILE_URL_VALIDITY);
         return new FileUrl(url, Instant.now().plus(FILE_URL_VALIDITY).toString());
@@ -144,7 +145,7 @@ public class ContractService {
      * TODO(FR-UPL-01): 조항·분석·비교·설명·일정 같은 종속 데이터 삭제는 각 저장소가 영속화되는 FR에서 이어 붙인다.
      * 스펙 미정: 물리 삭제 vs 상태 변경, 비교·설명 등 타 테이블 보존 범위.
      */
-    public void delete(String owner, long id) {
+    public void delete(UserId owner, long id) {
         Contract contract = owned(owner, id);
         storage.delete(contract.s3Key());
         contracts.delete(id);
@@ -179,7 +180,7 @@ public class ContractService {
         }
     }
 
-    private Contract owned(String owner, long id) {
+    private Contract owned(UserId owner, long id) {
         return contracts.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("CONTRACT_NOT_FOUND", "계약서를 찾을 수 없습니다."));
     }

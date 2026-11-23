@@ -48,7 +48,7 @@ class MemberRestControllerTest {
     @DisplayName("TC-AUTH-013 role 필드를 보내도 무시되고 닉네임만 바뀐다")
     void patchIgnoresRoleField() throws Exception {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        String username = member.id().principalName();
 
         mvc.perform(patch("/api/v1/members/me").with(user(username)).with(csrf())
                         .contentType("application/json")
@@ -64,7 +64,7 @@ class MemberRestControllerTest {
     @DisplayName("API-MEM-03 탈퇴하면 204와 함께 SESSION 쿠키를 만료시키고 이후 내 정보 조회는 401이다")
     void withdrawExpiresSessionCookie() throws Exception {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        String username = member.id().principalName();
 
         mvc.perform(delete("/api/v1/members/me").with(user(username)).with(csrf()))
                 .andExpect(status().isNoContent())
@@ -84,7 +84,7 @@ class MemberRestControllerTest {
     @DisplayName("TC-AUTH-014 실제 세션으로 탈퇴하면 모든 기기의 세션이 지워지고 다른 기기의 쿠키는 401이다")
     void withdrawEndsEverySessionOfTheMember() throws Exception {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        String username = member.id().principalName();
         String deviceA = loginSession(username);
         String deviceB = loginSession(username);
         assertThat(sessions.findByPrincipalName(username)).hasSize(2);
@@ -113,7 +113,7 @@ class MemberRestControllerTest {
     @DisplayName("API-MEM-03 CSRF 토큰이 없으면 403 CSRF_INVALID이고 회원은 그대로다")
     void withdrawRequiresCsrfToken() throws Exception {
         Member member = signUp();
-        String username = String.valueOf(member.id());
+        String username = member.id().principalName();
 
         mvc.perform(delete("/api/v1/members/me").with(user(username)))
                 .andExpect(status().isForbidden())
@@ -128,7 +128,7 @@ class MemberRestControllerTest {
     void patchRejectsTooLongNickname() throws Exception {
         Member member = signUp();
 
-        mvc.perform(patch("/api/v1/members/me").with(user(String.valueOf(member.id()))).with(csrf())
+        mvc.perform(patch("/api/v1/members/me").with(user(member.id().principalName())).with(csrf())
                         .contentType("application/json")
                         .content("{\"nickname\":\"" + "가".repeat(51) + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -141,9 +141,9 @@ class MemberRestControllerTest {
     void getReturnsProfile() throws Exception {
         Member member = signUp();
 
-        mvc.perform(get("/api/v1/members/me").with(user(String.valueOf(member.id()))))
+        mvc.perform(get("/api/v1/members/me").with(user(member.id().principalName())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(member.id()))
+                .andExpect(jsonPath("$.id").value(member.id().value()))
                 .andExpect(jsonPath("$.email").value(member.email()))
                 .andExpect(jsonPath("$.provider").value("kakao"))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty());

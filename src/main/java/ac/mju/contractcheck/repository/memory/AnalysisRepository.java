@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository.memory;
 
 import ac.mju.contractcheck.domain.Analysis;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.OwnedDataEraser;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,13 +26,13 @@ public class AnalysisRepository implements OwnedDataEraser {
         return stored;
     }
 
-    public @NonNull Optional<Analysis> findOwned(long id, String owner) {
+    public @NonNull Optional<Analysis> findOwned(long id, UserId owner) {
         return Presence.owned(store.get(id), owner, Analysis::owner);
     }
 
     /** 탈퇴 시 소유자의 데이터를 모두 지운다(FR-AUTH-03). */
     @Override
-    public void deleteAllByOwner(String owner) {
+    public void deleteAllByOwner(UserId owner) {
         store.values().removeIf(item -> item.owner().equals(owner));
     }
 }

@@ -42,14 +42,14 @@ public class NotificationRestController {
     @GetMapping("/api/v1/notifications")
     public PageResponse<NotificationItem> list(Authentication authentication, @RequestParam(defaultValue = "0") int page) {
         return new PageResponse<>(
-                notifications.list(currentUser.username(authentication)).stream().map(NotificationItem::from).toList(),
+                notifications.list(currentUser.userId(authentication)).stream().map(NotificationItem::from).toList(),
                 page);
     }
 
     /** FR-NOT-02 알림 설정·목록 */
     @PatchMapping("/api/v1/notifications/{id}/read")
     public ResponseEntity<Void> read(Authentication authentication, @PathVariable long id) {
-        notifications.markRead(currentUser.username(authentication), id);
+        notifications.markRead(currentUser.userId(authentication), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -57,7 +57,7 @@ public class NotificationRestController {
     @PutMapping("/api/v1/notifications/settings")
     public NotificationSettings settings(Authentication authentication, @RequestBody NotificationSettingsRequest request) {
         return notifications.updateSettings(
-                currentUser.username(authentication), request.emailEnabled(), request.pushEnabled(), request.remindDays());
+                currentUser.userId(authentication), request.emailEnabled(), request.pushEnabled(), request.remindDays());
     }
 
     /**
@@ -67,7 +67,7 @@ public class NotificationRestController {
      */
     @PostMapping("/api/v1/notifications/push-subscriptions")
     public ResponseEntity<Void> subscribe(Authentication authentication, @RequestBody NotificationPushRequest request) {
-        notifications.subscribe(currentUser.username(authentication), request.endpoint());
+        notifications.subscribe(currentUser.userId(authentication), request.endpoint());
         return ResponseEntity.noContent().build();
     }
 }

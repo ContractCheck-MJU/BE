@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.OAuthProfile;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.contract.FileUrl;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
@@ -49,7 +50,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-001 PDF 업로드는 UPLOADED로 저장하고 객체를 올리며 이용권은 차감하지 않는다")
     void uploadStoresObjectAndKeepsCredits() {
-        String owner = newOwner();
+        UserId owner = newOwner();
 
         Contract saved = contracts.upload(owner, pdf(1024), "신촌 원룸", "MONTHLY");
 
@@ -66,7 +67,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-002 확장자가 아니라 매직바이트로 판별해 지원하지 않는 형식은 415이고 저장하지 않는다")
     void unsupportedTypeIsRejectedByMagicBytes() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         MockMultipartFile exeNamedPdf = new MockMultipartFile(
                 "file", "contract.pdf", "application/pdf", new byte[] {'M', 'Z', 0, 0, 0, 0});
         MockMultipartFile docx = new MockMultipartFile(
@@ -88,7 +89,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-003 정확히 20MB는 통과하고 20MB+1바이트는 413 FILE_TOO_LARGE를 일으킨다")
     void sizeBoundary() {
-        String owner = newOwner();
+        UserId owner = newOwner();
 
         Contract saved = contracts.upload(owner, pdf(MAX_BYTES), "제목", "JEONSE");
 
@@ -104,7 +105,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-004 이용권이 없으면 402 CREDIT_INSUFFICIENT이고 저장하지 않는다")
     void noCreditsIsRejectedBeforeStoring() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         credits.use(owner, 1L);
         credits.use(owner, 2L);
 
@@ -118,7 +119,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("API-CON-01 제목이 비었거나 200자를 넘거나 계약 유형이 MONTHLY·JEONSE가 아니면 400 VALIDATION_ERROR를 일으킨다")
     void invalidMetadataIsRejected() {
-        String owner = newOwner();
+        UserId owner = newOwner();
 
         for (String[] invalid : new String[][] {{"", "MONTHLY"}, {"가".repeat(201), "MONTHLY"}, {"제목", "SALE"}}) {
             assertThatThrownBy(() -> contracts.upload(owner, pdf(1024), invalid[0], invalid[1]))
@@ -131,8 +132,8 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-016 다른 회원의 계약은 상세·file-url·삭제 모두 404 CONTRACT_NOT_FOUND를 일으키고 데이터는 그대로 유지된다")
     void otherMembersContractIsHidden() {
-        String owner = newOwner();
-        String stranger = newOwner();
+        UserId owner = newOwner();
+        UserId stranger = newOwner();
         Contract saved = contracts.upload(owner, pdf(1024), "제목", "MONTHLY");
 
         assertNotFound(() -> contracts.get(stranger, saved.id()));
@@ -146,7 +147,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-UPL-017 file-url은 저장소의 5분짜리 사전서명 URL이어야 한다")
     void fileUrlIsPresignedForFiveMinutes() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract saved = contracts.upload(owner, pdf(1024), "제목", "MONTHLY");
         when(storage.presignGet(eq(saved.s3Key()), eq(Duration.ofMinutes(5)))).thenReturn("https://storage.test/signed");
 
@@ -159,7 +160,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("TC-CRD-011 삭제하면 저장소 객체와 행을 지우고 쓴 이용권은 복구하지 않는다")
     void deleteRemovesObjectAndRow() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         Contract saved = contracts.upload(owner, pdf(1024), "제목", "MONTHLY");
         credits.use(owner, 7L);
 
@@ -173,7 +174,7 @@ class ContractServiceTest {
     @Test
     @DisplayName("저장소 업로드가 실패하면 계약 행을 만들지 않는다")
     void storageFailureLeavesNoRow() {
-        String owner = newOwner();
+        UserId owner = newOwner();
         org.mockito.Mockito.doThrow(new IllegalStateException("storage down"))
                 .when(storage).put(startsWith("contracts/"), any(byte[].class), anyString());
 
@@ -190,10 +191,10 @@ class ContractServiceTest {
                 .isEqualTo("CONTRACT_NOT_FOUND");
     }
 
-    private String newOwner() {
+    private UserId newOwner() {
         String providerUserId = UUID.randomUUID().toString();
-        return String.valueOf(auth.signIn(
-                new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id());
+        return auth.signIn(
+                new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
     }
 
     private MockMultipartFile pdf(int size) {

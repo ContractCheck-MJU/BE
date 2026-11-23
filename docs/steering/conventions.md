@@ -14,6 +14,12 @@
 - JSON 필드와 경로 변수는 스펙의 camelCase를 따른다. DB 컬럼만 `snake_case`다.
 - 참·거짓 플래그 대신 상태 이름이나 enum을 쓴다. `flag`, `temp`, `data`, `obj` 같은 이름은 쓰지 않는다.
 
+## 식별자
+
+- 현재 회원은 문자열이 아니라 `UserId`(`domain`, 양수 `long` 값 객체)로 주고받는다. 서비스·저장소 메서드와 도메인 `record`의 소유자 필드(`owner`)는 모두 `UserId`다.
+- 인증 주체 이름(users.id 문자열, `spring_session.principal_name`과 같은 값)을 `UserId`로 바꾸는 곳은 `CurrentUser.userId(authentication)` 한 군데다. 숫자가 아닌 주체는 401이다. 컨트롤러는 이 값을 서비스에 그대로 넘긴다.
+- 세션 저장소 조회나 결제 `customerKey`처럼 문자열이 필요한 경계에서만 `UserId.principalName()`으로 되돌린다.
+
 ## 빈과 롬복
 
 - 스프링 빈의 의존성은 생성자 주입이다. `private final` 필드와 `@RequiredArgsConstructor`를 쓰고, 생성자를 직접 쓰지 않는다. 필드 `@Autowired`는 쓰지 않는다.

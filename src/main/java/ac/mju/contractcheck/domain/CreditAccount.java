@@ -6,7 +6,7 @@ import java.util.Optional;
  * 회원의 이용권 잔여. 불변이며, 잔여가 음수인 계정은 만들 수 없다(정합성).
  * 차감 규칙(무료 우선 → 유료)은 여기에 둔다. DB·동시성(낙관적 락)은 이 클래스가 모르고 저장소가 다룬다.
  */
-public record CreditAccount(String owner, int freeRemaining, int paidRemaining) {
+public record CreditAccount(UserId owner, int freeRemaining, int paidRemaining) {
 
     public CreditAccount {
         if (freeRemaining < 0 || paidRemaining < 0) {

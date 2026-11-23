@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
@@ -45,7 +46,7 @@ public class PaymentService {
      * 5. 예외/에러코드: PRODUCT_NOT_FOUND(404).
      * 6. 반환: orderId, amount, orderName(상품명). 스펙 미정: payments.status 허용 값과 토스 상태 매핑(READY/DONE/CANCELED 등).
      */
-    public Payment order(String owner, long productId) {
+    public Payment order(UserId owner, long productId) {
         Product product = payments.findProduct(productId)
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "이용권 상품을 찾을 수 없습니다."));
         Payment saved = payments.save(new Payment(0, owner, UUID.randomUUID().toString(), product.price(), product.name(), "READY", product.credits()));
@@ -66,7 +67,7 @@ public class PaymentService {
      * 5. 예외/에러코드: AMOUNT_MISMATCH, PAYMENT_NOT_FOUND, 토스 거절 시 시트 코드(TC-PAY).
      * 6. 반환: 결제 id, status, 지급 횟수.
      */
-    public Payment confirm(String owner, String paymentKey, String orderId, int amount) {
+    public Payment confirm(UserId owner, String paymentKey, String orderId, int amount) {
         Payment payment = payments.findByOrderId(orderId)
                 .filter(item -> item.owner().equals(owner))
                 .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "주문을 찾을 수 없습니다."));
@@ -107,7 +108,7 @@ public class PaymentService {
      * 5. 예외/에러코드: 없음(빈 목록 허용).
      * 6. 반환: 결제 페이지.
      */
-    public List<Payment> list(String owner) {
+    public List<Payment> list(UserId owner) {
         return payments.findByOwner(owner);
     }
 
@@ -124,7 +125,7 @@ public class PaymentService {
      * 6. 반환: status, reason. 스펙 미정: 지급분을 이미 사용해 paid_remaining이 부족한 경우의 부분 환수·취소 거부,
      *    취소 사유 저장 위치(payments에 reason 컬럼 없음, raw에 남길지).
      */
-    public Payment cancel(String owner, long id) {
+    public Payment cancel(UserId owner, long id) {
         Payment payment = payments.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "결제를 찾을 수 없습니다."));
         Payment saved = payments.save(new Payment(payment.id(), owner, payment.orderId(), payment.amount(), payment.orderName(), "CANCELED", payment.creditsAdded()));

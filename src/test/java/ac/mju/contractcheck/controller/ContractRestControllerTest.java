@@ -38,6 +38,14 @@ class ContractRestControllerTest {
     StorageClient storage;
 
     @Test
+    @DisplayName("users.id가 아닌 인증 주체는 회원을 찾지 않고 401 UNAUTHORIZED를 응답한다")
+    void nonNumericPrincipalIsUnauthorized() throws Exception {
+        mvc.perform(get("/api/v1/contracts").with(user("alice")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
     @DisplayName("TC-UPL-001 업로드하면 201과 contractId, status=UPLOADED를 응답한다")
     void uploadReturnsCreated() throws Exception {
         String username = newUsername();

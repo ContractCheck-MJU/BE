@@ -3,6 +3,7 @@ package ac.mju.contractcheck.repository;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -45,8 +46,8 @@ public class CreditRepository {
      * 동시에 같은 지갑을 바꾼 요청이 있으면 {@link ObjectOptimisticLockingFailureException}이 나므로 호출자가 다시 시도한다.
      */
     @Transactional
-    public @NonNull CreditUseResult use(String owner, long analysisId) {
-        long userId = OwnerId.parse(owner).orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
+    public @NonNull CreditUseResult use(UserId owner, long analysisId) {
+        long userId = owner.value();
         CreditWalletEntity wallet = wallets.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
         Optional<CreditAccount> after = toAccount(owner, wallet).useOne();
@@ -61,26 +62,23 @@ public class CreditRepository {
     }
 
     /** 지갑이 없으면 조회 시 만들어 주지 않고 가입 오류로 본다. 전용 오류 코드는 스펙 미정이다. */
-    public @NonNull CreditAccount account(String owner) {
-        return OwnerId.parse(owner)
-                .flatMap(wallets::findById)
+    public @NonNull CreditAccount account(UserId owner) {
+        return wallets.findById(owner.value())
                 .map(wallet -> toAccount(owner, wallet))
                 .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
     }
 
-    public @NonNull List<LedgerEntry> ledger(String owner) {
-        return OwnerId.parse(owner)
-                .map(userId -> ledgers.findByUserIdOrderByCreatedAtDescIdDesc(userId).stream()
-                        .map(entry -> toLedgerEntry(owner, entry))
-                        .toList())
-                .orElse(List.of());
+    public @NonNull List<LedgerEntry> ledger(UserId owner) {
+        return ledgers.findByUserIdOrderByCreatedAtDescIdDesc(owner.value()).stream()
+                .map(entry -> toLedgerEntry(owner, entry))
+                .toList();
     }
 
-    private CreditAccount toAccount(String owner, CreditWalletEntity wallet) {
+    private CreditAccount toAccount(UserId owner, CreditWalletEntity wallet) {
         return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining());
     }
 
-    private LedgerEntry toLedgerEntry(String owner, CreditLedgerEntity entry) {
+    private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {
         String refId = entry.getRefId() == null ? "" : String.valueOf(entry.getRefId());
         return new LedgerEntry(owner, entry.getType(), entry.getAmount(), refId, entry.getCreatedAt().toString());
     }

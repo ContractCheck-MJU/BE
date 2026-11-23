@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.service.CreditService;
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ class CreditConsumptionTest {
     @Test
     @DisplayName("TC-CRD-002 무료가 있으면 무료부터 차감하고 USE 원장 1건을 남긴다")
     void freeIsUsedFirst() {
-        String owner = walletWith(1, 3);
+        UserId owner = walletWith(1, 3);
 
         credits.use(owner, 101L);
 
@@ -57,7 +58,7 @@ class CreditConsumptionTest {
     @Test
     @DisplayName("TC-CRD-003 무료를 다 쓰면 유료를 차감한다")
     void paidIsUsedAfterFree() {
-        String owner = walletWith(0, 3);
+        UserId owner = walletWith(0, 3);
 
         credits.use(owner, 102L);
 
@@ -69,7 +70,7 @@ class CreditConsumptionTest {
     @Test
     @DisplayName("TC-CRD-004 이용권이 없으면 CREDIT_INSUFFICIENT를 일으키고 잔여·원장은 그대로 유지된다")
     void insufficientCreditsIsRejected() {
-        String owner = walletWith(0, 0);
+        UserId owner = walletWith(0, 0);
 
         assertThatThrownBy(() -> credits.use(owner, 103L))
                 .isInstanceOf(CreditInsufficientException.class)
@@ -87,7 +88,7 @@ class CreditConsumptionTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             for (int round = 0; round < 30; round++) {
-                String owner = walletWith(1, 0);
+                UserId owner = walletWith(1, 0);
                 CountDownLatch ready = new CountDownLatch(2);
                 CountDownLatch go = new CountDownLatch(1);
                 List<Future<Boolean>> results = new ArrayList<>();
@@ -123,9 +124,9 @@ class CreditConsumptionTest {
         }
     }
 
-    private String walletWith(int free, int paid) {
+    private UserId walletWith(int free, int paid) {
         long userId = USER_IDS.incrementAndGet();
         wallets.save(new CreditWalletEntity(userId, free, paid));
-        return String.valueOf(userId);
+        return new UserId(userId);
     }
 }

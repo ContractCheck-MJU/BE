@@ -36,7 +36,7 @@ public class ExplanationRestController {
     public ResponseEntity<ExplanationResponse> create(
             Authentication authentication, @PathVariable long id, @RequestBody(required = false) ExplanationToneRequest request) {
         Explanation explanation = explanations.create(
-                currentUser.username(authentication), id, request == null ? null : request.tone());
+                currentUser.userId(authentication), id, request == null ? null : request.tone());
         return ResponseEntity.created(java.net.URI.create("/api/v1/explanations/" + explanation.id()))
                 .body(ExplanationResponse.from(explanation));
     }
@@ -44,6 +44,6 @@ public class ExplanationRestController {
     /** FR-EXP-02 근거 첨부, FR-EXP-03 수정 문구 제안 */
     @GetMapping("/api/v1/explanations/{id}")
     public ExplanationResponse get(Authentication authentication, @PathVariable long id) {
-        return ExplanationResponse.from(explanations.get(currentUser.username(authentication), id));
+        return ExplanationResponse.from(explanations.get(currentUser.userId(authentication), id));
     }
 }

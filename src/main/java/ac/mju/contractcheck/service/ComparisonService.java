@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Comparison;
+import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.memory.ComparisonRepository;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import lombok.NonNull;
@@ -33,7 +34,7 @@ public class ComparisonService {
      * 5. 예외/에러코드: SAME_CONTRACT, ANALYSIS_REQUIRED, CONTRACT_NOT_FOUND(404).
      * 6. 반환: comparison id. 스펙 미정: SAME과 MODIFIED의 경계(유사도 1.0인지, 문구 완전 일치인지, TC-CMP-006).
      */
-    public Comparison create(String owner, long beforeContractId, long afterContractId) {
+    public Comparison create(UserId owner, long beforeContractId, long afterContractId) {
         contracts.get(owner, beforeContractId);
         contracts.get(owner, afterContractId);
         Comparison saved = comparisons.save(new Comparison(0, owner, beforeContractId, afterContractId));
@@ -53,7 +54,7 @@ public class ComparisonService {
      * 5. 예외/에러코드: COMPARISON_NOT_FOUND(404).
      * 6. 반환: 변경 유형별 쌍 목록.
      */
-    public Comparison get(String owner, long id) {
+    public Comparison get(UserId owner, long id) {
         return comparisons.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("COMPARISON_NOT_FOUND", "비교 결과를 찾을 수 없습니다."));
     }

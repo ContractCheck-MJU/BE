@@ -1,6 +1,6 @@
 package ac.mju.contractcheck.domain;
 
-public record Clause(long id, long contractId, String owner, int no, String title, String text, String riskLevel) {
+public record Clause(long id, long contractId, UserId owner, int no, String title, String text, String riskLevel) {
     public Clause withEdit(Integer no, String title, String text) {
         return new Clause(
                 id,

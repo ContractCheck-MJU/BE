@@ -32,7 +32,7 @@ public class AnalysisRestController {
     /** FR-ANL-01 조항 위험 분류 */
     @PostMapping("/api/v1/contracts/{id}/analyses")
     public ResponseEntity<AcceptedAnalysis> start(Authentication authentication, @PathVariable long id) {
-        Analysis analysis = analyses.start(currentUser.username(authentication), id);
+        Analysis analysis = analyses.start(currentUser.userId(authentication), id);
         return ResponseEntity.accepted().body(new AcceptedAnalysis(analysis.id(), analysis.status()));
     }
 
@@ -43,7 +43,7 @@ public class AnalysisRestController {
      */
     @GetMapping("/api/v1/analyses/{id}")
     public AnalysisResponse get(Authentication authentication, @PathVariable long id) {
-        Analysis analysis = analyses.get(currentUser.username(authentication), id);
+        Analysis analysis = analyses.get(currentUser.userId(authentication), id);
         return new AnalysisResponse(analysis.overallScore(), analysis.summary(), analyses.results());
     }
 }
