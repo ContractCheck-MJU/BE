@@ -5,6 +5,7 @@ import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,8 @@ public class CreditRepository {
     }
 
     /**
-     * 분석 1건에 대해 이용권 1회를 차감하고 USE 원장을 남긴다(무료 우선 → 유료). 지갑 version으로 낙관적 락을 건다.
+     * 분석 1건에 대해 이용권 1회를 차감하고 USE 원장을 남긴다. 차감 규칙(무료 우선 → 유료)은 {@link CreditAccount#useOne()}이 정하고,
+     * 저장소는 지갑을 읽어 도메인에 맡긴 결과를 저장한다. 지갑 version으로 낙관적 락을 건다.
      * 동시에 같은 지갑을 바꾼 요청이 있으면 {@link ObjectOptimisticLockingFailureException}이 나므로 호출자가 다시 시도한다.
      */
     @Transactional
@@ -47,9 +49,11 @@ public class CreditRepository {
         long userId = OwnerId.parse(owner).orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
         CreditWalletEntity wallet = wallets.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
-        if (!wallet.useOne()) {
+        Optional<CreditAccount> after = toAccount(owner, wallet).useOne();
+        if (after.isEmpty()) {
             return CreditUseResult.INSUFFICIENT;
         }
+        wallet.changeRemaining(after.get().freeRemaining(), after.get().paidRemaining());
         wallets.saveAndFlush(wallet);
         ledgers.save(new CreditLedgerEntity(userId, TYPE_USE, 1, REF_ANALYSIS, analysisId, Instant.now()));
         log.info("이용권 차감 userId={} analysisId={}", userId, analysisId);
@@ -60,7 +64,7 @@ public class CreditRepository {
     public @NonNull CreditAccount account(String owner) {
         return OwnerId.parse(owner)
                 .flatMap(wallets::findById)
-                .map(wallet -> new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining()))
+                .map(wallet -> toAccount(owner, wallet))
                 .orElseThrow(() -> new IllegalStateException("이용권 지갑이 없는 회원이다"));
     }
 
@@ -70,6 +74,10 @@ public class CreditRepository {
                         .map(entry -> toLedgerEntry(owner, entry))
                         .toList())
                 .orElse(List.of());
+    }
+
+    private CreditAccount toAccount(String owner, CreditWalletEntity wallet) {
+        return new CreditAccount(owner, wallet.getFreeRemaining(), wallet.getPaidRemaining());
     }
 
     private LedgerEntry toLedgerEntry(String owner, CreditLedgerEntity entry) {
