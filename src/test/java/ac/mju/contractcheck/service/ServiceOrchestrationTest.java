@@ -1,7 +1,9 @@
 package ac.mju.contractcheck.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -71,14 +73,14 @@ class ServiceOrchestrationTest {
     void clauseSplitOrder() {
         ContractService contracts = mock(ContractService.class);
         ClauseService service = new ClauseService(clauseRepository, contracts);
-        when(clauseRepository.saveAll(org.mockito.ArgumentMatchers.eq(5L), any(), anyList())).thenReturn(List.of());
+        when(clauseRepository.saveAll(eq(5L), any(), anyList())).thenReturn(List.of());
 
         service.split(OWNER, 5L, "제1조(목적) 이 계약은 임대차에 관한 것이다.");
 
         InOrder order = inOrder(contracts, clauseRepository);
         order.verify(contracts).get(OWNER, 5L);
         order.verify(clauseRepository).deleteByContract(5L);
-        order.verify(clauseRepository).saveAll(org.mockito.ArgumentMatchers.eq(5L), any(), anyList());
+        order.verify(clauseRepository).saveAll(eq(5L), any(), anyList());
     }
 
     @Test
@@ -98,7 +100,7 @@ class ServiceOrchestrationTest {
         order.verify(storage).delete("contracts/7/a");
         order.verify(clauseRepository).deleteAllByOwner(OWNER);
         order.verify(contractRepository).deleteAllByOwner(OWNER);
-        order.verify(members).save(org.mockito.ArgumentMatchers.argThat(
+        order.verify(members).save(argThat(
                 saved -> saved.status() == MemberStatus.WITHDRAWN && saved.email() == null && saved.nickname() == null));
         order.verify(members).deleteSocialAccounts(OWNER);
     }
@@ -120,6 +122,6 @@ class ServiceOrchestrationTest {
         order.verify(members).insert(eq(profile), eq(MemberRole.USER), eq(MemberStatus.ACTIVE));
         order.verify(members).linkSocialAccount(OWNER, profile);
         order.verify(credits).grantSignup(OWNER);
-        org.assertj.core.api.Assertions.assertThat(signedIn).isEqualTo(created);
+        assertThat(signedIn).isEqualTo(created);
     }
 }

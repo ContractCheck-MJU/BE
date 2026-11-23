@@ -1,8 +1,8 @@
 package ac.mju.contractcheck.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -86,7 +86,7 @@ class CreditServiceTest {
         assertThatThrownBy(() -> service.use(OWNER, 1L)).isInstanceOf(CreditInsufficientException.class);
 
         verify(credits, never()).saveAccount(any());
-        verify(credits, never()).appendLedger(any(), any(), org.mockito.ArgumentMatchers.anyInt(), any(), any());
+        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any());
     }
 
     @Test
@@ -122,6 +122,5 @@ class CreditServiceTest {
         assertThatThrownBy(() -> service.use(OWNER, 1L)).isInstanceOf(IllegalStateException.class);
 
         verify(credits, times(5)).saveAccount(any());
-        assertThat(true).isTrue();
     }
 }

@@ -145,10 +145,10 @@ public class ContractService {
 
     /**
      * FR-UPL-01 계약서 업로드
-     * 저장소 객체를 먼저 지우고 contracts 행을 지운다. 쓴 이용권은 복구하지 않는다(TC-CRD-011).
+     * 저장소 객체를 먼저 지운 뒤, 한 트랜잭션에서 조항과 contracts 행을 지운다. 쓴 이용권은 복구하지 않는다(TC-CRD-011).
      * 객체 삭제가 실패하면 행을 남겨 다시 시도할 수 있게 한다.
      *
-     * TODO(FR-UPL-01): 조항·분석·비교·설명·일정 같은 종속 데이터 삭제는 각 저장소가 영속화되는 FR에서 이어 붙인다.
+     * TODO(FR-UPL-01): 분석·비교·설명·일정이 영속화되면 DB cascade(V2)로 함께 지워지는지 확인한다.
      * 스펙 미정: 물리 삭제 vs 상태 변경, 비교·설명 등 타 테이블 보존 범위.
      */
     public void delete(UserId owner, long id) {
