@@ -27,4 +27,5 @@
 
 - 테스트는 `src/test/resources/application-test.yml`의 H2(PostgreSQL 모드, Flyway 꺼짐, `ddl-auto=create-drop`)에서 돌린다. 외부 PostgreSQL이 필요 없다.
 - 명령: `./gradlew test`. 한 클래스만 돌릴 때는 `./gradlew test --tests ...`다. ([AGENTS.md](../../AGENTS.md))
+- 실제 서버가 필요한 테스트는 태그로 `test`에서 빼고 전용 태스크로만 돌린다: `storageTest`(SeaweedFS), `inferenceTest`(추론 서버+Postgres), `postgresTest`(Flyway 마이그레이션, 로컬 Postgres). 모두 CI에서는 돌지 않는다.
 - PR 전에 `./gradlew test`가 통과해야 한다. CI(`main` push·PR)가 이를 강제한다.
