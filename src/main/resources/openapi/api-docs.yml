@@ -108,7 +108,7 @@ paths:
   "POST /api/v1/contracts":
     tag: contracts
     summary: 계약서 업로드
-    description: PDF·JPG·PNG 파일(최대 20MB, 확장자가 아닌 매직바이트로 판별), 제목(200자 이내), 계약 유형(MONTHLY 또는 JEONSE)을 받아 원본을 저장소(S3 호환)에 올리고 UPLOADED 상태로 저장해 201을 반환한다. 이용권은 잔여만 확인하고 차감하지 않는다. OCR 시작은 FR-UPL-02에서 이어서 구현한다.
+    description: PDF·JPG·PNG 파일(최대 20MB, 확장자가 아닌 매직바이트로 판별), 제목(200자 이내), 계약 유형(MONTHLY 또는 JEONSE)을 받아 원본을 저장소(S3 호환)에 올리고 UPLOADED 상태로 저장해 201을 반환한다. 이용권은 잔여만 확인하고 차감하지 않는다. 저장 직후 OCR·조항 분할이 비동기로 시작되며 진행은 상태 조회로 폴링한다.
     auth: login
     params:
       - name: title
@@ -160,7 +160,7 @@ paths:
   "GET /api/v1/contracts/{id}/status":
     tag: contracts
     summary: 계약서 처리 상태
-    description: 본인 소유의 계약서 상태를 반환한다. progress는 상태가 UPLOADED이면 10, 그 외에는 100이다. errorMessage가 없으면 빈 문자열이다.
+    description: 본인 소유의 계약서 처리 상태를 반환한다. 업로드 뒤 OCR·조항 분할이 비동기로 진행되어 UPLOADED → OCR → SPLIT 순서로 바뀌고, 실패하면 FAILED이며 errorMessage에 사유(예: OCR 처리 시간 초과, 계약서 텍스트를 찾지 못했습니다)가 담긴다. progress는 UPLOADED 10, OCR 50, SPLIT·FAILED 100이다. errorMessage가 없으면 빈 문자열이다.
     auth: login
     params:
       - name: id

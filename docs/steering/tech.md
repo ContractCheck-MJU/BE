@@ -32,6 +32,8 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 ## 분석 파이프라인
 
+업로드가 끝나면 `ContractService`가 `ContractUploaded` 이벤트를 발행하고, `ContractProcessor`가 `ocrExecutor`에서 원본을 읽어 OCR → 조항 분할을 진행하며 `contracts.status`를 `UPLOADED → OCR → SPLIT`으로 옮긴다. 실패하면 `FAILED`와 `error_message`(V3)에 사유를 남긴다. OCR은 `contractcheck.ocr.max-attempts`(3)까지 지수 백오프로 다시 시도하고, 이용권은 이 단계에서 차감하지 않는다. OCR 구현체가 없으면(운영의 `upstage` 미구현) 앱은 뜨지만 처리가 `FAILED`로 끝난다. 테스트는 `contractcheck.ocr.enabled=false`로 처리기를 끈다.
+
 분석은 비동기다. `analysis_id`를 즉시 돌려주고 폴링으로 조회한다. 동기 요청-응답으로 분석을 끝내지 않는다. ([anti-patterns.md](anti-patterns.md) 17)
 
 조항은 배치로 `/classify`, `/embed`에 보낸다. 단건 추론 루프를 돌리지 않는다. Claude에는 위험 조항만 병렬로 보낸다. 전체 조항을 Claude에 넣지 않는다. ([anti-patterns.md](anti-patterns.md) 18)
