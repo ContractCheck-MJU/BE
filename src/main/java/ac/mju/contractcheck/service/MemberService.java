@@ -5,6 +5,8 @@ import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.repository.ContractRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
+import ac.mju.contractcheck.repository.OwnedDataEraser;
+import java.util.List;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,8 @@ public class MemberService {
     private final MemberRepository members;
     @NonNull
     private final ContractRepository contracts;
+    @NonNull
+    private final List<OwnedDataEraser> erasers;
     @NonNull
     private final StorageClient storage;
     @NonNull
@@ -64,13 +68,17 @@ public class MemberService {
     /**
      * FR-AUTH-03 내 정보·탈퇴
      * 본인만 탈퇴한다. 마지막 ADMIN이면 409 LAST_ADMIN으로 거부하며, 이때는 아무것도 지우지 않는다.
-     * 저장소의 계약서 원본을 먼저 지운 뒤(트랜잭션 밖), 한 트랜잭션에서 계약 행 삭제, users.status를 WITHDRAWN으로 변경,
-     * 이메일·닉네임 비우기, oauth_accounts 삭제, 모든 로그인 세션(다른 기기 포함) 삭제를 한다. 이용권 잔여는 소멸한다.
+     * 저장소의 계약서 원본을 먼저 지운 뒤(트랜잭션 밖), 한 트랜잭션에서 다음을 한다.
+     * 분석·비교·설명·일정·알림 같은 종속 데이터 삭제({@link OwnedDataEraser} 구현체 전부, 계약을 참조하므로 계약 행보다 먼저),
+     * 계약 행과 조항 삭제, users.status를 WITHDRAWN으로 변경하고 이메일·닉네임 비우기, oauth_accounts 삭제,
+     * 모든 로그인 세션(다른 기기 포함) 삭제.
      * 객체 삭제가 실패하면 예외로 끝나고 계정과 계약 행은 그대로라 다시 탈퇴를 시도할 수 있다(객체 삭제는 이미 없어도 성공).
+     * 결제 내역과 이용권 원장은 보존 기간 동안 남긴다(테이블 정의서).
      *
-     * TODO(FR-AUTH-03): 조항·분석·비교·설명·일정 같은 종속 데이터 삭제는 각 저장소가 영속화되는 FR에서 이어 붙인다.
-     * 이 데이터가 계약을 참조하게 되면 계약 행을 지우기 전에 먼저 지워야 한다.
-     * 스펙 미정: 탈퇴 후 같은 소셜 계정 재가입 때 무료 2회를 다시 지급할지.
+     * 스펙 미정: credit_wallets 처리(테이블 정의서는 "탈퇴 시 삭제, 유료 잔여분 환불 정책 확인 필요"라 유료 잔여분이 있는 지갑을
+     * 지울지·환불할지 정해지지 않아 지금은 지갑을 그대로 둔다. 탈퇴한 회원은 로그인할 수 없어 사용되지 않는다),
+     * 탈퇴 후 같은 소셜 계정 재가입 때 무료 2회를 다시 지급할지(지금은 새 회원으로 가입해 다시 지급된다),
+     * 탈퇴 API의 429(3회/일/사용자) 한도 구현 방식(코드베이스에 한도 장치가 아직 없다).
      */
     public void withdraw(String username) {
         Member member = me(username);
@@ -78,8 +86,9 @@ public class MemberService {
         contracts.findS3KeysByOwner(username).forEach(storage::delete);
         transaction.executeWithoutResult(status -> {
             rejectLastAdmin(member);
+            erasers.forEach(eraser -> eraser.deleteAllByOwner(username));
             contracts.deleteAllByOwner(username);
-            members.markWithdrawn(username);
+            members.markWithdrawn(member.withdraw());
             sessions.findByPrincipalName(username).keySet().forEach(sessions::deleteById);
         });
         log.info("회원 탈퇴 username={}", username);

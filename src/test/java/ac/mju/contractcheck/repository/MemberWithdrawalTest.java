@@ -11,7 +11,18 @@ import static org.mockito.Mockito.verify;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.Analysis;
+import ac.mju.contractcheck.domain.Comparison;
+import ac.mju.contractcheck.domain.Explanation;
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.Milestone;
+import ac.mju.contractcheck.domain.Notification;
+import ac.mju.contractcheck.domain.NotificationSettings;
+import ac.mju.contractcheck.repository.memory.AnalysisRepository;
+import ac.mju.contractcheck.repository.memory.ComparisonRepository;
+import ac.mju.contractcheck.repository.memory.ExplanationRepository;
+import ac.mju.contractcheck.repository.memory.MilestoneRepository;
+import ac.mju.contractcheck.repository.memory.NotificationRepository;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.service.AuthService;
@@ -65,6 +76,16 @@ class MemberWithdrawalTest {
     @Autowired
     FindByIndexNameSessionRepository<? extends Session> sessions;
 
+    @Autowired
+    AnalysisRepository analyses;
+    @Autowired
+    ComparisonRepository comparisons;
+    @Autowired
+    ExplanationRepository explanations;
+    @Autowired
+    MilestoneRepository milestones;
+    @Autowired
+    NotificationRepository notifications;
     @MockitoBean
     StorageClient storage;
 
@@ -165,6 +186,59 @@ class MemberWithdrawalTest {
         assertThat(clauseRows.findAll()).extracting(ClauseEntity::getContractId)
                 .doesNotContain(contract.id())
                 .contains(othersContract.id());
+    }
+
+    @Test
+    @DisplayName("TC-AUTH-014 탈퇴하면 분석·비교·설명·일정·알림(설정 포함)을 지우고 다른 회원의 것은 그대로 둔다")
+    void withdrawalDeletesDependentData() {
+        Member member = signUp();
+        Member other = signUp();
+        String owner = String.valueOf(member.id());
+        String otherOwner = String.valueOf(other.id());
+        Seeded mine = seed(owner);
+        Seeded theirs = seed(otherOwner);
+
+        members.withdraw(owner);
+
+        assertThat(analyses.findOwned(mine.analysis(), owner)).isEmpty();
+        assertThat(comparisons.findOwned(mine.comparison(), owner)).isEmpty();
+        assertThat(explanations.findOwned(mine.explanation(), owner)).isEmpty();
+        assertThat(milestones.findByOwner(owner)).isEmpty();
+        assertThat(notifications.findByOwner(owner)).isEmpty();
+        assertThat(notifications.settings(owner).emailEnabled()).as("저장된 설정은 지워져 기본값으로 돌아간다").isTrue();
+
+        assertThat(analyses.findOwned(theirs.analysis(), otherOwner)).isPresent();
+        assertThat(comparisons.findOwned(theirs.comparison(), otherOwner)).isPresent();
+        assertThat(explanations.findOwned(theirs.explanation(), otherOwner)).isPresent();
+        assertThat(milestones.findByOwner(otherOwner)).hasSize(1);
+        assertThat(notifications.findByOwner(otherOwner)).hasSize(1);
+        assertThat(notifications.settings(otherOwner).emailEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("마지막 ADMIN 탈퇴를 거절하면 종속 데이터도 지우지 않는다")
+    void lastAdminRejectionKeepsDependentData() {
+        String owner = String.valueOf(createAdmin());
+        Seeded mine = seed(owner);
+
+        assertThatThrownBy(() -> members.withdraw(owner)).isInstanceOf(ConflictException.class);
+
+        assertThat(analyses.findOwned(mine.analysis(), owner)).isPresent();
+        assertThat(milestones.findByOwner(owner)).hasSize(1);
+    }
+
+    private record Seeded(long analysis, long comparison, long explanation) {}
+
+    /** 한 회원 몫의 인메모리 종속 데이터를 한 세트 만든다. 설정은 기본값(emailEnabled=true)과 다르게 저장한다. */
+    private Seeded seed(String owner) {
+        long analysis = analyses.save(new Analysis(0, 1L, owner, "DONE", 50, "요약")).id();
+        long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L)).id();
+        long explanation = explanations.save(new Explanation(0, 1L, owner, "기본", "설명", "제안")).id();
+        milestones.save(new Milestone(0, owner, 1L, "END", "만기", "2027-01-01", 30, false));
+        notifications.save(new Notification(System.nanoTime(), owner, "EMAIL", "알림", "2026-11-23", false));
+        notifications.saveSettings(new NotificationSettings(owner, false, true, List.of(7)));
+        notifications.savePush(owner, "https://push.example/" + owner);
+        return new Seeded(analysis, comparison, explanation);
     }
 
     @Test
