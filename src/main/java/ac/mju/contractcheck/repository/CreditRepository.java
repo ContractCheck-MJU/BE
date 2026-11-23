@@ -1,8 +1,11 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditPolicy;
 import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.LedgerRefType;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
 import java.util.List;
@@ -23,11 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CreditRepository {
 
-    private static final int SIGNUP_FREE_CREDITS = 2;
-    private static final String TYPE_GRANT = "GRANT";
-    private static final String TYPE_USE = "USE";
-    private static final String REF_ANALYSIS = "ANALYSIS";
-
     @NonNull
     private final CreditWalletJpaRepository wallets;
     @NonNull
@@ -35,9 +33,9 @@ public class CreditRepository {
 
     /** 가입한 회원에게 무료 이용권 지갑과 GRANT 원장 1건을 만든다. 가입 트랜잭션 안에서 호출한다. */
     public void grantSignup(long userId) {
-        wallets.save(new CreditWalletEntity(userId, SIGNUP_FREE_CREDITS, 0));
-        ledgers.save(new CreditLedgerEntity(userId, TYPE_GRANT, SIGNUP_FREE_CREDITS, null, null, Instant.now()));
-        log.info("무료 이용권 지급 userId={} amount={}", userId, SIGNUP_FREE_CREDITS);
+        wallets.save(new CreditWalletEntity(userId, CreditPolicy.SIGNUP_FREE_CREDITS, 0));
+        ledgers.save(new CreditLedgerEntity(userId, LedgerType.GRANT.name(), CreditPolicy.SIGNUP_FREE_CREDITS, null, null, Instant.now()));
+        log.info("무료 이용권 지급 userId={} amount={}", userId, CreditPolicy.SIGNUP_FREE_CREDITS);
     }
 
     /**
@@ -56,7 +54,8 @@ public class CreditRepository {
         }
         wallet.changeRemaining(after.get().freeRemaining(), after.get().paidRemaining());
         wallets.saveAndFlush(wallet);
-        ledgers.save(new CreditLedgerEntity(userId, TYPE_USE, 1, REF_ANALYSIS, analysisId, Instant.now()));
+        ledgers.save(new CreditLedgerEntity(
+                userId, LedgerType.USE.name(), 1, LedgerRefType.ANALYSIS.name(), analysisId, Instant.now()));
         log.info("이용권 차감 userId={} analysisId={}", userId, analysisId);
         return CreditUseResult.USED;
     }
