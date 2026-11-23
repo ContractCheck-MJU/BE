@@ -4,13 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyIterable;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.service.AuthService;
@@ -79,12 +81,12 @@ class ServiceTransactionAtomicityTest {
     @DisplayName("TC-CRD-005 낙관적 락 충돌 뒤 재시도는 새 트랜잭션에서 깨끗이 다시 읽어 차감이 정확히 1회만 일어난다")
     void creditUseRetriesInFreshTransaction() {
         UserId owner = newOwner();
-        // 첫 시도는 지갑과 원장을 실제로 바꾼 뒤 충돌 예외를 던진다. 시도마다 트랜잭션이 따로여야 이 변경이 롤백되고,
+        // 첫 시도는 지갑 저장을 마치고 원장까지 실제로 기록한 뒤 충돌 예외를 던진다. 시도마다 트랜잭션이 따로여야 이 변경이 롤백되고,
         // 재시도 루프 전체가 한 트랜잭션이면 변경이 남아 두 번째 시도가 같은 지갑을 한 번 더 차감한다.
         doAnswer(invocation -> {
             invocation.callRealMethod();
             throw new ObjectOptimisticLockingFailureException(CreditWalletEntity.class, owner.value());
-        }).doCallRealMethod().when(creditRepository).use(any(), anyLong());
+        }).doCallRealMethod().when(creditRepository).appendLedger(any(), eq(LedgerType.USE), anyInt(), any(), any());
 
         credits.use(owner, 1L);
 

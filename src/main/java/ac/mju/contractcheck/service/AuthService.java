@@ -3,7 +3,6 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.repository.CreditRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,7 @@ public class AuthService {
     @NonNull
     private final MemberRepository memberRepository;
     @NonNull
-    private final CreditRepository credits;
+    private final CreditService credits;
 
     /**
      * FR-AUTH-01 소셜 로그인
@@ -44,7 +43,7 @@ public class AuthService {
 
     private Member register(OAuthProfile profile) {
         Member member = memberRepository.register(profile);
-        credits.grantSignup(member.id().value());
+        credits.grantSignup(member.id());
         log.info("신규 가입 userId={} provider={}", member.id(), profile.provider());
         return member;
     }
