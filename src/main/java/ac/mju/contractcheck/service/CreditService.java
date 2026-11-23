@@ -59,9 +59,7 @@ public class CreditService {
      * 시도마다 새 트랜잭션을 열고(지갑 갱신과 USE 원장 기록을 함께 성공·실패시킨다) 재시도 루프는 트랜잭션 밖에 둔다.
      * 충돌 예외가 트랜잭션 밖으로 나가야 다음 시도가 깨끗한 상태로 지갑을 다시 읽는다. 외부 API는 부르지 않는다.
      *
-     * TODO(FR-CRD-02): 분석 실패 시 자동 복구(RESTORE, 같은 analysisId 중복 방지 TC-CRD-008)는 구현하지 않았다.
-     * 스펙 미정: credit_ledger에는 무료·유료 구분이 없어 복구분을 어느 쪽에 되돌릴지 정해야 한다.
-     * 호출은 FR-ANL-01에서 분석을 접수할 때 한다.
+     * 분석 실패 때의 복구는 {@link #restore}가 한다.
      */
     public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -76,6 +74,35 @@ public class CreditService {
             }
         }
         throw new IllegalStateException("이용권 차감 동시성 충돌이 계속된다");
+    }
+
+    /**
+     * FR-CRD-02 유료 차감
+     * 실패한 분석의 차감을 되돌린다. 같은 분석 ID로 여러 번 불러도 RESTORE는 한 번만 기록하고(TC-CRD-008),
+     * 차감(USE) 기록이 없으면 아무것도 하지 않는다. 낙관적 락 충돌은 {@link #use}처럼 새 트랜잭션에서 다시 시도한다.
+     * 스펙 미정: 원장에 무료·유료 구분이 없어 복구분은 항상 무료 잔여로 되돌린다.
+     */
+    public void restore(UserId owner, long analysisId) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                transaction.executeWithoutResult(status -> restoreOnce(owner, analysisId));
+                return;
+            } catch (ObjectOptimisticLockingFailureException exception) {
+                log.debug("이용권 복구 충돌 재시도 attempt={}", attempt);
+            }
+        }
+        throw new IllegalStateException("이용권 복구 동시성 충돌이 계속된다");
+    }
+
+    private void restoreOnce(UserId owner, long analysisId) {
+        boolean used = credits.hasLedger(owner, LedgerType.USE, LedgerRefType.ANALYSIS, analysisId);
+        boolean restored = credits.hasLedger(owner, LedgerType.RESTORE, LedgerRefType.ANALYSIS, analysisId);
+        if (!used || restored) {
+            return;
+        }
+        credits.saveAccount(me(owner).restoreOne());
+        credits.appendLedger(owner, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, analysisId);
+        log.info("이용권 복구 userId={} analysisId={}", owner, analysisId);
     }
 
     /** 지갑을 읽어 도메인 규칙(무료 우선 → 유료)으로 차감하고, 지갑 저장과 USE 원장 기록을 이어서 한다. 호출하는 쪽이 연 트랜잭션 안에서 실행한다. */

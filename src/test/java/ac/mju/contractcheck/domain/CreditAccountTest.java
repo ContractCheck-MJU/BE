@@ -68,4 +68,14 @@ class CreditAccountTest {
 
         assertThat(after.version()).isEqualTo(5L);
     }
+
+    @Test
+    @DisplayName("복구는 무료 잔여로 1회 되돌린다(스펙 미정: 원장에 무료·유료 구분이 없어 무료로 복구한다)")
+    void restoreOneGoesToFree() {
+        CreditAccount restored = new CreditAccount(new UserId(1), 0, 3, 4L).restoreOne();
+
+        assertThat(restored.freeRemaining()).isEqualTo(1);
+        assertThat(restored.paidRemaining()).isEqualTo(3);
+        assertThat(restored.version()).isEqualTo(4L);
+    }
 }

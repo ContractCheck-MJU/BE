@@ -71,6 +71,18 @@ class CreditRepositoryTest {
     }
 
     @Test
+    @DisplayName("원장 존재 여부는 종류·참조 종류·참조 ID가 모두 같을 때만 true다")
+    void hasLedgerMatchesTypeAndReference() {
+        credits.createAccount(new CreditAccount(OWNER, 2, 0));
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L);
+
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).isTrue();
+        assertThat(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).isFalse();
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 10L)).isFalse();
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.PAYMENT, 9L)).isFalse();
+    }
+
+    @Test
     @DisplayName("원장은 종류와 참조의 이름이 DB 문자열로 저장되고, 참조가 없으면 비어 있다")
     void ledgerStoresEnumNamesAsDatabaseValues() {
         credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
