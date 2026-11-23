@@ -41,6 +41,6 @@ public class InferenceEmbeddingModel implements EmbeddingModel {
     /** 기본 구현은 차원을 알아내려고 서버를 한 번 부른다. 모델이 고정(BGE-M3)이라 상수로 답한다. */
     @Override
     public int dimensions() {
-        return HttpInferenceClient.EMBEDDING_DIMENSION;
+        return InferenceClient.EMBEDDING_DIMENSION;
     }
 }

@@ -13,6 +13,9 @@ import java.util.List;
  */
 public interface InferenceClient {
 
+    /** 임베딩 차원(BGE-M3). 스펙시트 /embed의 dim이다. */
+    int EMBEDDING_DIMENSION = 1024;
+
     /**
      * 조항별 위험 여부·유형·확률을 받는다. 결과는 입력과 같은 순서다. 빈 입력이면 서버를 부르지 않고 빈 목록을 돌려준다.
      *
