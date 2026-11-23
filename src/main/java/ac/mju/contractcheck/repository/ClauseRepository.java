@@ -23,9 +23,8 @@ public class ClauseRepository {
     @NonNull
     private final ClauseJpaRepository clauses;
 
-    /** 한 계약의 조항을 모두 지우고 분할 결과로 바꾼다. 번호는 drafts의 no를 그대로 쓴다. 삭제와 저장을 묶는 트랜잭션은 호출하는 service가 연다. */
-    public @NonNull List<Clause> replaceAll(long contractId, UserId owner, @NonNull List<ClauseDraft> drafts) {
-        clauses.deleteByContractId(contractId);
+    /** 분할 결과를 새 조항으로 저장한다. 기존 조항을 먼저 지우는 일은 호출하는 service가 {@link #deleteByContract}로 한다. 번호는 drafts의 no를 그대로 쓴다. */
+    public @NonNull List<Clause> saveAll(long contractId, UserId owner, @NonNull List<ClauseDraft> drafts) {
         List<ClauseEntity> entities = drafts.stream()
                 .map(draft -> new ClauseEntity(contractId, draft.no(), draft.title(), draft.text()))
                 .toList();
@@ -42,9 +41,9 @@ public class ClauseRepository {
         return clauses.findOwned(id, owner.value()).map(entity -> toClause(entity, owner));
     }
 
-    /** 번호·제목·본문을 저장한다. 소유자가 다르거나 없는 조항이면 예외가 난다(호출 전에 findOwned로 확인한다). 조회와 수정이 한 트랜잭션이도록 호출하는 service가 트랜잭션을 연다. */
+    /** 번호·제목·본문을 저장한다. 없는 조항이면 예외가 난다. 소유자 확인은 호출하는 service가 {@link #findOwned}로 먼저 한다. 조회와 수정이 한 트랜잭션이도록 호출하는 service가 트랜잭션을 연다. */
     public @NonNull Clause save(@NonNull Clause clause) {
-        ClauseEntity entity = clauses.findOwned(clause.id(), clause.owner().value()).orElseThrow();
+        ClauseEntity entity = clauses.findById(clause.id()).orElseThrow();
         entity.edit(clause.no(), clause.title(), clause.text());
         return toClause(clauses.save(entity), clause.owner());
     }

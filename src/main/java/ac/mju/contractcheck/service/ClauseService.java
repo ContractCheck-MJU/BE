@@ -41,7 +41,8 @@ public class ClauseService {
     public StoredClauses split(UserId owner, long contractId, String rawText) {
         contracts.get(owner, contractId);
         ClauseSplitResult result = splitter.split(rawText);
-        List<Clause> saved = clauses.replaceAll(contractId, owner, result.clauses());
+        clauses.deleteByContract(contractId);
+        List<Clause> saved = clauses.saveAll(contractId, owner, result.clauses());
         log.info("조항 분할 저장 contractId={} count={} paragraphFallback={}", contractId, saved.size(), result.paragraphFallback());
         return new StoredClauses(saved, result.paragraphFallback());
     }

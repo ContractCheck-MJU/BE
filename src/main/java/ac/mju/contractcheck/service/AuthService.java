@@ -1,6 +1,8 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.MemberRole;
+import ac.mju.contractcheck.domain.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.MemberRepository;
@@ -42,7 +44,8 @@ public class AuthService {
     }
 
     private Member register(OAuthProfile profile) {
-        Member member = memberRepository.register(profile);
+        Member member = memberRepository.insert(profile, MemberRole.USER, MemberStatus.ACTIVE);
+        memberRepository.linkSocialAccount(member.id(), profile);
         credits.grantSignup(member.id());
         log.info("신규 가입 userId={} provider={}", member.id(), profile.provider());
         return member;

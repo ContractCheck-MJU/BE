@@ -2,8 +2,11 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.MemberRole;
+import ac.mju.contractcheck.domain.MemberStatus;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
+import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
 import ac.mju.contractcheck.repository.MemberRepository;
 import ac.mju.contractcheck.repository.OwnedDataEraser;
@@ -23,12 +26,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class MemberService {
 
-    private static final String ROLE_ADMIN = "ADMIN";
-
     @NonNull
     private final MemberRepository members;
     @NonNull
     private final ContractRepository contracts;
+    @NonNull
+    private final ClauseRepository clauses;
     @NonNull
     private final List<OwnedDataEraser> erasers;
     @NonNull
@@ -88,15 +91,17 @@ public class MemberService {
         transaction.executeWithoutResult(status -> {
             rejectLastAdmin(member);
             erasers.forEach(eraser -> eraser.deleteAllByOwner(userId));
+            clauses.deleteAllByOwner(userId);
             contracts.deleteAllByOwner(userId);
             members.markWithdrawn(member.withdraw());
+            members.deleteSocialAccounts(userId);
             sessions.findByPrincipalName(userId.principalName()).keySet().forEach(sessions::deleteById);
         });
         log.info("회원 탈퇴 userId={}", userId);
     }
 
     private void rejectLastAdmin(Member member) {
-        if (ROLE_ADMIN.equals(member.role()) && members.countActiveAdmins() <= 1) {
+        if (MemberRole.ADMIN.name().equals(member.role()) && members.countByRoleAndStatus(MemberRole.ADMIN, MemberStatus.ACTIVE) <= 1) {
             throw new ConflictException("LAST_ADMIN", "마지막 관리자는 탈퇴할 수 없습니다.");
         }
     }

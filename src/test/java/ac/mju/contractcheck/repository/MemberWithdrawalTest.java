@@ -176,11 +176,11 @@ class MemberWithdrawalTest {
         Member member = signUp();
         UserId username = member.id();
         Contract contract = saveContract(username, "contracts/" + username + "/clauses");
-        clauseRepository.replaceAll(contract.id(), username, List.of(new ClauseDraft(1, "제1조(목적)", "본문"), new ClauseDraft(2, "제2조(보증금)", "본문")));
+        clauseRepository.saveAll(contract.id(), username, List.of(new ClauseDraft(1, "제1조(목적)", "본문"), new ClauseDraft(2, "제2조(보증금)", "본문")));
         Member other = signUp();
         UserId otherName = other.id();
         Contract othersContract = saveContract(otherName, "contracts/" + otherName + "/clauses");
-        clauseRepository.replaceAll(othersContract.id(), otherName, List.of(new ClauseDraft(1, "제1조(목적)", "본문")));
+        clauseRepository.saveAll(othersContract.id(), otherName, List.of(new ClauseDraft(1, "제1조(목적)", "본문")));
 
         members.withdraw(username);
 

@@ -10,6 +10,7 @@ import ac.mju.contractcheck.dto.contract.FileUrl;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.global.error.NotFoundException;
+import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
 
 import java.io.IOException;
@@ -37,6 +38,8 @@ public class ContractService {
 
     @NonNull
     private final ContractRepository contracts;
+    @NonNull
+    private final ClauseRepository clauses;
     @NonNull
     private final CreditService credits;
     @NonNull
@@ -151,7 +154,10 @@ public class ContractService {
     public void delete(UserId owner, long id) {
         Contract contract = owned(owner, id);
         storage.delete(contract.s3Key());
-        transaction.executeWithoutResult(status -> contracts.delete(id));
+        transaction.executeWithoutResult(status -> {
+            clauses.deleteByContract(id);
+            contracts.delete(id);
+        });
         log.info("계약서 삭제 contractId={} userId={}", id, owner);
     }
 
