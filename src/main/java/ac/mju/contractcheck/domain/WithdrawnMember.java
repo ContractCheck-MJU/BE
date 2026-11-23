@@ -9,5 +9,5 @@ import java.time.Instant;
 public record WithdrawnMember(UserId id, Instant createdAt) {
 
     /** users.status 값. 활성 회원 조회에서 이 상태를 없는 회원으로 본다. */
-    public static final String STATUS = "WITHDRAWN";
+    public static final String STATUS = MemberStatus.WITHDRAWN.name();
 }
