@@ -11,7 +11,7 @@ public record Member(
         String email,
         String nickname,
         String provider,
-        String role,
+        MemberRole role,
         MemberStatus status,
         boolean notifyEmail,
         Instant createdAt) {

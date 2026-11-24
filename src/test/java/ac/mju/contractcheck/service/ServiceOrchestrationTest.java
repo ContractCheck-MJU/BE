@@ -127,7 +127,7 @@ class ServiceOrchestrationTest {
     @DisplayName("회원 탈퇴: 조항 삭제 → 계약 삭제 → 탈퇴 처리 → 소셜 계정 연결 삭제 순서이고 원본(S3)은 그보다 먼저다")
     void withdrawOrder() {
         MemberRepository members = mock(MemberRepository.class);
-        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
+        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", MemberRole.USER, MemberStatus.ACTIVE, true, Instant.now());
         when(members.findById(OWNER)).thenReturn(Optional.of(member));
         when(contractRepository.findS3KeysByOwner(OWNER)).thenReturn(List.of("contracts/7/a"));
         MemberService service = new MemberService(
@@ -151,7 +151,7 @@ class ServiceOrchestrationTest {
         MemberRepository members = mock(MemberRepository.class);
         CreditService credits = mock(CreditService.class);
         OAuthProfile profile = new OAuthProfile("kakao", "k-1", "a@test.com", "닉네임");
-        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
+        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", MemberRole.USER, MemberStatus.ACTIVE, true, Instant.now());
         when(members.findByProviderAccount("kakao", "k-1")).thenReturn(Optional.empty());
         when(members.insert(profile, MemberRole.USER, MemberStatus.ACTIVE)).thenReturn(created);
         AuthService service = new AuthService(mock(MemberService.class), members, credits);

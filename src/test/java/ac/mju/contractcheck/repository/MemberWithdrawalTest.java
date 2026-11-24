@@ -16,6 +16,7 @@ import ac.mju.contractcheck.domain.AnalysisStatus;
 import ac.mju.contractcheck.domain.Comparison;
 import ac.mju.contractcheck.domain.Explanation;
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.MemberRole;
 import ac.mju.contractcheck.domain.Milestone;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
@@ -308,7 +309,7 @@ class MemberWithdrawalTest {
         Member updated = members.update(member.id(), "새닉", null);
 
         assertThat(updated.nickname()).isEqualTo("새닉");
-        assertThat(updated.role()).isEqualTo("USER");
+        assertThat(updated.role()).isEqualTo(MemberRole.USER);
         assertThat(members.me(member.id()).nickname()).isEqualTo("새닉");
     }
 

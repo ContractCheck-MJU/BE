@@ -33,7 +33,7 @@ public class AuthRestController {
     @GetMapping("/api/v1/auth/me")
     public MeResponse me(Authentication authentication) {
         Member member = auth.me(currentUser.userId(authentication));
-        return new MeResponse(member.id().value(), member.nickname(), member.role(), member.provider());
+        return new MeResponse(member.id().value(), member.nickname(), member.role().name(), member.provider());
     }
 
     /** FR-AUTH-02 세션 관리·로그아웃 */
