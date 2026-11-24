@@ -2,8 +2,8 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractFileType;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.PageSlice;

@@ -9,13 +9,13 @@ import static org.mockito.Mockito.verify;
 
 import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.domain.AnalysisSummary;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.repository.AnalysisRepository;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import ac.mju.contractcheck.client.OcrException;
-import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 import java.awt.Color;
 import java.awt.Font;

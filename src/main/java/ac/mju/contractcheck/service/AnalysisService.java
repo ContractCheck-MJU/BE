@@ -1,13 +1,13 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Analysis;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.AnalysisSummary;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseEmbedding;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;

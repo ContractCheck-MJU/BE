@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.contract.FileUrl;

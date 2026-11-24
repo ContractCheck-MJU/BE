@@ -3,6 +3,8 @@ package ac.mju.contractcheck.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

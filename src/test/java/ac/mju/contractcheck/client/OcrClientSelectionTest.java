@@ -3,7 +3,7 @@ package ac.mju.contractcheck.client;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ac.mju.contractcheck.client.mac.AppleVisionOcrClient;
-import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

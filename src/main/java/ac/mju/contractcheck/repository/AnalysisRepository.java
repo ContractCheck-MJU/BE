@@ -1,8 +1,8 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Analysis;
-import ac.mju.contractcheck.domain.AnalysisStatus;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;
 import java.math.BigDecimal;

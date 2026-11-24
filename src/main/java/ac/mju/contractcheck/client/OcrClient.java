@@ -1,6 +1,6 @@
 package ac.mju.contractcheck.client;
 
-import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 
 /**

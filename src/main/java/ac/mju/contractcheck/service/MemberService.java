@@ -2,8 +2,8 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.domain.MemberRole;
-import ac.mju.contractcheck.domain.MemberStatus;
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.repository.ClauseRepository;

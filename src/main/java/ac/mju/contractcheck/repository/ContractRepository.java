@@ -1,7 +1,7 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 import java.util.Optional;
 

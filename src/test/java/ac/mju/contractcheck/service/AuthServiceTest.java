@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.domain.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberRole;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import com.navercorp.fixturemonkey.FixtureMonkey;

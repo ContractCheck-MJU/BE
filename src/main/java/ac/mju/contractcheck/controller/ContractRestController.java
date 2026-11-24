@@ -1,7 +1,6 @@
 package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.dto.contract.ContractDetail;
 import ac.mju.contractcheck.dto.contract.ContractItem;

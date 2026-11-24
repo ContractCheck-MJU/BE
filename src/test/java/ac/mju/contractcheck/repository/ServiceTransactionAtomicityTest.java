@@ -12,7 +12,7 @@ import static org.mockito.Mockito.doThrow;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.service.AuthService;

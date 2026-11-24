@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.domain;
 
+import ac.mju.contractcheck.domain.enums.CreditSource;
 import java.util.Optional;
 import lombok.NonNull;
 

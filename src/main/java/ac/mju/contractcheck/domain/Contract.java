@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.domain;
 
+import ac.mju.contractcheck.domain.enums.ContractState;
 import java.time.Instant;
 
 public record Contract(

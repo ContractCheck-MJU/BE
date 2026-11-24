@@ -1,5 +1,7 @@
 package ac.mju.contractcheck.domain;
 
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import java.time.Instant;
 
 /**

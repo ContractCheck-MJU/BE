@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 /**
  * 이용권 잔여 출처(무료·유료). {@code credit_ledger.credit_source}에 같은 이름으로 저장한다.

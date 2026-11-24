@@ -15,10 +15,10 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditPolicy;
-import ac.mju.contractcheck.domain.CreditSource;
+import ac.mju.contractcheck.domain.enums.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
-import ac.mju.contractcheck.domain.LedgerRefType;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerRefType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;

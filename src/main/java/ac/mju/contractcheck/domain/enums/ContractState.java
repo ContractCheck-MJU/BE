@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 /**
  * 업로드 뒤 계약서 처리 단계(스펙시트 contracts.status). 이름이 DB에 저장되는 문자열이므로 바꾸지 않는다.

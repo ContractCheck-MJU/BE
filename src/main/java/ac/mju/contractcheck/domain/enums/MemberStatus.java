@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 /**
  * 회원 상태(스펙시트 컬럼 정의서 users.status).

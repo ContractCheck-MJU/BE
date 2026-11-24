@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 /**
  * 이용권 원장 종류(스펙시트 컬럼 정의서 credit_ledger.type).

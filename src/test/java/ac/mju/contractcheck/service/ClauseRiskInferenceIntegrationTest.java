@@ -8,7 +8,7 @@ import ac.mju.contractcheck.config.InferenceConfig;
 import ac.mju.contractcheck.config.InferenceProperties;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseRisk;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
 import ac.mju.contractcheck.domain.RiskPolicy;
 import ac.mju.contractcheck.domain.UserId;
