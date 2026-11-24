@@ -4,7 +4,6 @@ import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditDeduction;
 import ac.mju.contractcheck.domain.CreditPolicy;
 import ac.mju.contractcheck.domain.CreditSource;
-import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -68,8 +67,8 @@ public class CreditService {
     public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
-                CreditUseResult result = transaction.execute(status -> useOnce(owner, analysisId));
-                if (result == CreditUseResult.INSUFFICIENT) {
+                UseResult result = transaction.execute(status -> useOnce(owner, analysisId));
+                if (result == UseResult.INSUFFICIENT) {
                     throw new CreditInsufficientException();
                 }
                 return;
@@ -98,16 +97,22 @@ public class CreditService {
         throw new IllegalStateException("이용권 복구 동시성 충돌이 계속된다");
     }
 
+    /** 이용권 1회 차감 시도의 결과. 이 서비스 안에서만 쓴다. */
+    private enum UseResult {
+        USED,
+        INSUFFICIENT
+    }
+
     /** 지갑을 읽어 도메인 규칙(무료 우선 → 유료)으로 차감하고, 지갑 저장과 USE 원장 기록을 이어서 한다. 호출하는 쪽이 연 트랜잭션 안에서 실행한다. */
-    private CreditUseResult useOnce(UserId owner, long analysisId) {
+    private UseResult useOnce(UserId owner, long analysisId) {
         Optional<CreditDeduction> deduction = me(owner).deductOne();
         if (deduction.isEmpty()) {
-            return CreditUseResult.INSUFFICIENT;
+            return UseResult.INSUFFICIENT;
         }
         credits.saveAccount(deduction.get().account());
         credits.appendLedger(owner, LedgerType.USE, 1, LedgerRefType.ANALYSIS, analysisId, deduction.get().source());
         log.info("이용권 차감 userId={} analysisId={} source={}", owner, analysisId, deduction.get().source());
-        return CreditUseResult.USED;
+        return UseResult.USED;
     }
 
     /**
