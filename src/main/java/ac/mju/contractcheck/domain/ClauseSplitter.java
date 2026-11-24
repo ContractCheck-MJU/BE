@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  *   <li>[특약사항] 구간에서는 1부터 이어지는 "N." / "N)" 번호마다 개별 조항이다. 한 줄에 이어 써도 나눈다.</li>
  *   <li>제N조가 하나도 없고 특약사항 표시도 없으면 줄 시작의 "N." / "N)" 번호마다 조항이다.
  *       제N조가 있는 문서의 하위 번호는 그 조항 안에 남긴다.</li>
- *   <li>어떤 패턴도 없으면 빈 줄 기준 문단으로 대체 분할하고 {@link ClauseSplitResult#paragraphFallback()}을 true로 둔다.</li>
+ *   <li>어떤 패턴도 없으면 빈 줄 기준 문단으로 대체 분할하고 {@link SplitClauses#paragraphFallback()}을 true로 둔다.</li>
  * </ul>
  *
  * 조항의 text는 제목을 포함한 원문 구간이다. 첫 조항 앞의 문구(문서 제목, 당사자 표시)는 제목 없는 첫 조항으로 남긴다.
@@ -31,16 +31,16 @@ public class ClauseSplitter {
     private static final Pattern NUMBER = Pattern.compile("(?<![\\p{L}\\d.,])(\\d{1,2})\\s*[.)]\\s+(?=\\S)");
     private static final Pattern BLANK_LINES = Pattern.compile("\\n\\s*\\n");
 
-    public ClauseSplitResult split(String rawText) {
+    public SplitClauses<ClauseDraft> split(String rawText) {
         String text = normalize(rawText);
         if (text.isEmpty()) {
-            return new ClauseSplitResult(List.of(), false);
+            return new SplitClauses<>(List.of(), false);
         }
         List<Mark> marks = findMarks(text);
         if (marks.isEmpty()) {
-            return new ClauseSplitResult(paragraphs(text), true);
+            return new SplitClauses<>(paragraphs(text), true);
         }
-        return new ClauseSplitResult(clausesFrom(text, marks), false);
+        return new SplitClauses<>(clausesFrom(text, marks), false);
     }
 
     private static String normalize(String rawText) {

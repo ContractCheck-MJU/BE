@@ -8,7 +8,7 @@ import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.OAuthProfile;
-import ac.mju.contractcheck.domain.StoredClauses;
+import ac.mju.contractcheck.domain.SplitClauses;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.NotFoundException;
@@ -51,7 +51,7 @@ class ClauseServiceTest {
         UserId owner = newOwner();
         Contract contract = newContract(owner);
 
-        StoredClauses stored = clauses.split(owner, contract.id(), THREE_ARTICLES);
+        SplitClauses<Clause> stored = clauses.split(owner, contract.id(), THREE_ARTICLES);
 
         assertThat(stored.paragraphFallback()).isFalse();
         assertThat(stored.clauses()).extracting(Clause::no).containsExactly(1, 2, 3);
@@ -71,7 +71,7 @@ class ClauseServiceTest {
         UserId owner = newOwner();
         Contract contract = newContract(owner);
 
-        StoredClauses stored = clauses.split(owner, contract.id(), "첫 문단입니다.\n\n둘째 문단입니다.");
+        SplitClauses<Clause> stored = clauses.split(owner, contract.id(), "첫 문단입니다.\n\n둘째 문단입니다.");
 
         assertThat(stored.paragraphFallback()).isTrue();
         assertThat(clauses.list(owner, contract.id())).hasSize(2);
@@ -96,7 +96,7 @@ class ClauseServiceTest {
         Contract contract = newContract(owner);
         clauses.split(owner, contract.id(), THREE_ARTICLES);
 
-        StoredClauses stored = clauses.split(owner, contract.id(), "   ");
+        SplitClauses<Clause> stored = clauses.split(owner, contract.id(), "   ");
 
         assertThat(stored.clauses()).isEmpty();
         assertThat(stored.paragraphFallback()).isFalse();
