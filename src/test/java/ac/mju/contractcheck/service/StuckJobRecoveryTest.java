@@ -64,7 +64,7 @@ class StuckJobRecoveryTest {
     }
 
     private long restoreCount() {
-        return credits.ledger(owner).stream().filter(entry -> entry.type().equals("RESTORE")).count();
+        return credits.ledger(owner, 0, 100).items().stream().filter(entry -> entry.type().equals("RESTORE")).count();
     }
 
     @Test

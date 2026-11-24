@@ -89,7 +89,7 @@ class AnalysisPipelineIntegrationTest {
         Analysis accepted = analyses.start(owner, contract.id());
 
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
-        List<LedgerEntry> ledger = credits.ledger(owner);
+        List<LedgerEntry> ledger = credits.ledger(owner, 0, 100).items();
         assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
         Analysis done = analyses.get(owner, accepted.id());
         assertThat(done.status()).isEqualTo(AnalysisStatus.ANALYZED);
@@ -112,7 +112,7 @@ class AnalysisPipelineIntegrationTest {
         assertThat(analyses.get(owner, accepted.id()).status()).isEqualTo(AnalysisStatus.FAILED);
         assertThat(analyses.results(owner, accepted.id())).isEmpty();
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
-        List<LedgerEntry> ledger = credits.ledger(owner);
+        List<LedgerEntry> ledger = credits.ledger(owner, 0, 100).items();
         assertThat(ledger).filteredOn(entry -> entry.type().equals("USE")).singleElement()
                 .satisfies(entry -> assertThat(entry.refId()).isEqualTo(String.valueOf(accepted.id())));
         assertThat(ledger).filteredOn(entry -> entry.type().equals("RESTORE")).singleElement()
@@ -128,7 +128,7 @@ class AnalysisPipelineIntegrationTest {
         credits.restore(owner, accepted.id());
         credits.restore(owner, accepted.id());
 
-        assertThat(credits.ledger(owner)).filteredOn(entry -> entry.type().equals("RESTORE")).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("RESTORE")).hasSize(1);
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
     }
 
@@ -141,7 +141,7 @@ class AnalysisPipelineIntegrationTest {
 
         assertThatThrownBy(() -> analyses.start(owner, contract.id()))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("ANALYSIS_IN_PROGRESS"));
-        assertThat(credits.ledger(owner)).filteredOn(entry -> entry.type().equals("USE")).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("USE")).hasSize(1);
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
     }
 
@@ -153,7 +153,7 @@ class AnalysisPipelineIntegrationTest {
 
         assertThatThrownBy(() -> analyses.start(owner, contract.id())).isInstanceOf(CreditInsufficientException.class);
 
-        assertThat(credits.ledger(owner)).filteredOn(entry -> entry.type().equals("USE")).hasSize(2);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("USE")).hasSize(2);
         Long rows = jdbc.sql("select count(*) from analyses where contract_id = :id").param("id", contract.id()).query(Long.class).single();
         assertThat(rows).isZero();
     }

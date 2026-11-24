@@ -48,10 +48,11 @@ class CreditConsumptionTest {
         CreditAccount account = credits.me(owner);
         assertThat(account.freeRemaining()).isZero();
         assertThat(account.paidRemaining()).isEqualTo(3);
-        List<LedgerEntry> ledger = credits.ledger(owner);
+        List<LedgerEntry> ledger = credits.ledger(owner, 0, 20).items();
         assertThat(ledger).hasSize(1);
         assertThat(ledger.get(0).type()).isEqualTo("USE");
         assertThat(ledger.get(0).amount()).isEqualTo(1);
+        assertThat(ledger.get(0).refType()).isEqualTo("ANALYSIS");
         assertThat(ledger.get(0).refId()).isEqualTo("101");
     }
 
@@ -79,7 +80,7 @@ class CreditConsumptionTest {
 
         assertThat(credits.me(owner).freeRemaining()).isZero();
         assertThat(credits.me(owner).paidRemaining()).isZero();
-        assertThat(credits.ledger(owner)).isEmpty();
+        assertThat(credits.ledger(owner, 0, 20).items()).isEmpty();
     }
 
     @Test
@@ -117,7 +118,7 @@ class CreditConsumptionTest {
                 }
                 assertThat(succeeded).as("round %d", round).isEqualTo(1);
                 assertThat(credits.me(owner).freeRemaining()).isZero();
-                assertThat(credits.ledger(owner)).hasSize(1);
+                assertThat(credits.ledger(owner, 0, 20).items()).hasSize(1);
             }
         } finally {
             executor.shutdownNow();

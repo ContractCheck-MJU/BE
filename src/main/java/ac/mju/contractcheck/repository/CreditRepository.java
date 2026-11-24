@@ -4,12 +4,15 @@ import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -56,10 +59,12 @@ public class CreditRepository {
         return ledgers.existsByUserIdAndTypeAndRefTypeAndRefId(owner.value(), type.name(), refType.name(), refId);
     }
 
-    public @NonNull List<LedgerEntry> ledger(UserId owner) {
-        return ledgers.findByUserIdOrderByCreatedAtDescIdDesc(owner.value()).stream()
+    public @NonNull PageSlice<LedgerEntry> findLedgerPage(UserId owner, int page, int size) {
+        Page<CreditLedgerEntity> found = ledgers.findByUserIdOrderByCreatedAtDescIdDesc(owner.value(), PageRequest.of(page, size));
+        List<LedgerEntry> items = found.getContent().stream()
                 .map(entry -> toLedgerEntry(owner, entry))
                 .toList();
+        return new PageSlice<>(items, found.getTotalElements());
     }
 
     private CreditAccount toAccount(UserId owner, CreditWalletEntity wallet) {
@@ -67,7 +72,8 @@ public class CreditRepository {
     }
 
     private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {
+        String refType = entry.getRefType() == null ? "" : entry.getRefType();
         String refId = entry.getRefId() == null ? "" : String.valueOf(entry.getRefId());
-        return new LedgerEntry(owner, entry.getType(), entry.getAmount(), refId, entry.getCreatedAt().toString());
+        return new LedgerEntry(owner, entry.getType(), entry.getAmount(), refType, refId, entry.getCreatedAt().toString());
     }
 }
