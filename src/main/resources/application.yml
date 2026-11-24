@@ -101,6 +101,12 @@ contractcheck:
     max-attempts: 3
     retry-backoff: 200ms
     batch-size: 64
+  # 토스페이먼츠 서버 연동(FR-PAY-02). 시크릿 키(테스트는 test_sk로 시작)는 환경변수로만 주입한다. 비어 있으면 토스 클라이언트가 등록되지 않아
+  # 결제 승인이 502 PAYMENT_GATEWAY_ERROR로 거절되고 앱은 정상 기동한다. timeout은 스펙에 없어 제안값이다.
+  toss:
+    base-url: https://api.tosspayments.com
+    secret-key: ${TOSS_SECRET_KEY:}
+    timeout: 15s
   session:
     cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:
