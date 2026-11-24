@@ -29,6 +29,8 @@ API 경로를 바꿀 때는 스펙시트, `openapi/api-docs.yml`, `SecurityConfi
 
 OCR·분할 이후, `/classify`, `/embed`, Claude 등 외부 전송 전에 개인정보를 마스킹한다. 원문을 그대로 외부로 보내지 않는다. ([tech.md](tech.md), [anti-patterns.md](anti-patterns.md) 20)
 
+구현은 `PiiMaskingService`다. 정규식은 코드가 아니라 `src/main/resources/masking/pii-rules.yml` 한 파일에서만 고친다. 마스킹에 실패하면 원문을 돌려주지 않고 `MaskingException`을 던져 외부 전송을 막는다. 마스킹 건수 로그에는 규칙 id와 개수만 남기고 원문·결과는 남기지 않는다.
+
 ## 로그
 
 개인정보와 토큰, 요청 본문, 계약서 원문, SQL 바인딩 값을 로그에 남기지 않는다. `local`의 바인딩 TRACE는 로컬 콘솔 전용이다. ([conventions.md](conventions.md), [logging.md](../logging.md), [anti-patterns.md](anti-patterns.md) 24)

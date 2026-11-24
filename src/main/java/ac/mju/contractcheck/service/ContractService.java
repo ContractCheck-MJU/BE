@@ -58,18 +58,6 @@ public class ContractService {
     @NonNull
     private final ApplicationEventPublisher events;
 
-    /*
-     * TODO(FR-UPL-04): 개인정보 마스킹. 조항 분할이 끝난 직후, classify/embed/Claude 등 외부 전송 전에 수행한다.
-     * 1. 입력 검증: 분할된 조항 텍스트와 OCR 원문을 대상으로 한다.
-     * 2. 권한/소유자 확인: 업로드 파이프라인 내부 단계이므로 해당 contracts.user_id 작업 범위에서만 실행한다.
-     * 3. DB/외부 호출: 주민등록번호, 계좌, 전화번호, 주소, 성명 등을 마스킹한 결과를 contracts.masked_text에 저장하고, 외부 전송본은 이 텍스트만 사용한다.
-     *    원문(ocr_raw, S3 원본)은 별도 보관한다.
-     * 4. 상태 전이: 마스킹 완료 후 분석 대기에 들어간다. 별도 status 값은 시트에 없다.
-     * 5. 예외/에러코드: 스펙 미정: 마스킹 실패 시 오류 코드.
-     * 6. 반환: 없음(파이프라인 내부). 스펙 미정: 마스킹 대상의 구체 정규식·치환 문자,
-     *    clauses.text를 마스킹본으로 덮을지 여부(스키마에는 contracts.masked_text만 있음).
-     */
-
     /**
      * FR-UPL-01 계약서 업로드
      * 검증(제목 200자·계약 유형 MONTHLY/JEONSE·20MB·PDF/JPG/PNG 매직바이트)과 이용권 잔여 확인을 통과한 파일만 저장소에 올리고
