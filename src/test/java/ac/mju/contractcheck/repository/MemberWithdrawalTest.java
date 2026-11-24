@@ -22,7 +22,6 @@ import ac.mju.contractcheck.domain.NotificationSettings;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.memory.ComparisonRepository;
 import ac.mju.contractcheck.repository.memory.ExplanationRepository;
-import ac.mju.contractcheck.repository.memory.MilestoneRepository;
 import ac.mju.contractcheck.repository.memory.NotificationRepository;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.global.error.ConflictException;
