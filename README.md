@@ -50,7 +50,7 @@ API, 에러 코드, DB 스키마는 [스펙시트](https://docs.google.com/sprea
 ### 현재 백엔드 골격
 
 - HTTP API와 DTO, `SecurityConfig`(세션 쿠키 `SESSION`, CSRF SPA, 토스 웹훅 CSRF 예외, 미인증 401) 구성. 컨트롤러는 스펙 경로의 목 응답 반환
-- 저장소: 계약·조항·이용권·회원은 JPA로 PostgreSQL에 영속화(Flyway `V1__init.sql`). 나머지는 `repository.memory`의 인메모리(`ConcurrentHashMap`) 임시 구현
+- 저장소: 계약·조항·이용권·회원·분석 결과는 JPA로 PostgreSQL에 영속화(Flyway `V1__init.sql`). 나머지는 `repository.memory`의 인메모리(`ConcurrentHashMap`) 임시 구현
 - Swagger(`local`/`dev`), Actuator(`health`, `info`), CI(`./gradlew test`) 적용
 - 외부 연동: 소셜 로그인(OAuth2), Upstage OCR, FastAPI 추론 클라이언트, Claude, 토스 결제 모두 `TODO(FR-…)` 주석만 있고 구현 전
 - FastAPI 서버 코드는 이 저장소에 없음

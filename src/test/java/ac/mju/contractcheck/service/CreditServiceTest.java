@@ -3,6 +3,7 @@ package ac.mju.contractcheck.service;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -122,5 +123,57 @@ class CreditServiceTest {
         assertThatThrownBy(() -> service.use(OWNER, 1L)).isInstanceOf(IllegalStateException.class);
 
         verify(credits, times(5)).saveAccount(any());
+    }
+
+    @Test
+    @DisplayName("TC-CRD-007 복구: 차감 기록이 있으면 무료 잔여를 1회 되돌리고 RESTORE 원장을 같은 분석 ID로 남긴다")
+    void restoreReturnsOneCreditAndRecordsLedger() {
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 3, 2L)));
+
+        service.restore(OWNER, 9L);
+
+        InOrder order = inOrder(credits);
+        order.verify(credits).saveAccount(new CreditAccount(OWNER, 1, 3, 2L));
+        order.verify(credits).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 9L);
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 복구 중복 방지: 이미 RESTORE가 있으면 아무것도 하지 않는다")
+    void restoreTwiceRecordsOnce() {
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
+
+        service.restore(OWNER, 9L);
+
+        verify(credits, never()).saveAccount(any());
+        verify(credits, never()).appendLedger(any(), eq(LedgerType.RESTORE), anyInt(), any(), any());
+    }
+
+    @Test
+    @DisplayName("차감한 적 없는 분석은 복구하지 않는다(돌려줄 이용권이 없다)")
+    void restoreWithoutUseDoesNothing() {
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
+
+        service.restore(OWNER, 9L);
+
+        verify(credits, never()).saveAccount(any());
+        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any());
+    }
+
+    @Test
+    @DisplayName("복구 중 낙관적 락 충돌이 나면 새 트랜잭션에서 다시 읽어 한 번만 복구한다")
+    void restoreRetriesOnConflict() {
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 0, 1L)));
+        doThrow(new ObjectOptimisticLockingFailureException(CreditAccount.class, 7L))
+                .doNothing().when(credits).saveAccount(any());
+
+        service.restore(OWNER, 9L);
+
+        verify(credits, times(2)).saveAccount(any());
+        verify(credits, times(1)).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 9L);
     }
 }

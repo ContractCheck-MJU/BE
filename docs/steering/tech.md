@@ -36,6 +36,8 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 조항은 배치로 `/classify`, `/embed`에 보낸다. 단건 추론 루프를 돌리지 않는다. Claude에는 위험 조항만 병렬로 보낸다. 전체 조항을 Claude에 넣지 않는다. ([anti-patterns.md](anti-patterns.md) 18)
 
+분석은 `AnalysisService`가 접수(이용권 차감, `ANALYZING`)와 비동기 판정(`analysisExecutor`)을 나눠 처리한다. 접수 뒤 어느 단계든 실패하면 `FAILED`로 바꾸고 같은 분석 ID로 이용권을 한 번만 복구한다. 조항 임베딩(`clauses.embedding`)은 JPA에 매핑하지 않고 `ClauseEmbeddingRepository`가 네이티브 SQL로 쓰며, H2에서는 검증되지 않으므로 `./gradlew postgresTest`로 확인한다. 종합 점수·요약 공식은 스펙 미정이라 `AnalysisSummary`의 임시 규칙이다.
+
 신뢰도·근거 점수 등 임계값은 `RiskPolicy`에 둔다. 코드에 매직 넘버로 하드코딩하지 않는다. ([anti-patterns.md](anti-patterns.md) 21)
 
 ## RAG 데이터 적재
@@ -61,7 +63,7 @@ prod 프로필에서는 Swagger UI와 `/v3/api-docs`를 열지 않는다. ([secu
 - `ddl-auto`는 `validate`다. `update`로 스키마를 맞추지 않는다. 스키마는 pgvector가 필요하다. ([anti-patterns.md](anti-patterns.md) 13)
 - 새 버전 번호는 쓰기 전에 팀에 알린다. ([workflow.md](workflow.md))
 - 계약을 지우면 조항·분석·위험 결과·설명·비교는 DB가 `ON DELETE CASCADE`로 함께 지우고 일정은 계약 연결만 끊는다(`V2`). 앱 코드에 하위 테이블 삭제를 추가하지 않는다. 회원(`users`)을 가리키는 FK는 바꾸지 않았고, 탈퇴는 원본 파일 삭제 순서 때문에 서비스가 조율한다. 이 규칙은 H2에서 검증되지 않으므로 `./gradlew postgresTest`(로컬 Postgres의 임시 스키마에 Flyway를 적용)로 확인한다.
-- 계약·조항·이용권·회원은 JPA로 영속화돼 있고, 나머지는 `repository.memory`의 인메모리 임시 구현이다. JPA·JDBC로 바꿀 때 클래스·메서드 시그니처는 유지하고, 영속화가 끝나면 `repository`로 옮긴다.
+- 계약·조항·이용권·회원·분석(`analyses`, `risk_results`)은 JPA로 영속화돼 있고, 나머지는 `repository.memory`의 인메모리 임시 구현이다. JPA·JDBC로 바꿀 때 클래스·메서드 시그니처는 유지하고, 영속화가 끝나면 `repository`로 옮긴다.
 - 연관 로딩은 필요한 것만 조회한다. 기본 EAGER나 무분별한 `@OneToMany`로 N+1을 만들지 않는다. ([anti-patterns.md](anti-patterns.md) 10·11)
 
 ## 로깅
