@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -64,7 +65,8 @@ class ServiceOrchestrationTest {
         Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", "UPLOADED", "", Instant.now(), null);
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         ContractService service = new ContractService(
-                contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction);
+                contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction,
+                mock(ApplicationEventPublisher.class));
 
         service.delete(OWNER, 5L);
 
@@ -82,7 +84,8 @@ class ServiceOrchestrationTest {
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         when(analysisRepository.existsInProgress(5L)).thenReturn(true);
         ContractService service = new ContractService(
-                contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction);
+                contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction,
+                mock(ApplicationEventPublisher.class));
 
         assertThatThrownBy(() -> service.delete(OWNER, 5L))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("ANALYSIS_IN_PROGRESS"));

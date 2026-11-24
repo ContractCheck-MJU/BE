@@ -3,6 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
@@ -24,6 +25,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,6 +52,8 @@ public class ContractService {
     private final StorageClient storage;
     @NonNull
     private final TransactionTemplate transaction;
+    @NonNull
+    private final ApplicationEventPublisher events;
 
     /*
      * TODO(FR-UPL-04): 개인정보 마스킹. 조항 분할이 끝난 직후, classify/embed/Claude 등 외부 전송 전에 수행한다.
@@ -68,8 +72,8 @@ public class ContractService {
      * 검증(제목 200자·계약 유형 MONTHLY/JEONSE·20MB·PDF/JPG/PNG 매직바이트)과 이용권 잔여 확인을 통과한 파일만 저장소에 올리고
      * contracts 행(status=UPLOADED)을 만든다. 이용권은 차감하지 않고 잔여만 확인한다(실제 USE는 분석 시작, TC-UPL-001·TC-CRD-002).
      * 저장소 호출은 트랜잭션 밖이며, 행 저장이 실패하면 올린 객체를 지운다.
+     * 저장이 끝나면 ContractUploaded 이벤트를 발행하고, OCR·조항 분할은 ContractProcessor가 비동기로 이어 간다(FR-UPL-02).
      *
-     * TODO(FR-UPL-02): 업로드 직후 비동기 OCR을 시작한다.
      * 스펙 미정: 업로드 한도 429 RATE_LIMITED(시간당 10회, TC-UPL-005), 원본 보관 90일 만료 삭제 배치.
      */
     public Contract upload(UserId owner, MultipartFile file, String title, String contractType) {
@@ -91,6 +95,7 @@ public class ContractService {
             Contract saved = contracts.save(new Contract(
                     0, owner, title, contractType, key, "UPLOADED", "", Instant.now(), null));
             log.info("계약서 업로드 contractId={} userId={}", saved.id(), owner);
+            events.publishEvent(new ContractUploaded(owner, saved.id()));
             return saved;
         } catch (RuntimeException exception) {
             deleteQuietly(key);
@@ -120,17 +125,11 @@ public class ContractService {
 
     /**
      * FR-UPL-02 OCR 변환
+     * 계약서의 처리 상태를 돌려준다. 업로드 뒤 OCR·조항 분할은 ContractProcessor가 비동기로 진행하며
+     * UPLOADED → OCR → SPLIT 순서로 바뀌고, 실패하면 FAILED와 사유(errorMessage)가 담긴다. 없는 계약과 타인 계약은 404다.
      *
-     * TODO(FR-UPL-02): OCR·조항 분할 진행 상태를 조회하고, 미완료면 파이프라인을 이어간다.
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: CONTRACT_NOT_FOUND(404).
-     * 3. DB/외부 호출: status=UPLOADED이면 Upstage Document Digitization
-     *    (POST https://api.upstage.ai/v1/document-digitization, model=document-parse)을 호출하고, 실패 시 3회 백오프한다.
-     *    성공 시 ocr_raw(JSONB) 저장, status=OCR. 이어서 조항 분할(FR-UPL-03)로 clauses(clause_no, title, text)를 insert하고 status=SPLIT.
-     *    그다음 FR-UPL-04 마스킹으로 masked_text를 채운다.
-     * 4. 상태 전이: UPLOADED → OCR → SPLIT. OCR 실패 시 실패 상태, 예약·차감한 이용권이 있으면 RESTORE.
-     * 5. 예외/에러코드: 시트 OCR 실패 코드. 스펙 미정: 실패 시 contracts.status 값(스키마에 FAILED 제약이 없음).
-     * 6. 반환: 현재 status. 스펙 미정: 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
+     * TODO(FR-UPL-02): Upstage Document Parse 구현체(운영 기본값인데 아직 없다), OCR 원문(ocr_raw) 보관.
+     * 스펙 미정: OCR 원문 저장 위치·형식, 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
      */
     public Contract status(UserId owner, long id) {
         return owned(owner, id);

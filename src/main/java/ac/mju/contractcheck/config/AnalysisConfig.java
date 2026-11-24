@@ -26,6 +26,19 @@ public class AnalysisConfig {
      * 분석 판정을 요청 스레드 밖에서 돌리는 실행기. 대기열이 가득 차면 접수를 거절해(RejectedExecutionException)
      * 서비스가 FAILED 처리와 이용권 복구를 한다.
      */
+    /** OCR·조항 분할 처리를 요청 스레드 밖에서 돌리는 실행기. 가득 차면 접수가 거절되어 해당 계약이 FAILED가 된다. */
+    @Bean(name = "ocrExecutor")
+    ThreadPoolTaskExecutor ocrExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("ocr-");
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(20);
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        return executor;
+    }
+
     @Bean(name = "analysisExecutor")
     ThreadPoolTaskExecutor analysisExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

@@ -29,8 +29,9 @@ public class ContractRepository {
 
     public @NonNull Contract save(@NonNull Contract contract) {
         ContractEntity saved = contracts.save(new ContractEntity(
-                contract.owner().value(), contract.title(), contract.contractType(), contract.s3Key(), contract.status(),
-                contract.createdAt()));
+                contract.id() == 0 ? null : contract.id(), contract.owner().value(), contract.title(), contract.contractType(),
+                contract.s3Key(), contract.status(), contract.maskedText().isEmpty() ? null : contract.maskedText(),
+                contract.errorMessage(), contract.createdAt()));
         return toContract(saved);
     }
 
@@ -68,6 +69,6 @@ public class ContractRepository {
                 entity.getStatus(),
                 entity.getMaskedText() == null ? "" : entity.getMaskedText(),
                 entity.getCreatedAt(),
-                null);
+                entity.getErrorMessage());
     }
 }
