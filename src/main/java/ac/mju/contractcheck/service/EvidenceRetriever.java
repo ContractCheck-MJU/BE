@@ -28,6 +28,7 @@ public class EvidenceRetriever implements DocumentRetriever {
     public static final String DOC_TYPE = "docType";
     public static final String TITLE = "title";
     public static final String REF = "ref";
+    public static final String URL = "url";
     public static final String DOCUMENT_ID = "documentId";
 
     @NonNull
@@ -39,6 +40,11 @@ public class EvidenceRetriever implements DocumentRetriever {
     @Override
     public List<Document> retrieve(Query query) {
         return search(embeddingModel.embed(query.text()), DEFAULT_LIMIT).stream().map(EvidenceRetriever::toDocument).toList();
+    }
+
+    /** 질의 텍스트를 임베딩해 근거를 찾는다. docType이 null이면 전체 유형을 검색한다. */
+    public List<EvidenceHit> search(@NonNull String query, String docType, int limit) {
+        return evidence.findSimilar(embeddingModel.embed(query), docType, limit);
     }
 
     /** 이미 만든 임베딩으로 검색한다. */
@@ -54,6 +60,7 @@ public class EvidenceRetriever implements DocumentRetriever {
                 .metadata(DOC_TYPE, hit.docType())
                 .metadata(TITLE, hit.title())
                 .metadata(REF, hit.ref())
+                .metadata(URL, hit.url())
                 .score(hit.similarity())
                 .build();
     }
