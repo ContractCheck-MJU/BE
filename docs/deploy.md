@@ -138,8 +138,10 @@ HTTPS는 필수다. 세션 쿠키(`SESSION`)에 `Secure`가 붙어 http에서는
 | `STORAGE_BUCKET` | `contractcheck` |
 | `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` | 3단계 `s3.json`의 키 |
 | `STORAGE_SSE` | 업로드가 서버 측 암호화 오류로 실패하면 `false` |
+| `ANTHROPIC_API_KEY` | Claude API 키(조항 설명 생성) |
+| `LLM_MODEL`, `LLM_EFFORT`, `LLM_TIMEOUT` | 선택. 기본값 `claude-sonnet-5-5`, `low`, `10s` |
 
-소셜 로그인과 저장소 값이 비어 있어도 앱은 기동한다. 해당 기능만 실패한다.
+소셜 로그인, 저장소, Claude 값이 비어 있어도 앱은 기동한다. 해당 기능만 실패한다.
 
 `LOG_PATH`는 이미지 기본값(`/var/log/contractcheck`)을 쓴다. 파일 로그를 재배포 후에도 남기려면 **Persistent Storage**에 볼륨을 추가하고 대상 경로를 `/var/log/contractcheck`로 둔다.
 

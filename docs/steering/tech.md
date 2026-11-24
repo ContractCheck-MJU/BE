@@ -24,7 +24,9 @@ OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키�
 
 추론 서버(FastAPI)는 `InferenceClient`(`HttpInferenceClient`)로만 부른다. 경로는 `POST /classify`, `POST /embed`이고 `X-Internal-Api-Key`를 붙인다. 접속은 `contractcheck.inference.*`(`INFERENCE_BASE_URL`, `INFERENCE_API_KEY`)다. 64개씩 배치로 보내고, 제한 시간 10초, 5xx·연결 실패는 최대 3회 시도하며 4xx는 재시도하지 않는다. 실패하면 `InferenceException`이고 API로는 503 `INFERENCE_UNAVAILABLE`이다. 서킷브레이커(Resilience4j)는 의존성 합의 전이라 아직 없다. HTTP/1.1로 고정한다(JDK 기본 h2c 업그레이드를 uvicorn이 400으로 거절한다). 로컬에서는 DATA의 모의 서버(`api.mock_inference`, 분류는 키워드 규칙의 가짜 값·임베딩은 실제 BGE-M3)를 8000번으로 띄운다. 실제 서버와 붙이는 통합 테스트는 `./gradlew inferenceTest`다.
 
-RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `InferenceEmbeddingModel`(추론 서버 `/embed`를 감싼 `EmbeddingModel`), 근거 검색은 `EvidenceRetriever`(`DocumentRetriever`, `legal_chunks` native SQL)다. Spring AI의 VectorStore와 그 테이블은 쓰지 않고, 스타터(자동 설정)도 넣지 않았다. Claude 호출(`ChatClient`)은 FR-EXP-01에서 `EvidenceRetriever`를 어드바이저에 꽂아 붙인다.
+RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `InferenceEmbeddingModel`(추론 서버 `/embed`를 감싼 `EmbeddingModel`), 근거 검색은 `EvidenceRetriever`(`DocumentRetriever`, `legal_chunks` native SQL)다. Spring AI의 VectorStore와 그 테이블은 쓰지 않고, 스타터(자동 설정)도 넣지 않았다.
+
+Claude는 `LlmClient`(`AnthropicLlmClient`, Anthropic 공식 Java SDK `anthropic-java`)로만 부른다. Spring AI `ChatClient`는 쓰지 않는다. 접속은 `contractcheck.llm.*`(`ANTHROPIC_API_KEY`, 모델 기본 `claude-sonnet-5-5`, effort `low`, 제한 시간 10초, SDK 재시도 1회)다. 응답은 구조화 출력(JSON 스키마)으로 받고, 안전 분류 거절은 서버 측 대체 모델(`fallbacks: default`, 베타)이 받는다. 스키마는 코드에 직접 적는다. SDK의 클래스 기반 구조화 출력은 victools 4(Jackson 2)를 쓰는데 Spring AI가 victools 5(Jackson 3)를 끌어와 실행 중 `NoSuchMethodError`가 난다. 시간 초과는 504 `LLM_TIMEOUT`, 그 밖의 실패는 503 `LLM_UNAVAILABLE`이다(상태 코드는 제안값). 설명(FR-EXP)의 근거는 분석 때 저장한 `clauses.embedding`으로 찾으므로(`EvidenceRetriever.searchByClause`) 설명 시점에는 추론 서버를 부르지 않는다.
 
 트랜잭션 안에서 외부 API를 호출하지 않는다. ([anti-patterns.md](anti-patterns.md) 12)
 
