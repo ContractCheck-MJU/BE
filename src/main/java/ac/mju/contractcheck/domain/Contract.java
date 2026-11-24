@@ -14,6 +14,11 @@ public record Contract(
         Instant createdAt,
         String errorMessage) {
 
+    /** 마스킹을 거친 본문을 담은 새 계약. 원문은 담지 않는다(FR-UPL-04). */
+    public Contract withMaskedText(String maskedText) {
+        return new Contract(id, owner, title, contractType, s3Key, status, maskedText, createdAt, errorMessage);
+    }
+
     public Contract withStatus(ContractState status, String errorMessage) {
         return new Contract(id, owner, title, contractType, s3Key, status, maskedText, createdAt, errorMessage);
     }

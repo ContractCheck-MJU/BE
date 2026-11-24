@@ -21,18 +21,23 @@ import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.OcrResult;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.domain.PiiRule;
 import ac.mju.contractcheck.repository.ContractRepository;
+import ac.mju.contractcheck.repository.PiiRuleRepository;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -55,6 +60,7 @@ class ContractProcessorTest {
     private final ClauseService clauseService = mock(ClauseService.class);
     private final PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
     private Executor executor = Runnable::run;
+    private PiiMaskingService masking = new PiiMaskingService(new PiiRuleRepository(new DefaultResourceLoader(), "classpath:masking/pii-rules.yml"));
     private ContractProcessor processor;
 
     @BeforeEach
@@ -73,7 +79,7 @@ class ContractProcessorTest {
     private Contract stored = new Contract(ID, OWNER, "계약", "MONTHLY", "contracts/7/k", ContractState.UPLOADED, "", Instant.now(), null);
 
     private ContractProcessor newProcessor() {
-        return new ContractProcessor(contracts, storage, ocrProvider, clauseService,
+        return new ContractProcessor(contracts, storage, ocrProvider, clauseService, masking,
                 new TransactionTemplate(transactionManager), executor, 3, Duration.ZERO);
     }
 
@@ -98,6 +104,36 @@ class ContractProcessorTest {
         order.verify(contracts).save(saved.capture());
         assertThat(saved.getValue().status()).isEqualTo(ContractState.SPLIT);
         assertThat(saved.getValue().errorMessage()).isNull();
+    }
+
+    @Test
+    @DisplayName("TC-UPL-014·015 OCR 원문은 마스킹해 masked_text에 저장하고, 조항은 원문으로 나눠 저장한다")
+    void storesMaskedTextAndSplitsOriginal() {
+        String raw = "제1조(목적) 임대인 홍길동(800101-1234567) 연락처 010-1234-5678, 국민은행 123-45-678901";
+        when(ocr.extract(any(), any())).thenReturn(new OcrResult(raw, 1));
+
+        upload();
+
+        assertThat(stored.status()).isEqualTo(ContractState.SPLIT);
+        assertThat(stored.maskedText()).isEqualTo("제1조(목적) 임대인 [이름]([주민번호]) 연락처 [전화번호], 국민은행 [계좌번호]");
+        assertThat(stored.maskedText()).doesNotContain("홍길동", "800101", "010-1234", "123-45");
+        verify(clauseService).split(OWNER, ID, raw);
+    }
+
+    @Test
+    @DisplayName("TC-UPL-014 마스킹에 실패하면 FAILED이고 사유를 남기며 조항을 저장하지 않고 masked_text도 비운다")
+    void maskingFailureFailsAndStoresNothing() {
+        PiiRule leaky = new PiiRule("leaky", "치환 결과에도 패턴이 남는 규칙", Pattern.compile("\\d{4}-\\d{4}"), "1234-5678", true);
+        masking = new PiiMaskingService(PiiRuleRepository.of(List.of(leaky)));
+        processor = newProcessor();
+        when(ocr.extract(any(), any())).thenReturn(new OcrResult("제1조 번호 9999-8888", 1));
+
+        upload();
+
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
+        assertThat(stored.errorMessage()).isEqualTo("개인정보 보호 처리에 실패했습니다");
+        assertThat(stored.maskedText()).isEmpty();
+        verify(clauseService, never()).split(any(), anyLong(), any());
     }
 
     @Test

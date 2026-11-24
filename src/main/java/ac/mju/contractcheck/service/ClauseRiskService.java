@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  *
  * <p>트랜잭션을 열지 않는다. 외부(추론 서버) 호출이 있어 호출하는 쪽도 트랜잭션 밖에서 불러야 한다.
  * 이용권 차감, 분석 상태 전이, 결과 저장, 비동기 실행은 {@link AnalysisService}의 몫이고 이 서비스는 판정만 한다.
- * 추론 서버는 내부망이라 마스킹 전 조항도 받을 수 있지만, 스펙상 저장된 조항은 마스킹본이다(FR-UPL-04).
+ * 추론 서버로 나가는 조항 본문은 모두 {@link PiiMaskingService}를 거친 마스킹본이다(FR-UPL-04, TC-UPL-015). 저장된 조항은 바꾸지 않는다.
  */
 @Slf4j
 @Service
@@ -40,10 +40,13 @@ public class ClauseRiskService {
     private final EvidenceRetriever evidenceRetriever;
     @NonNull
     private final RiskLevelResolver resolver;
+    @NonNull
+    private final PiiMaskingService masking;
 
     /**
      * FR-ANL-01 조항 위험 분류
      *
+     * 0. 조항 본문을 먼저 마스킹한다. 한 건이라도 마스킹에 실패하면 어떤 조항도 외부로 보내지 않는다(TC-UPL-014).
      * 1. /classify(InferenceClient)와 /embed(Spring AI EmbeddingModel 어댑터)를 조항 전체에 대해 배치로 한 번씩 부른다(단건 루프 없음).
      * 2. 위험으로 분류된 조항만 임베딩으로 근거를 검색하고(TC-ANL-018), 비위험은 검색하지 않는다.
      * 3. 위험 확률이 임계값 미만이면 HIGH로 확정하지 않고 CAUTION + lowConfidence다(TC-ANL-017).
@@ -54,13 +57,15 @@ public class ClauseRiskService {
      *
      * @return 입력과 같은 순서의 판정 결과
      * @throws ac.mju.contractcheck.client.InferenceException 추론 서버 호출이 실패했을 때
+     * @throws MaskingException 개인정보 마스킹에 실패해 외부 전송을 막았을 때
      */
     public List<ClauseRisk> assess(@NonNull List<Clause> clauses) {
         if (clauses.isEmpty()) {
             return List.of();
         }
-        List<ClauseClassification> classifications = classify(clauses);
-        List<float[]> embeddings = embed(clauses);
+        List<String> maskedTexts = masking.maskAll(clauses.stream().map(Clause::text).toList());
+        List<ClauseClassification> classifications = classify(clauses, maskedTexts);
+        List<float[]> embeddings = embed(maskedTexts);
 
         List<ClauseRisk> risks = IntStream.range(0, clauses.size())
                 .mapToObj(index -> assessOne(clauses.get(index), classifications.get(index), embeddings.get(index)))
@@ -70,14 +75,15 @@ public class ClauseRiskService {
         return risks;
     }
 
-    private List<ClauseClassification> classify(List<Clause> clauses) {
-        List<ClauseClassification> classifications = inference.classify(
-                clauses.stream().map(clause -> new ClauseText(String.valueOf(clause.id()), clause.text())).toList());
-        return requireSameSize(classifications, clauses.size(), "분류");
+    private List<ClauseClassification> classify(List<Clause> clauses, List<String> maskedTexts) {
+        List<ClauseText> requests = IntStream.range(0, clauses.size())
+                .mapToObj(index -> new ClauseText(String.valueOf(clauses.get(index).id()), maskedTexts.get(index)))
+                .toList();
+        return requireSameSize(inference.classify(requests), clauses.size(), "분류");
     }
 
-    private List<float[]> embed(List<Clause> clauses) {
-        return requireSameSize(embeddingModel.embed(clauses.stream().map(Clause::text).toList()), clauses.size(), "임베딩");
+    private List<float[]> embed(List<String> maskedTexts) {
+        return requireSameSize(embeddingModel.embed(maskedTexts), maskedTexts.size(), "임베딩");
     }
 
     /** 위험 후보만 근거를 검색한다. 비위험 처리(SAFE)는 RiskLevelResolver가 정하므로 여기서 따로 분기하지 않는다. */

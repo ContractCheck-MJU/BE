@@ -30,6 +30,12 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 외부로 텍스트를 보내기 전에 개인정보를 마스킹한다. ([security.md](security.md), [anti-patterns.md](anti-patterns.md) 20)
 
+## 개인정보 마스킹
+
+`PiiMaskingService`가 `PiiRuleRepository`가 읽은 규칙을 파일에 적힌 순서대로 적용한다. 규칙(정규식·치환 문자)은 `src/main/resources/masking/pii-rules.yml` 한 파일이고, 앱 시작 때 한 번 읽는다. 정규식이 틀렸거나 항목이 빠졌거나 id가 겹치면 시작이 실패한다. `contractcheck.masking.rules-location`으로 다른 파일(`file:/...`)을 가리키면 다시 빌드하지 않고 규칙을 바꿀 수 있다. `verify: true`인 규칙(주민번호·전화번호·계좌번호)은 마스킹 뒤 한 번 더 검사하고, 남아 있으면 `MaskingException`이다.
+
+OCR 원문은 마스킹해 `contracts.masked_text`에 저장한다(`ContractProcessor`). 추론 서버로 나가는 분류·임베딩 요청은 `ClauseRiskService`가 조항을 마스킹한 뒤 보내며, 한 조항이라도 실패하면 아무것도 보내지 않고 분석이 FAILED가 된다(이용권 복구). 저장된 조항(`clauses.text`)은 원문이다. 이름은 호칭(임대인·임차인 등) 뒤의 이름만 가리고, 주소는 시·도로 시작하는 주소만 가린다. 스펙 미정: 마스킹 실패 오류 코드, 번호류 외 치환 토큰, `clauses.text`를 마스킹본으로 덮을지 여부.
+
 ## 분석 파이프라인
 
 업로드가 끝나면 `ContractService`가 `ContractUploaded` 이벤트를 발행하고, `ContractProcessor`가 `ocrExecutor`에서 원본을 읽어 OCR → 조항 분할을 진행하며 `contracts.status`를 `UPLOADED → OCR → SPLIT`으로 옮긴다. 실패하면 `FAILED`와 `error_message`(V3)에 사유를 남긴다. OCR은 `contractcheck.ocr.max-attempts`(3)까지 지수 백오프로 다시 시도하고, 이용권은 이 단계에서 차감하지 않는다. OCR 구현체가 없으면(운영의 `upstage` 미구현) 앱은 뜨지만 처리가 `FAILED`로 끝난다. 테스트는 `contractcheck.ocr.enabled=false`로 처리기를 끈다.

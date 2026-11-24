@@ -32,7 +32,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 지수 백오프로 다시 시도한다(TC-UPL-007·008). 이용권은 분석 단계에서 차감하므로 여기서는 건드리지 않는다.
  * {@code contractcheck.ocr.enabled=false}이면 등록되지 않는다(테스트가 업로드마다 OCR을 돌리지 않도록).
  *
- * <p>TODO(FR-UPL-04): 개인정보 마스킹. 지금은 OCR 원문으로 조항을 나눠 저장하고 contracts.masked_text는 비워 둔다.
+ * <p>OCR 원문은 {@link PiiMaskingService}로 마스킹해 contracts.masked_text에 저장한다(FR-UPL-04). 마스킹에 실패하면 FAILED다.
+ * 조항(clauses.text)은 마스킹하지 않은 원문으로 나눠 저장한다. 외부로 나가는 쪽(ClauseRiskService)이 보내기 전에 마스킹한다.
+ * 스펙 미정: clauses.text를 마스킹본으로 덮을지 여부.
  * 스펙 미정: OCR 원문(ocr_raw JSONB) 보관 여부와 형식, Upstage 구현체(운영 기본값인데 없어 운영에서는 이 처리가 FAILED로 끝난다),
  * 서버가 중간에 죽어 OCR 상태로 남은 계약의 자동 재처리(지금은 StuckJobRecovery가 FAILED로만 정리한다).
  */
@@ -47,11 +49,14 @@ public class ContractProcessor {
     static final String MESSAGE_UNAVAILABLE = "OCR 서비스를 사용할 수 없습니다";
     static final String MESSAGE_BUSY = "요청이 많아 처리하지 못했습니다. 잠시 뒤 다시 올려 주세요";
     static final String MESSAGE_FAILED = "계약서 처리에 실패했습니다";
+    /** 스펙 미정: 마스킹 실패 때 사용자에게 보일 문구. 임시 문구다. */
+    static final String MESSAGE_MASKING_FAILED = "개인정보 보호 처리에 실패했습니다";
 
     private final ContractRepository contracts;
     private final StorageClient storage;
     private final ObjectProvider<OcrClient> ocrProvider;
     private final ClauseService clauseService;
+    private final PiiMaskingService masking;
     private final TransactionTemplate transaction;
     private final Executor executor;
     private final int maxAttempts;
@@ -62,6 +67,7 @@ public class ContractProcessor {
             @NonNull StorageClient storage,
             @NonNull ObjectProvider<OcrClient> ocrProvider,
             @NonNull ClauseService clauseService,
+            @NonNull PiiMaskingService masking,
             @NonNull TransactionTemplate transaction,
             @NonNull @Qualifier("ocrExecutor") Executor executor,
             @Value("${contractcheck.ocr.max-attempts:3}") int maxAttempts,
@@ -70,6 +76,7 @@ public class ContractProcessor {
         this.storage = storage;
         this.ocrProvider = ocrProvider;
         this.clauseService = clauseService;
+        this.masking = masking;
         this.transaction = transaction;
         this.executor = executor;
         this.maxAttempts = Math.max(1, maxAttempts);
@@ -112,11 +119,16 @@ public class ContractProcessor {
                 fail(owner, contractId, MESSAGE_NO_TEXT);
                 return;
             }
+            String maskedText = masking.mask(result.text());
             transaction.executeWithoutResult(status -> {
                 clauseService.split(owner, contractId, result.text());
-                update(owner, contractId, ContractState.SPLIT, null);
+                contracts.findOwned(contractId, owner).ifPresent(current ->
+                        contracts.save(current.withStatus(ContractState.SPLIT, null).withMaskedText(maskedText)));
             });
             log.info("계약서 처리 완료 contractId={} pages={}", contractId, result.pageCount());
+        } catch (MaskingException exception) {
+            log.warn("개인정보 마스킹 실패 contractId={} 원인={}", contractId, exception.getMessage());
+            fail(owner, contractId, MESSAGE_MASKING_FAILED);
         } catch (OcrTimeoutException exception) {
             log.warn("OCR 시간 초과 contractId={}", contractId);
             fail(owner, contractId, MESSAGE_TIMEOUT);

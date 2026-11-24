@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import ac.mju.contractcheck.client.InferenceClient;
 import ac.mju.contractcheck.client.InferenceException;
 import ac.mju.contractcheck.domain.Classification;
+import ac.mju.contractcheck.domain.PiiRule;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseClassification;
 import ac.mju.contractcheck.domain.ClauseRisk;
@@ -23,11 +24,15 @@ import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
 import ac.mju.contractcheck.domain.RiskPolicy;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.repository.PiiRuleRepository;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.core.io.DefaultResourceLoader;
 
 /** 추론 서버·임베딩·근거 검색은 모두 mock이다. 등급 규칙은 RiskLevelResolver(임계값 0.6, 0.5)를 그대로 쓴다. */
 class ClauseRiskServiceTest {
@@ -35,12 +40,13 @@ class ClauseRiskServiceTest {
     private final InferenceClient inference = mock(InferenceClient.class);
     private final EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
     private final EvidenceRetriever evidenceRetriever = mock(EvidenceRetriever.class);
+    private final PiiMaskingService masking = new PiiMaskingService(new PiiRuleRepository(new DefaultResourceLoader(), "classpath:masking/pii-rules.yml"));
     private ClauseRiskService service;
 
     @BeforeEach
     void setUp() {
         service = new ClauseRiskService(inference, embeddingModel, evidenceRetriever,
-                new RiskLevelResolver(new RiskPolicy(0.6, 0.5)));
+                new RiskLevelResolver(new RiskPolicy(0.6, 0.5)), masking);
     }
 
     @Test
@@ -175,6 +181,38 @@ class ClauseRiskServiceTest {
         service.assess(List.of(clause(5, "본문")));
 
         verify(inference).classify(List.of(new ClauseText("5", "본문")));
+    }
+
+    @Test
+    @DisplayName("TC-UPL-015 추론 서버(분류·임베딩)로 나가는 조항 본문은 마스킹본이고 원문 개인정보가 없다")
+    void sendsOnlyMaskedTextToInferenceServer() {
+        Clause clause = clause(1, "임대인 홍길동(800101-1234567) 010-1234-5678 은 위약금을 면제한다.");
+        stub(List.of(classified("1", false, "", 0.1)), List.of(new float[] {0.1f}));
+
+        service.assess(List.of(clause));
+
+        ArgumentCaptor<List<ClauseText>> classifyRequest = ArgumentCaptor.forClass(List.class);
+        verify(inference).classify(classifyRequest.capture());
+        ArgumentCaptor<List<String>> embedRequest = ArgumentCaptor.forClass(List.class);
+        verify(embeddingModel).embed(embedRequest.capture());
+        assertThat(classifyRequest.getValue()).extracting(ClauseText::id).containsExactly("1");
+        assertThat(classifyRequest.getValue()).extracting(ClauseText::text)
+                .containsExactly("임대인 [이름]([주민번호]) [전화번호] 은 위약금을 면제한다.");
+        assertThat(embedRequest.getValue()).containsExactly("임대인 [이름]([주민번호]) [전화번호] 은 위약금을 면제한다.");
+        assertThat(clause.text()).as("저장된 조항 원문은 바꾸지 않는다").contains("홍길동");
+    }
+
+    @Test
+    @DisplayName("TC-UPL-014 한 조항이라도 마스킹에 실패하면 어떤 조항도 추론 서버로 보내지 않는다")
+    void blocksAllClausesWhenMaskingFails() {
+        PiiRule leaky = new PiiRule("leaky", "남는 규칙", Pattern.compile("\\d{4}-\\d{4}"), "1234-5678", true);
+        ClauseRiskService strict = new ClauseRiskService(inference, embeddingModel, evidenceRetriever,
+                new RiskLevelResolver(new RiskPolicy(0.6, 0.5)), new PiiMaskingService(PiiRuleRepository.of(List.of(leaky))));
+
+        assertThatThrownBy(() -> strict.assess(List.of(clause(1, "정상 조항"), clause(2, "번호 9999-8888"))))
+                .isInstanceOf(MaskingException.class);
+
+        verifyNoInteractions(inference, embeddingModel, evidenceRetriever);
     }
 
     private void stub(List<ClauseClassification> classifications, List<float[]> embeddings) {
