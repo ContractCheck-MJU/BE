@@ -10,15 +10,17 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.client.InferenceException;
 import ac.mju.contractcheck.domain.Analysis;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.RiskAssessment;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -71,7 +73,7 @@ class AnalysisPipelineIntegrationTest {
         }).when(executor).execute(any());
         String providerUserId = UUID.randomUUID().toString();
         owner = auth.signIn(new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
-        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", "SPLIT", "", Instant.now(), null));
+        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", ContractState.SPLIT, "", Instant.now(), null));
         clauses = clauseRepository.saveAll(contract.id(), owner, List.of(
                 new ClauseDraft(1, "제1조", "임대인은 어떠한 책임도 지지 않는다."), new ClauseDraft(2, "제2조", "정상 조항")));
     }
@@ -79,6 +81,15 @@ class AnalysisPipelineIntegrationTest {
     private ClauseRisk risk(Clause clause, RiskLevel level) {
         return new ClauseRisk(clause.id(), level == RiskLevel.SAFE ? null : "면책", 0.9,
                 new RiskAssessment(level, false, false), "mock-0.1", new float[] {0.1f}, List.of());
+    }
+
+    @Test
+    @DisplayName("계약 상태는 도메인에서 ContractState지만 DB에는 이름 그대로의 문자열로 저장되고 같은 값으로 다시 읽힌다")
+    void contractStateIsStoredByName() {
+        String stored = jdbc.sql("select status from contracts where id = :id").param("id", contract.id()).query(String.class).single();
+
+        assertThat(stored).isEqualTo("SPLIT");
+        assertThat(contracts.findOwned(contract.id(), owner).orElseThrow().status()).isEqualTo(ContractState.SPLIT);
     }
 
     @Test
@@ -90,7 +101,7 @@ class AnalysisPipelineIntegrationTest {
 
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
         List<LedgerEntry> ledger = credits.ledger(owner, 0, 100).items();
-        assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
+        assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder(LedgerType.GRANT, LedgerType.USE);
         Analysis done = analyses.get(owner, accepted.id());
         assertThat(done.status()).isEqualTo(AnalysisStatus.ANALYZED);
         assertThat(done.overallScore()).isEqualTo(50.0);
@@ -113,9 +124,9 @@ class AnalysisPipelineIntegrationTest {
         assertThat(analyses.results(owner, accepted.id())).isEmpty();
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
         List<LedgerEntry> ledger = credits.ledger(owner, 0, 100).items();
-        assertThat(ledger).filteredOn(entry -> entry.type().equals("USE")).singleElement()
+        assertThat(ledger).filteredOn(entry -> entry.type() == LedgerType.USE).singleElement()
                 .satisfies(entry -> assertThat(entry.refId()).isEqualTo(String.valueOf(accepted.id())));
-        assertThat(ledger).filteredOn(entry -> entry.type().equals("RESTORE")).singleElement()
+        assertThat(ledger).filteredOn(entry -> entry.type() == LedgerType.RESTORE).singleElement()
                 .satisfies(entry -> assertThat(entry.refId()).isEqualTo(String.valueOf(accepted.id())));
     }
 
@@ -128,7 +139,7 @@ class AnalysisPipelineIntegrationTest {
         credits.restore(owner, accepted.id());
         credits.restore(owner, accepted.id());
 
-        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("RESTORE")).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type() == LedgerType.RESTORE).hasSize(1);
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
     }
 
@@ -141,7 +152,7 @@ class AnalysisPipelineIntegrationTest {
 
         assertThatThrownBy(() -> analyses.start(owner, contract.id()))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("ANALYSIS_IN_PROGRESS"));
-        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("USE")).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type() == LedgerType.USE).hasSize(1);
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
     }
 
@@ -153,7 +164,7 @@ class AnalysisPipelineIntegrationTest {
 
         assertThatThrownBy(() -> analyses.start(owner, contract.id())).isInstanceOf(CreditInsufficientException.class);
 
-        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type().equals("USE")).hasSize(2);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type() == LedgerType.USE).hasSize(2);
         Long rows = jdbc.sql("select count(*) from analyses where contract_id = :id").param("id", contract.id()).query(Long.class).single();
         assertThat(rows).isZero();
     }
@@ -173,7 +184,7 @@ class AnalysisPipelineIntegrationTest {
     @Test
     @DisplayName("조항 분할이 끝나지 않은 계약은 409 CONTRACT_NOT_READY이고 이용권은 그대로다")
     void unsplitContractIsRejected() {
-        Contract uploaded = contracts.save(new Contract(0, owner, "계약2", "JEONSE", "contracts/" + owner + "/k2", "UPLOADED", "", Instant.now(), null));
+        Contract uploaded = contracts.save(new Contract(0, owner, "계약2", "JEONSE", "contracts/" + owner + "/k2", ContractState.UPLOADED, "", Instant.now(), null));
 
         assertThatThrownBy(() -> analyses.start(owner, uploaded.id()))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("CONTRACT_NOT_READY"));

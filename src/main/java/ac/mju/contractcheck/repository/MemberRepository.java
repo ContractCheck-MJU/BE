@@ -1,8 +1,8 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.domain.MemberRole;
-import ac.mju.contractcheck.domain.MemberStatus;
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
@@ -53,7 +53,7 @@ public class MemberRepository {
     /** 도메인 회원의 값(이메일·닉네임·권한·상태)을 users 행에 반영한다. 이메일·닉네임이 null이면 NULL로 저장된다. */
     public @NonNull Member save(@NonNull Member member) {
         MemberEntity saved = users.save(new MemberEntity(
-                member.id().value(), member.email(), member.nickname(), member.role(), member.status().name(),
+                member.id().value(), member.email(), member.nickname(), member.role().name(), member.status().name(),
                 member.createdAt(), Instant.now()));
         return toMember(saved, providerOf(saved.getId()));
     }
@@ -79,7 +79,7 @@ public class MemberRepository {
                 user.getEmail(),
                 user.getNickname(),
                 provider,
-                user.getRole(),
+                MemberRole.valueOf(user.getRole()),
                 MemberStatus.valueOf(user.getStatus()),
                 true,
                 user.getCreatedAt());

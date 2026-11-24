@@ -1,5 +1,7 @@
 package ac.mju.contractcheck.domain;
 
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import java.time.Instant;
 
 /**
@@ -11,7 +13,7 @@ public record Member(
         String email,
         String nickname,
         String provider,
-        String role,
+        MemberRole role,
         MemberStatus status,
         boolean notifyEmail,
         Instant createdAt) {

@@ -7,14 +7,15 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.client.InferenceException;
 import ac.mju.contractcheck.domain.Analysis;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.RiskAssessment;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
@@ -89,7 +90,7 @@ class AnalysisPostgresTest {
         }).when(executor).execute(any());
         String providerUserId = UUID.randomUUID().toString();
         owner = auth.signIn(new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
-        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", "SPLIT", "", Instant.now(), null));
+        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", ContractState.SPLIT, "", Instant.now(), null));
         clauses = clauseRepository.saveAll(contract.id(), owner, List.of(new ClauseDraft(1, "제1조", "면책 조항"), new ClauseDraft(2, "제2조", "정상 조항")));
     }
 

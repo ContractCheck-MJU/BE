@@ -1,10 +1,10 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.CreditAccount;
-import ac.mju.contractcheck.domain.CreditSource;
+import ac.mju.contractcheck.domain.enums.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
-import ac.mju.contractcheck.domain.LedgerRefType;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerRefType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import java.time.Instant;
@@ -94,8 +94,8 @@ public class CreditRepository {
     }
 
     private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {
-        String refType = entry.getRefType() == null ? "" : entry.getRefType();
+        LedgerRefType refType = entry.getRefType() == null ? null : LedgerRefType.valueOf(entry.getRefType());
         String refId = entry.getRefId() == null ? "" : String.valueOf(entry.getRefId());
-        return new LedgerEntry(owner, entry.getType(), entry.getAmount(), refType, refId, entry.getCreatedAt().toString());
+        return new LedgerEntry(owner, LedgerType.valueOf(entry.getType()), entry.getAmount(), refType, refId, entry.getCreatedAt().toString());
     }
 }

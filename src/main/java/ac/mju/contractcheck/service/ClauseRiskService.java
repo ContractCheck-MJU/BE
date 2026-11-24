@@ -9,7 +9,7 @@ import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.ClauseText;
 import ac.mju.contractcheck.domain.EvidenceHit;
 import ac.mju.contractcheck.domain.RiskAssessment;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskLevelResolver;
 import java.util.List;
 import java.util.stream.IntStream;

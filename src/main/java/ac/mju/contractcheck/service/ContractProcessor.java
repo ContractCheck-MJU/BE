@@ -5,8 +5,8 @@ import ac.mju.contractcheck.client.OcrException;
 import ac.mju.contractcheck.client.OcrTimeoutException;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.ContractFileType;
-import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.OcrResult;
 import ac.mju.contractcheck.domain.UserId;
@@ -90,7 +90,7 @@ public class ContractProcessor {
     /** 처리 스레드의 본체. 어떤 예외도 밖으로 내보내지 않고 FAILED와 사유로 끝낸다. */
     void process(UserId owner, long contractId) {
         Optional<Contract> found = contracts.findOwned(contractId, owner);
-        if (found.isEmpty() || !ContractState.UPLOADED.name().equals(found.get().status())) {
+        if (found.isEmpty() || found.get().status() != ContractState.UPLOADED) {
             return; // 그 사이 삭제됐거나 이미 처리 중·완료다.
         }
         try {
@@ -160,7 +160,7 @@ public class ContractProcessor {
 
     private void update(UserId owner, long contractId, ContractState state, String errorMessage) {
         contracts.findOwned(contractId, owner)
-                .ifPresent(contract -> contracts.save(contract.withStatus(state.name(), errorMessage)));
+                .ifPresent(contract -> contracts.save(contract.withStatus(state, errorMessage)));
     }
 
     /** FAILED와 사유를 남긴다. 저장 자체가 실패해도 예외를 내보내지 않는다(처리 스레드의 마지막 방어선). */

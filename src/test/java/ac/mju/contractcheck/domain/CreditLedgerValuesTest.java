@@ -2,6 +2,8 @@ package ac.mju.contractcheck.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ac.mju.contractcheck.domain.enums.LedgerRefType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

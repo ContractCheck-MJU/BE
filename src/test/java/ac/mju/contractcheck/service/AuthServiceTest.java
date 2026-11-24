@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.Member;
+import ac.mju.contractcheck.domain.enums.MemberRole;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import com.navercorp.fixturemonkey.FixtureMonkey;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 
 /** FR-AUTH-01 소셜 로그인 가입·재로그인, TC-CRD-001 무료 2회 지급. 테스트마다 새 제공자 계정을 만든다. */
@@ -33,6 +36,9 @@ class AuthServiceTest {
     @Autowired
     CreditService credits;
 
+    @Autowired
+    JdbcClient jdbc;
+
     @Test
     @DisplayName("TC-AUTH-001·TC-CRD-001 최초 로그인은 USER 회원과 무료 2회 지갑·GRANT 원장 1건을 만든다")
     void firstSignInCreatesMemberAndWallet() {
@@ -41,7 +47,10 @@ class AuthServiceTest {
         Member member = auth.signIn(profile);
 
         assertThat(member.id().value()).isPositive();
-        assertThat(member.role()).isEqualTo("USER");
+        assertThat(member.role()).isEqualTo(MemberRole.USER);
+        // 도메인은 enum이지만 DB에는 이름 그대로의 문자열로 저장된다(기존 데이터와 호환).
+        assertThat(jdbc.sql("select role from users where id = :id").param("id", member.id().value()).query(String.class).single())
+                .isEqualTo("USER");
         assertThat(member.provider()).isEqualTo("kakao");
         assertThat(member.email()).isEqualTo(profile.email());
         assertThat(member.nickname()).isEqualTo(profile.nickname());
@@ -51,7 +60,7 @@ class AuthServiceTest {
         assertThat(account.paidRemaining()).isZero();
         List<LedgerEntry> ledger = credits.ledger(owner, 0, 20).items();
         assertThat(ledger).hasSize(1);
-        assertThat(ledger.get(0).type()).isEqualTo("GRANT");
+        assertThat(ledger.get(0).type()).isEqualTo(LedgerType.GRANT);
         assertThat(ledger.get(0).amount()).isEqualTo(2);
     }
 

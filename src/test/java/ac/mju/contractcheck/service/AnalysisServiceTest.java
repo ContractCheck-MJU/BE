@@ -14,13 +14,14 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.client.InferenceException;
 import ac.mju.contractcheck.domain.Analysis;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.RiskAssessment;
-import ac.mju.contractcheck.domain.RiskLevel;
+import ac.mju.contractcheck.domain.enums.RiskLevel;
 import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -69,7 +70,7 @@ class AnalysisServiceTest {
     @BeforeEach
     void setUp() {
         when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
-        when(contracts.get(OWNER, CONTRACT_ID)).thenReturn(contract("SPLIT"));
+        when(contracts.get(OWNER, CONTRACT_ID)).thenReturn(contract(ContractState.SPLIT));
         when(analyses.existsInProgress(CONTRACT_ID)).thenReturn(false);
         when(credits.me(OWNER)).thenReturn(new CreditAccount(OWNER, 1, 0));
         when(clauseService.list(OWNER, CONTRACT_ID)).thenReturn(clauses);
@@ -87,7 +88,7 @@ class AnalysisServiceTest {
                 new TransactionTemplate(transactionManager), executor);
     }
 
-    private static Contract contract(String status) {
+    private static Contract contract(ContractState status) {
         return new Contract(CONTRACT_ID, OWNER, "계약", "MONTHLY", "contracts/k", status, "", Instant.now(), null);
     }
 
@@ -137,7 +138,7 @@ class AnalysisServiceTest {
     @Test
     @DisplayName("조항 분할이 끝나지 않은 계약(status≠SPLIT)은 409 CONTRACT_NOT_READY이고 차감·분석 행이 없다")
     void contractNotSplitIsRejected() {
-        when(contracts.get(OWNER, CONTRACT_ID)).thenReturn(contract("UPLOADED"));
+        when(contracts.get(OWNER, CONTRACT_ID)).thenReturn(contract(ContractState.UPLOADED));
 
         assertThatThrownBy(() -> service.start(OWNER, CONTRACT_ID))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("CONTRACT_NOT_READY"));

@@ -1,9 +1,9 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Clause;
-import ac.mju.contractcheck.domain.ClauseSplitResult;
+import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.ClauseSplitter;
-import ac.mju.contractcheck.domain.StoredClauses;
+import ac.mju.contractcheck.domain.SplitClauses;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -43,13 +43,13 @@ public class ClauseService {
      * 스펙 미정: 분할 대상이 OCR 원문인지 마스킹본인지(FR-UPL-04), 번호·문단 조항의 title(지금은 빈 문자열), 첫 조항 앞 문구 처리.
      */
     @Transactional
-    public StoredClauses split(UserId owner, long contractId, String rawText) {
+    public SplitClauses<Clause> split(UserId owner, long contractId, String rawText) {
         contracts.get(owner, contractId);
-        ClauseSplitResult result = splitter.split(rawText);
+        SplitClauses<ClauseDraft> result = splitter.split(rawText);
         clauses.deleteByContract(contractId);
         List<Clause> saved = clauses.saveAll(contractId, owner, result.clauses());
         log.info("조항 분할 저장 contractId={} count={} paragraphFallback={}", contractId, saved.size(), result.paragraphFallback());
-        return new StoredClauses(saved, result.paragraphFallback());
+        return new SplitClauses<>(saved, result.paragraphFallback());
     }
 
     /**

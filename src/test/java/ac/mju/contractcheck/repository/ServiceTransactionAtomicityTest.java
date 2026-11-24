@@ -12,7 +12,7 @@ import static org.mockito.Mockito.doThrow;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.service.AuthService;
@@ -91,7 +91,7 @@ class ServiceTransactionAtomicityTest {
         credits.use(owner, 1L);
 
         assertThat(credits.me(owner).freeRemaining()).as("가입 무료 2회에서 정확히 1회만 차감").isEqualTo(1);
-        assertThat(credits.ledger(owner, 0, 20).items()).filteredOn(entry -> "USE".equals(entry.type())).hasSize(1);
+        assertThat(credits.ledger(owner, 0, 20).items()).filteredOn(entry -> entry.type() == LedgerType.USE).hasSize(1);
     }
 
     private UserId newOwner() {

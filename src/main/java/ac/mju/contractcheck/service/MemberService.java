@@ -2,8 +2,8 @@ package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.domain.MemberRole;
-import ac.mju.contractcheck.domain.MemberStatus;
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.repository.ClauseRepository;
@@ -101,7 +101,7 @@ public class MemberService {
     }
 
     private void rejectLastAdmin(Member member) {
-        if (MemberRole.ADMIN.name().equals(member.role()) && members.countByRoleAndStatus(MemberRole.ADMIN, MemberStatus.ACTIVE) <= 1) {
+        if (member.role() == MemberRole.ADMIN && members.countByRoleAndStatus(MemberRole.ADMIN, MemberStatus.ACTIVE) <= 1) {
             throw new ConflictException("LAST_ADMIN", "마지막 관리자는 탈퇴할 수 없습니다.");
         }
     }

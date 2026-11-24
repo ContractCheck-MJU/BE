@@ -15,9 +15,10 @@ import static org.mockito.Mockito.when;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.Member;
-import ac.mju.contractcheck.domain.MemberRole;
-import ac.mju.contractcheck.domain.MemberStatus;
+import ac.mju.contractcheck.domain.enums.MemberRole;
+import ac.mju.contractcheck.domain.enums.MemberStatus;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -62,7 +63,7 @@ class ServiceOrchestrationTest {
     @Test
     @DisplayName("계약서 삭제: 원본(S3) 삭제 → 트랜잭션 시작 → 조항 삭제 → 계약 삭제 순서다")
     void contractDeleteOrder() {
-        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", "UPLOADED", "", Instant.now(), null);
+        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", ContractState.UPLOADED, "", Instant.now(), null);
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         ContractService service = new ContractService(
                 contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction,
@@ -80,7 +81,7 @@ class ServiceOrchestrationTest {
     @Test
     @DisplayName("API-CON-06 분석 진행 중인 계약서는 삭제할 수 없다(409 ANALYSIS_IN_PROGRESS). 원본도 지우지 않는다")
     void contractDeleteIsRejectedWhileAnalyzing() {
-        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", "SPLIT", "", Instant.now(), null);
+        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", ContractState.SPLIT, "", Instant.now(), null);
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         when(analysisRepository.existsInProgress(5L)).thenReturn(true);
         ContractService service = new ContractService(
@@ -127,7 +128,7 @@ class ServiceOrchestrationTest {
     @DisplayName("회원 탈퇴: 조항 삭제 → 계약 삭제 → 탈퇴 처리 → 소셜 계정 연결 삭제 순서이고 원본(S3)은 그보다 먼저다")
     void withdrawOrder() {
         MemberRepository members = mock(MemberRepository.class);
-        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
+        Member member = new Member(OWNER, "a@test.com", "닉네임", "kakao", MemberRole.USER, MemberStatus.ACTIVE, true, Instant.now());
         when(members.findById(OWNER)).thenReturn(Optional.of(member));
         when(contractRepository.findS3KeysByOwner(OWNER)).thenReturn(List.of("contracts/7/a"));
         MemberService service = new MemberService(
@@ -151,7 +152,7 @@ class ServiceOrchestrationTest {
         MemberRepository members = mock(MemberRepository.class);
         CreditService credits = mock(CreditService.class);
         OAuthProfile profile = new OAuthProfile("kakao", "k-1", "a@test.com", "닉네임");
-        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", "USER", MemberStatus.ACTIVE, true, Instant.now());
+        Member created = new Member(OWNER, "a@test.com", "닉네임", "kakao", MemberRole.USER, MemberStatus.ACTIVE, true, Instant.now());
         when(members.findByProviderAccount("kakao", "k-1")).thenReturn(Optional.empty());
         when(members.insert(profile, MemberRole.USER, MemberStatus.ACTIVE)).thenReturn(created);
         AuthService service = new AuthService(mock(MemberService.class), members, credits);

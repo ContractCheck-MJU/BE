@@ -2,6 +2,7 @@ package ac.mju.contractcheck.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ac.mju.contractcheck.domain.enums.ContractState;
 import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,12 +21,5 @@ class ContractStateTest {
     @DisplayName("저장되는 상태 이름은 스펙의 contracts.status 값과 같다")
     void namesMatchSpec() {
         assertThat(Arrays.stream(ContractState.values()).map(Enum::name)).containsExactly("UPLOADED", "OCR", "SPLIT", "FAILED");
-    }
-
-    @Test
-    @DisplayName("알 수 없는 상태 문자열(분석 단계 값 등)의 진행률은 100이다")
-    void unknownStatusIsComplete() {
-        assertThat(ContractState.progressOf("ANALYZING")).isEqualTo(100);
-        assertThat(ContractState.progressOf("UPLOADED")).isEqualTo(ContractState.UPLOADED.progress());
     }
 }

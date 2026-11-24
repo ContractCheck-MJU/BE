@@ -18,7 +18,7 @@ class ClauseSplitterTest {
                 + "제2조(보증금) 보증금은 1억원으로 한다. "
                 + "제3조(계약기간) 계약기간은 2년으로 한다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.paragraphFallback()).isFalse();
         assertThat(result.clauses()).extracting(ClauseDraft::no).containsExactly(1, 2, 3);
@@ -33,7 +33,7 @@ class ClauseSplitterTest {
     void splitsArticlesOnSeparateLines() {
         String text = "제1조(목적)\n본 계약은 임대차에 관한 사항을 정한다.\n\n제2조(보증금)\n보증금은 1억원으로 한다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.clauses()).extracting(ClauseDraft::title).containsExactly("제1조(목적)", "제2조(보증금)");
     }
@@ -41,7 +41,7 @@ class ClauseSplitterTest {
     @Test
     @DisplayName("TC-UPL-011: 공백이 들어간 \"제 1 조\"도 조항 시작으로 인식한다")
     void recognizesSpacedArticleMarker() {
-        ClauseSplitResult result = splitter.split("제 1 조(목적) 목적 조항이다. 제 2 조(보증금) 보증금 조항이다.");
+        SplitClauses<ClauseDraft> result = splitter.split("제 1 조(목적) 목적 조항이다. 제 2 조(보증금) 보증금 조항이다.");
 
         assertThat(result.clauses()).hasSize(2);
         assertThat(result.clauses().get(0).title()).isEqualTo("제 1 조(목적)");
@@ -50,7 +50,7 @@ class ClauseSplitterTest {
     @Test
     @DisplayName("TC-UPL-011: \"제5조의2\"는 제5조와 별도 조항이다")
     void articleWithBranchNumberIsSeparate() {
-        ClauseSplitResult result = splitter.split("제5조(해지) 해지 조항이다. 제5조의2(특약) 특약 조항이다.");
+        SplitClauses<ClauseDraft> result = splitter.split("제5조(해지) 해지 조항이다. 제5조의2(특약) 특약 조항이다.");
 
         assertThat(result.clauses()).extracting(ClauseDraft::title).containsExactly("제5조(해지)", "제5조의2(특약)");
     }
@@ -61,7 +61,7 @@ class ClauseSplitterTest {
         String text = "제3조(수리) 수리 조항이다.\n제4조(비용) 수리비는 제3조에 따라 임대인이 부담한다. "
                 + "제3조에 의한 비용은 별도로 정산한다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.clauses()).extracting(ClauseDraft::title).containsExactly("제3조(수리)", "제4조(비용)");
         assertThat(result.clauses().get(1).text()).contains("제3조에 따라").contains("제3조에 의한");
@@ -72,7 +72,7 @@ class ClauseSplitterTest {
     void doesNotSplitOnReferencesWithParenthesizedTitle() {
         String text = "제3조(수리) 수리 조항이다. 제4조(비용) 비용은 제3조(수리)에 따라 정한다. 제5조(해지) 해지 조항이다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.clauses()).extracting(ClauseDraft::title).containsExactly("제3조(수리)", "제4조(비용)", "제5조(해지)");
         assertThat(result.clauses().get(1).text()).contains("제3조(수리)에 따라");
@@ -83,7 +83,7 @@ class ClauseSplitterTest {
     void splitsByNumberedLinesWhenNoArticles() {
         String text = "1. 임대인은 보증금을 반환한다.\n2) 임차인은 차임을 낸다.\n3. 계약은 서면으로 한다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.paragraphFallback()).isFalse();
         assertThat(result.clauses()).hasSize(3);
@@ -96,7 +96,7 @@ class ClauseSplitterTest {
         String text = "제1조(목적) 목적 조항이다. 제2조(보증금) 보증금 조항이다. "
                 + "[특약사항] 1. 반려동물 금지 2. 흡연 금지 3. 야간 소음 금지";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.clauses()).hasSize(5);
         assertThat(result.clauses().subList(2, 5)).extracting(ClauseDraft::text)
@@ -108,7 +108,7 @@ class ClauseSplitterTest {
     void doesNotSplitNumbersInsideArticle() {
         String text = "제1조(보증금)\n1. 보증금은 1.5억원으로 한다.\n2. 보증금은 계약 시 지급한다.\n제2조(기간) 기간은 2년이다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.clauses()).extracting(ClauseDraft::title).containsExactly("제1조(보증금)", "제2조(기간)");
         assertThat(result.clauses().get(0).text()).contains("1.5억원").contains("2. 보증금은 계약 시 지급한다.");
@@ -119,7 +119,7 @@ class ClauseSplitterTest {
     void fallsBackToParagraphs() {
         String text = "첫째 문단입니다.\n\n둘째 문단입니다.\n\n셋째 문단입니다.\n\n넷째 문단입니다.\n\n다섯째 문단입니다.\n\n여섯째 문단입니다.";
 
-        ClauseSplitResult result = splitter.split(text);
+        SplitClauses<ClauseDraft> result = splitter.split(text);
 
         assertThat(result.paragraphFallback()).isTrue();
         assertThat(result.clauses()).hasSize(6);
@@ -130,7 +130,7 @@ class ClauseSplitterTest {
     @Test
     @DisplayName("첫 조항 앞의 문구(당사자 표시 등)는 버리지 않고 제목 없는 첫 조항으로 남긴다")
     void keepsPreambleBeforeFirstArticle() {
-        ClauseSplitResult result = splitter.split("부동산 임대차 계약서\n제1조(목적) 목적 조항이다.");
+        SplitClauses<ClauseDraft> result = splitter.split("부동산 임대차 계약서\n제1조(목적) 목적 조항이다.");
 
         assertThat(result.clauses()).hasSize(2);
         assertThat(result.clauses().get(0).title()).isEmpty();

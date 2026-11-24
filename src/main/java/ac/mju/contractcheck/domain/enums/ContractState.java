@@ -1,4 +1,4 @@
-package ac.mju.contractcheck.domain;
+package ac.mju.contractcheck.domain.enums;
 
 /**
  * 업로드 뒤 계약서 처리 단계(스펙시트 contracts.status). 이름이 DB에 저장되는 문자열이므로 바꾸지 않는다.
@@ -19,15 +19,5 @@ public enum ContractState {
     /** 폴링 응답의 진행률(0~100). 단계가 진행될수록 커진다. */
     public int progress() {
         return progress;
-    }
-
-    /** 문자열 상태의 진행률. 이 열거형에 없는 값(분석 단계 등)은 처리가 끝난 것으로 보아 100이다. */
-    public static int progressOf(String status) {
-        for (ContractState state : values()) {
-            if (state.name().equals(status)) {
-                return state.progress;
-            }
-        }
-        return 100;
     }
 }

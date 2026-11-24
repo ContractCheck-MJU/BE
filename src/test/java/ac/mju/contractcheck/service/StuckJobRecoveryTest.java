@@ -9,11 +9,13 @@ import static org.mockito.Mockito.verify;
 
 import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.domain.AnalysisSummary;
-import ac.mju.contractcheck.domain.AnalysisStatus;
+import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.enums.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.repository.AnalysisRepository;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
@@ -55,16 +57,16 @@ class StuckJobRecoveryTest {
         doNothing().when(executor).execute(any());
         String providerUserId = UUID.randomUUID().toString();
         owner = auth.signIn(new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
-        contract = save("SPLIT", Instant.now());
+        contract = save(ContractState.SPLIT, Instant.now());
         clauseRepository.saveAll(contract.id(), owner, List.of(new ClauseDraft(1, "제1조", "조항")));
     }
 
-    private Contract save(String status, Instant createdAt) {
+    private Contract save(ContractState status, Instant createdAt) {
         return contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/" + UUID.randomUUID(), status, "", createdAt, null));
     }
 
     private long restoreCount() {
-        return credits.ledger(owner, 0, 100).items().stream().filter(entry -> entry.type().equals("RESTORE")).count();
+        return credits.ledger(owner, 0, 100).items().stream().filter(entry -> entry.type() == LedgerType.RESTORE).count();
     }
 
     @Test
@@ -124,21 +126,21 @@ class StuckJobRecoveryTest {
     @DisplayName("TC-UPL-007 서버가 죽어 UPLOADED·OCR에 멈춘 계약은 FAILED와 사유가 남고, 끝난 계약과 새 계약은 그대로다")
     void stuckContractsAreFailedWithReason() {
         Instant old = Instant.now().minus(Duration.ofHours(1));
-        Contract uploaded = save("UPLOADED", old);
-        Contract ocr = save("OCR", old);
-        Contract split = save("SPLIT", old);
-        Contract failedAlready = contracts.save(save("FAILED", old).withStatus("FAILED", "원래 사유"));
-        Contract fresh = save("OCR", Instant.now());
+        Contract uploaded = save(ContractState.UPLOADED, old);
+        Contract ocr = save(ContractState.OCR, old);
+        Contract split = save(ContractState.SPLIT, old);
+        Contract failedAlready = contracts.save(save(ContractState.FAILED, old).withStatus(ContractState.FAILED, "원래 사유"));
+        Contract fresh = save(ContractState.OCR, Instant.now());
 
         int failed = contractService.failStuck(Instant.now().minus(Duration.ofMinutes(15)));
 
         assertThat(failed).isGreaterThanOrEqualTo(2);
-        assertThat(contractService.get(owner, uploaded.id()).status()).isEqualTo("FAILED");
+        assertThat(contractService.get(owner, uploaded.id()).status()).isEqualTo(ContractState.FAILED);
         assertThat(contractService.get(owner, uploaded.id()).errorMessage()).isEqualTo(ContractService.MESSAGE_INTERRUPTED);
-        assertThat(contractService.get(owner, ocr.id()).status()).isEqualTo("FAILED");
-        assertThat(contractService.get(owner, split.id()).status()).isEqualTo("SPLIT");
+        assertThat(contractService.get(owner, ocr.id()).status()).isEqualTo(ContractState.FAILED);
+        assertThat(contractService.get(owner, split.id()).status()).isEqualTo(ContractState.SPLIT);
         assertThat(contractService.get(owner, failedAlready.id()).errorMessage()).isEqualTo("원래 사유");
-        assertThat(contractService.get(owner, fresh.id()).status()).isEqualTo("OCR");
+        assertThat(contractService.get(owner, fresh.id()).status()).isEqualTo(ContractState.OCR);
     }
 
     @Test

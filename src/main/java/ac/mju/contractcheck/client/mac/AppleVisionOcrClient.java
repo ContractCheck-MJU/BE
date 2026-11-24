@@ -3,7 +3,7 @@ package ac.mju.contractcheck.client.mac;
 import ac.mju.contractcheck.client.OcrClient;
 import ac.mju.contractcheck.client.OcrException;
 import ac.mju.contractcheck.client.OcrTimeoutException;
-import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 import java.io.IOException;
 import java.io.InputStream;

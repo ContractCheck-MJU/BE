@@ -15,10 +15,10 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditPolicy;
-import ac.mju.contractcheck.domain.CreditSource;
+import ac.mju.contractcheck.domain.enums.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
-import ac.mju.contractcheck.domain.LedgerRefType;
-import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.enums.LedgerRefType;
+import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.ApiException;
@@ -210,7 +210,7 @@ class CreditServiceTest {
     @DisplayName("FR-CRD-02 원장 조회는 page·size를 저장소에 그대로 전달해 결과를 돌려준다")
     void ledgerDelegatesPagingToRepository() {
         PageSlice<LedgerEntry> expected = new PageSlice<>(
-                List.of(new LedgerEntry(OWNER, "USE", 1, "ANALYSIS", "42", "2026-11-24T00:00:00Z")), 5);
+                List.of(new LedgerEntry(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, "42", "2026-11-24T00:00:00Z")), 5);
         when(credits.findLedgerPage(OWNER, 1, 10)).thenReturn(expected);
 
         PageSlice<LedgerEntry> actual = service.ledger(OWNER, 1, 10);
