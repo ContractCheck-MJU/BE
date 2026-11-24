@@ -13,6 +13,7 @@ import ac.mju.contractcheck.domain.RiskLevelResolver;
 import ac.mju.contractcheck.domain.RiskPolicy;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.repository.EvidenceRepository;
+import ac.mju.contractcheck.repository.PiiRuleRepository;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,8 @@ class ClauseRiskInferenceIntegrationTest {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
                 env("DB_URL", "jdbc:postgresql://localhost:5432/contractcheck"), env("DB_USERNAME", "contractcheck"), env("DB_PASSWORD", ""));
         EvidenceRetriever retriever = new EvidenceRetriever(new InferenceEmbeddingModel(client), new EvidenceRepository(JdbcClient.create(dataSource)));
-        service = new ClauseRiskService(client, new InferenceEmbeddingModel(client), retriever, new RiskLevelResolver(new RiskPolicy(0.6, 0.5)));
+        service = new ClauseRiskService(client, new InferenceEmbeddingModel(client), retriever, new RiskLevelResolver(new RiskPolicy(0.6, 0.5)),
+                new PiiMaskingService(new PiiRuleRepository(new org.springframework.core.io.DefaultResourceLoader(), "classpath:masking/pii-rules.yml")));
     }
 
     @Test
