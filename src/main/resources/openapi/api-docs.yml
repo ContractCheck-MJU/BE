@@ -537,22 +537,24 @@ paths:
 
   "GET /api/v1/precedents/search":
     tag: precedents
-    summary: 판례 검색
-    description: 질의어, 유형, 최대 건수(k, 기본 5)로 판례를 검색한다.
+    summary: 법령·판례 근거 검색
+    description: 질의어를 임베딩해 legal_chunks에서 pgvector 코사인 유사도 순으로 법령·판례를 검색한다(1차 순수 벡터 검색). q는 필수이고 k는 3~5(기본 5), type은 선택(LAW 또는 PRECEDENT)이다.
     auth: login
     params:
       - name: q
         in: query
-        description: 검색어
+        description: 검색어(공백 불가)
       - name: type
         in: query
-        description: 판례 유형
+        description: 문서 유형 필터(LAW 또는 PRECEDENT, 생략 시 전체)
       - name: k
         in: query
-        description: 최대 결과 수(기본 5)
+        description: 최대 결과 수(3~5, 기본 5)
     responses:
       "200": 검색 결과 목록
-      "401": 로그인되어 있지 않음
+      "400": 검색어·유형·k 값 오류 (VALIDATION_ERROR)
+      "401": 로그인되어 있지 않음 (UNAUTHORIZED)
+      "503": 추론 서버 장애 (INFERENCE_UNAVAILABLE)
 
   "GET /api/v1/cases/search":
     tag: precedents
@@ -774,6 +776,15 @@ schemas:
     status: 결제 상태
   PaymentCancelRequest:
     reason: 취소 사유
+  PrecedentSearchItem:
+    documentId: 문서 ID
+    chunkId: 청크 ID
+    type: 문서 유형(LAW 또는 PRECEDENT)
+    title: 문서 제목
+    ref: 조문·사건번호 참조. 없으면 빈 문자열
+    text: 청크 본문
+    score: 코사인 유사도 점수
+    url: 원문 출처 URL. 없으면 빈 문자열
   AcceptedJob:
     jobId: 적재 작업 ID
   IngestedCases:
@@ -793,6 +804,8 @@ schemas:
     items: 일정 목록
   ItemsResponseProductItem:
     items: 상품 목록
+  ItemsResponsePrecedentSearchItem:
+    items: 법령·판례 검색 결과 목록
   ItemsResponseMapStringObject:
     items: 검색 결과 목록
   PageResponseLedgerItem:

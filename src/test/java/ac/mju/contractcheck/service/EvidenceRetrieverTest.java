@@ -21,7 +21,9 @@ import org.springframework.ai.rag.Query;
 class EvidenceRetrieverTest {
 
     private static final EvidenceHit HIT =
-            new EvidenceHit(7, 70, "LAW", "민법 제640조(차임연체와 해지)", "제640조", "임차인의 차임연체액이 2기의 차임액에 달하는 때", 0.7);
+            new EvidenceHit(
+                    7, 70, "LAW", "민법 제640조(차임연체와 해지)", "제640조",
+                    "임차인의 차임연체액이 2기의 차임액에 달하는 때", "https://law.go.kr/640", 0.7);
 
     @Mock
     EmbeddingModel embeddingModel;
@@ -49,7 +51,19 @@ class EvidenceRetrieverTest {
                 .containsEntry(EvidenceRetriever.DOC_TYPE, "LAW")
                 .containsEntry(EvidenceRetriever.TITLE, "민법 제640조(차임연체와 해지)")
                 .containsEntry(EvidenceRetriever.REF, "제640조")
+                .containsEntry(EvidenceRetriever.URL, "https://law.go.kr/640")
                 .containsEntry(EvidenceRetriever.DOCUMENT_ID, 7L);
+    }
+
+    @Test
+    @DisplayName("질의어와 문서 유형으로 검색하면 임베딩 후 유형 필터와 건수로 저장소를 조회한다")
+    void searchWithQueryAndDocTypeEmbedsAndFilters() {
+        float[] queryVector = {0.4f, 0.5f};
+        when(embeddingModel.embed("차임 연체 해지")).thenReturn(queryVector);
+        when(evidence.findSimilar(queryVector, "LAW", 3)).thenReturn(List.of(HIT));
+
+        assertThat(retriever.search("차임 연체 해지", "LAW", 3)).containsExactly(HIT);
+        verify(evidence).findSimilar(queryVector, "LAW", 3);
     }
 
     @Test

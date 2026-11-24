@@ -1,35 +1,56 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.domain.EvidenceHit;
+import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.repository.memory.PrecedentRepository;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * FR-PRC-01 근거 검색
+ */
 @Service
 @RequiredArgsConstructor
 public class PrecedentService {
 
+    public static final int MIN_LIMIT = 3;
+    public static final int MAX_LIMIT = 5;
+    private static final Set<String> ALLOWED_DOC_TYPES = Set.of("LAW", "PRECEDENT");
+
+    @NonNull
+    private final EvidenceRetriever evidenceRetriever;
     @NonNull
     private final PrecedentRepository precedents;
 
-
     /**
      * FR-PRC-01 근거 검색
-     *
-     * TODO(FR-PRC-01): 법령·판례 청크를 벡터 검색한다.
-     * 1. 입력 검증: query, type, k(상한은 시트/설정). 빈 query면 빈 목록 또는 검증 오류.
-     * 2. 권한/소유자 확인: 로그인 사용자. 관리자 전용 데이터는 아니다.
-     * 3. DB/외부 호출: InferenceClient POST /embed로 query를 1024차원 임베딩한 뒤
-     *    legal_chunks를 legal_documents와 조인해 {@code ORDER BY embedding <=> :q LIMIT k}로 검색한다.
-     *    doc_type=type 필터. 파이프라인은 BM25/ILIKE 하이브리드를 권고한다.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: INFERENCE_UNAVAILABLE. 적재 전이면 빈 목록(현재 스텁과 동일).
-     * 6. 반환: title, ref, text, score, url 등. 스펙 미정: 키워드 점수와 벡터 점수의 결합 가중치, k 기본·상한.
+     * 질의어를 추론 서버(/embed)로 임베딩해 legal_chunks에서 pgvector 코사인 유사도 순으로 검색한다(1차 순수 벡터 검색).
+     * q는 공백일 수 없고, k는 3~5 범위여야 하며, type을 지정하면 LAW 또는 PRECEDENT만 허용한다.
+     * 외부 추론 호출이 포함되어 트랜잭션을 열지 않으며, 추론 서버 실패는 503 INFERENCE_UNAVAILABLE이다.
      */
-    public List<Map<String, Object>> searchPrecedents(String query, String type, int k) {
-        return precedents.searchPrecedents(query, type, k);
+    public List<EvidenceHit> searchPrecedents(String query, String type, int k) {
+        if (query == null || query.isBlank()) {
+            throw new ApiException(400, "VALIDATION_ERROR", "검색어(q)는 비어 있을 수 없습니다.");
+        }
+        if (k < MIN_LIMIT || k > MAX_LIMIT) {
+            throw new ApiException(400, "VALIDATION_ERROR", "k는 3 이상 5 이하여야 합니다.");
+        }
+        String docType = normalizeDocType(type);
+        return evidenceRetriever.search(query.trim(), docType, k);
+    }
+
+    private static String normalizeDocType(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        if (!ALLOWED_DOC_TYPES.contains(type)) {
+            throw new ApiException(400, "VALIDATION_ERROR", "유형(type)은 LAW 또는 PRECEDENT여야 합니다.");
+        }
+        return type;
     }
 
     /**

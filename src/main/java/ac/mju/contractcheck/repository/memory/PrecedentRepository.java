@@ -5,16 +5,11 @@ import java.util.Map;
 import org.springframework.stereotype.Repository;
 
 /**
- * 인메모리 저장소. 영속화 시 V1__init.sql의 {@code legal_documents}, {@code legal_chunks},
- * {@code kftc_cases} 테이블에 매핑한다. 검색은 {@code ORDER BY embedding <=> ?}와 HNSW 인덱스를 사용한다.
- * 적재 전에는 빈 결과를 반환한다.
+ * 인메모리 임시 저장소. 공정위 시정 사례({@code kftc_cases}) 적재 데이터가 생기면
+ * {@code EvidenceRepository} 방식의 pgvector 검색으로 옮긴다. 적재 전에는 빈 결과를 반환한다.
  */
 @Repository
 public class PrecedentRepository {
-
-    public List<Map<String, Object>> searchPrecedents(String query, String type, int k) {
-        return List.of();
-    }
 
     public List<Map<String, Object>> searchCases(String query, Long clauseId, String unfairType, int k) {
         return List.of();
