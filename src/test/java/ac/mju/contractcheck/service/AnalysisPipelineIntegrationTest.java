@@ -15,6 +15,7 @@ import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.RiskAssessment;
@@ -71,7 +72,7 @@ class AnalysisPipelineIntegrationTest {
         }).when(executor).execute(any());
         String providerUserId = UUID.randomUUID().toString();
         owner = auth.signIn(new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
-        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", "SPLIT", "", Instant.now(), null));
+        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", ContractState.SPLIT, "", Instant.now(), null));
         clauses = clauseRepository.saveAll(contract.id(), owner, List.of(
                 new ClauseDraft(1, "제1조", "임대인은 어떠한 책임도 지지 않는다."), new ClauseDraft(2, "제2조", "정상 조항")));
     }
@@ -79,6 +80,15 @@ class AnalysisPipelineIntegrationTest {
     private ClauseRisk risk(Clause clause, RiskLevel level) {
         return new ClauseRisk(clause.id(), level == RiskLevel.SAFE ? null : "면책", 0.9,
                 new RiskAssessment(level, false, false), "mock-0.1", new float[] {0.1f}, List.of());
+    }
+
+    @Test
+    @DisplayName("계약 상태는 도메인에서 ContractState지만 DB에는 이름 그대로의 문자열로 저장되고 같은 값으로 다시 읽힌다")
+    void contractStateIsStoredByName() {
+        String stored = jdbc.sql("select status from contracts where id = :id").param("id", contract.id()).query(String.class).single();
+
+        assertThat(stored).isEqualTo("SPLIT");
+        assertThat(contracts.findOwned(contract.id(), owner).orElseThrow().status()).isEqualTo(ContractState.SPLIT);
     }
 
     @Test
@@ -173,7 +183,7 @@ class AnalysisPipelineIntegrationTest {
     @Test
     @DisplayName("조항 분할이 끝나지 않은 계약은 409 CONTRACT_NOT_READY이고 이용권은 그대로다")
     void unsplitContractIsRejected() {
-        Contract uploaded = contracts.save(new Contract(0, owner, "계약2", "JEONSE", "contracts/" + owner + "/k2", "UPLOADED", "", Instant.now(), null));
+        Contract uploaded = contracts.save(new Contract(0, owner, "계약2", "JEONSE", "contracts/" + owner + "/k2", ContractState.UPLOADED, "", Instant.now(), null));
 
         assertThatThrownBy(() -> analyses.start(owner, uploaded.id()))
                 .isInstanceOfSatisfying(ConflictException.class, e -> assertThat(e.code()).isEqualTo("CONTRACT_NOT_READY"));

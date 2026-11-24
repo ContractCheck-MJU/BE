@@ -14,6 +14,7 @@ import ac.mju.contractcheck.domain.AnalysisStatus;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.OcrResult;
 import ac.mju.contractcheck.domain.RiskAssessment;
@@ -87,9 +88,9 @@ class UploadToAnalysisIntegrationTest {
 
         Contract uploaded = upload();
 
-        assertThat(uploaded.status()).as("업로드 응답은 접수 시점의 상태다").isEqualTo("UPLOADED");
+        assertThat(uploaded.status()).as("업로드 응답은 접수 시점의 상태다").isEqualTo(ContractState.UPLOADED);
         Contract processed = contracts.status(owner, uploaded.id());
-        assertThat(processed.status()).isEqualTo("SPLIT");
+        assertThat(processed.status()).isEqualTo(ContractState.SPLIT);
         assertThat(processed.errorMessage()).isNull();
         assertThat(clauseService.list(owner, uploaded.id())).hasSize(2);
         assertThat(credits.me(owner).freeRemaining()).as("OCR 단계에서는 이용권을 차감하지 않는다").isEqualTo(2);
@@ -109,7 +110,7 @@ class UploadToAnalysisIntegrationTest {
         Contract uploaded = upload();
 
         Contract processed = contracts.status(owner, uploaded.id());
-        assertThat(processed.status()).isEqualTo("FAILED");
+        assertThat(processed.status()).isEqualTo(ContractState.FAILED);
         assertThat(processed.errorMessage()).isEqualTo("OCR 처리 시간 초과");
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(2);
         assertThatThrownBy(() -> analyses.start(owner, uploaded.id()))
@@ -124,7 +125,7 @@ class UploadToAnalysisIntegrationTest {
         Contract uploaded = upload();
 
         Contract processed = contracts.status(owner, uploaded.id());
-        assertThat(processed.status()).isEqualTo("FAILED");
+        assertThat(processed.status()).isEqualTo(ContractState.FAILED);
         assertThat(processed.errorMessage()).isEqualTo("계약서 텍스트를 찾지 못했습니다");
         assertThat(clauseService.list(owner, uploaded.id())).isEmpty();
     }

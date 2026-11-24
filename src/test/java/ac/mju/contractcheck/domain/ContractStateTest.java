@@ -21,11 +21,4 @@ class ContractStateTest {
     void namesMatchSpec() {
         assertThat(Arrays.stream(ContractState.values()).map(Enum::name)).containsExactly("UPLOADED", "OCR", "SPLIT", "FAILED");
     }
-
-    @Test
-    @DisplayName("알 수 없는 상태 문자열(분석 단계 값 등)의 진행률은 100이다")
-    void unknownStatusIsComplete() {
-        assertThat(ContractState.progressOf("ANALYZING")).isEqualTo(100);
-        assertThat(ContractState.progressOf("UPLOADED")).isEqualTo(ContractState.UPLOADED.progress());
-    }
 }

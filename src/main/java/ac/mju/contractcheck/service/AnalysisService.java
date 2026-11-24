@@ -7,6 +7,7 @@ import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseEmbedding;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;
@@ -76,7 +77,7 @@ public class AnalysisService {
      */
     public Analysis start(UserId owner, long contractId) {
         Contract contract = contracts.get(owner, contractId);
-        if (!"SPLIT".equals(contract.status())) {
+        if (contract.status() != ContractState.SPLIT) {
             throw new ConflictException("CONTRACT_NOT_READY", "조항 분할이 끝난 계약서만 분석할 수 있습니다.");
         }
         if (analyses.existsInProgress(contractId)) {

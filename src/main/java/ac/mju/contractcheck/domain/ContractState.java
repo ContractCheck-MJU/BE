@@ -20,14 +20,4 @@ public enum ContractState {
     public int progress() {
         return progress;
     }
-
-    /** 문자열 상태의 진행률. 이 열거형에 없는 값(분석 단계 등)은 처리가 끝난 것으로 보아 100이다. */
-    public static int progressOf(String status) {
-        for (ContractState state : values()) {
-            if (state.name().equals(status)) {
-                return state.progress;
-            }
-        }
-        return 100;
-    }
 }

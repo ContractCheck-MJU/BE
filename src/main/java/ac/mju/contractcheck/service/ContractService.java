@@ -96,7 +96,7 @@ public class ContractService {
         storage.put(key, content, fileType.contentType());
         try {
             Contract saved = contracts.save(new Contract(
-                    0, owner, title, contractType, key, "UPLOADED", "", Instant.now(), null));
+                    0, owner, title, contractType, key, ContractState.UPLOADED, "", Instant.now(), null));
             log.info("계약서 업로드 contractId={} userId={}", saved.id(), owner);
             events.publishEvent(new ContractUploaded(owner, saved.id()));
             return saved;
@@ -176,7 +176,7 @@ public class ContractService {
      * 이용권은 분석 단계에서 차감하므로 복구할 것이 없다. 찾은 뒤 그 사이 처리가 끝난 계약은 다시 읽어 건너뛴다.
      */
     public int failStuck(Instant before) {
-        Set<String> processing = Set.of(ContractState.UPLOADED.name(), ContractState.OCR.name());
+        Set<ContractState> processing = Set.of(ContractState.UPLOADED, ContractState.OCR);
         int failed = 0;
         for (Contract stuck : contracts.findInStatusBefore(processing, before)) {
             boolean stillProcessing = contracts.findOwned(stuck.id(), stuck.owner())
@@ -185,7 +185,7 @@ public class ContractService {
                 continue;
             }
             log.warn("멈춘 계약서 처리 정리 contractId={} 상태={} 업로드={}", stuck.id(), stuck.status(), stuck.createdAt());
-            contracts.save(stuck.withStatus(ContractState.FAILED.name(), MESSAGE_INTERRUPTED));
+            contracts.save(stuck.withStatus(ContractState.FAILED, MESSAGE_INTERRUPTED));
             failed++;
         }
         return failed;

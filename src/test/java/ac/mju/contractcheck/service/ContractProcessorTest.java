@@ -16,6 +16,7 @@ import ac.mju.contractcheck.client.OcrException;
 import ac.mju.contractcheck.client.OcrTimeoutException;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.ContractFileType;
 import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.OcrResult;
@@ -69,7 +70,7 @@ class ContractProcessorTest {
         processor = newProcessor();
     }
 
-    private Contract stored = new Contract(ID, OWNER, "계약", "MONTHLY", "contracts/7/k", "UPLOADED", "", Instant.now(), null);
+    private Contract stored = new Contract(ID, OWNER, "계약", "MONTHLY", "contracts/7/k", ContractState.UPLOADED, "", Instant.now(), null);
 
     private ContractProcessor newProcessor() {
         return new ContractProcessor(contracts, storage, ocrProvider, clauseService,
@@ -90,12 +91,12 @@ class ContractProcessorTest {
         InOrder order = inOrder(contracts, storage, ocr, clauseService);
         ArgumentCaptor<Contract> saved = ArgumentCaptor.forClass(Contract.class);
         order.verify(contracts).save(saved.capture());
-        assertThat(saved.getValue().status()).isEqualTo("OCR");
+        assertThat(saved.getValue().status()).isEqualTo(ContractState.OCR);
         order.verify(storage).get("contracts/7/k");
         order.verify(ocr).extract(PDF, ContractFileType.PDF);
         order.verify(clauseService).split(OWNER, ID, "제1조(목적) 임대차에 관한 계약이다.");
         order.verify(contracts).save(saved.capture());
-        assertThat(saved.getValue().status()).isEqualTo("SPLIT");
+        assertThat(saved.getValue().status()).isEqualTo(ContractState.SPLIT);
         assertThat(saved.getValue().errorMessage()).isNull();
     }
 
@@ -106,7 +107,7 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("계약서 텍스트를 찾지 못했습니다");
         verify(ocr, times(1)).extract(any(), any());
         verify(clauseService, never()).split(any(), anyLong(), any());
@@ -120,7 +121,7 @@ class ContractProcessorTest {
         upload();
 
         verify(ocr, times(3)).extract(any(), any());
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("OCR 처리 시간 초과");
         verify(clauseService, never()).split(any(), anyLong(), any());
     }
@@ -135,7 +136,7 @@ class ContractProcessorTest {
         upload();
 
         verify(ocr, times(2)).extract(any(), any());
-        assertThat(stored.status()).isEqualTo("SPLIT");
+        assertThat(stored.status()).isEqualTo(ContractState.SPLIT);
     }
 
     @Test
@@ -145,7 +146,7 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("OCR 처리에 실패했습니다");
     }
 
@@ -157,7 +158,7 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("계약서 처리에 실패했습니다");
     }
 
@@ -168,7 +169,7 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("OCR 서비스를 사용할 수 없습니다");
         verify(storage, never()).get(any());
     }
@@ -176,7 +177,7 @@ class ContractProcessorTest {
     @Test
     @DisplayName("이미 처리 중이거나 끝난 계약은 다시 처리하지 않는다")
     void nonUploadedContractIsSkipped() {
-        stored = stored.withStatus("SPLIT", null);
+        stored = stored.withStatus(ContractState.SPLIT, null);
 
         upload();
 
@@ -205,7 +206,7 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("FAILED");
+        assertThat(stored.status()).isEqualTo(ContractState.FAILED);
         assertThat(stored.errorMessage()).isEqualTo("요청이 많아 처리하지 못했습니다. 잠시 뒤 다시 올려 주세요");
         verify(ocr, never()).extract(any(), any());
     }
@@ -219,6 +220,6 @@ class ContractProcessorTest {
 
         upload();
 
-        assertThat(stored.status()).isEqualTo("SPLIT");
+        assertThat(stored.status()).isEqualTo(ContractState.SPLIT);
     }
 }

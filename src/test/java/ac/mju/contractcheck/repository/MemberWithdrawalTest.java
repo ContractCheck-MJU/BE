@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.domain.AnalysisStatus;
 import ac.mju.contractcheck.domain.Comparison;
@@ -232,7 +233,7 @@ class MemberWithdrawalTest {
 
     /** 한 회원 몫의 인메모리 종속 데이터를 한 세트 만든다. 설정은 기본값(emailEnabled=true)과 다르게 저장한다. */
     private Seeded seed(UserId owner) {
-        long contractId = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/seed", "SPLIT", "", Instant.now(), null)).id();
+        long contractId = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/seed", ContractState.SPLIT, "", Instant.now(), null)).id();
         long analysis = analyses.save(new Analysis(0, contractId, owner, AnalysisStatus.ANALYZED, 50, "요약", "m1", Instant.now())).id();
         long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L)).id();
         long explanation = explanations.save(new Explanation(0, 1L, owner, "기본", "설명", "제안")).id();
@@ -314,7 +315,7 @@ class MemberWithdrawalTest {
     }
 
     private Contract saveContract(UserId owner, String s3Key) {
-        return contracts.save(new Contract(0, owner, "계약서", "MONTHLY", s3Key, "UPLOADED", "", Instant.now(), null));
+        return contracts.save(new Contract(0, owner, "계약서", "MONTHLY", s3Key, ContractState.UPLOADED, "", Instant.now(), null));
     }
 
     private long createAdmin() {

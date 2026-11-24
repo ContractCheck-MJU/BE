@@ -12,6 +12,7 @@ import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseDraft;
 import ac.mju.contractcheck.domain.ClauseRisk;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.RiskAssessment;
 import ac.mju.contractcheck.domain.RiskLevel;
@@ -89,7 +90,7 @@ class AnalysisPostgresTest {
         }).when(executor).execute(any());
         String providerUserId = UUID.randomUUID().toString();
         owner = auth.signIn(new OAuthProfile("kakao", providerUserId, providerUserId + "@example.com", "닉네임")).id();
-        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", "SPLIT", "", Instant.now(), null));
+        contract = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/k", ContractState.SPLIT, "", Instant.now(), null));
         clauses = clauseRepository.saveAll(contract.id(), owner, List.of(new ClauseDraft(1, "제1조", "면책 조항"), new ClauseDraft(2, "제2조", "정상 조항")));
     }
 

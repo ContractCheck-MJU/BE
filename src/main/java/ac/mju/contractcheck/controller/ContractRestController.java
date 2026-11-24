@@ -48,7 +48,7 @@ public class ContractRestController {
             @RequestParam String contractType) {
         Contract contract = contracts.upload(currentUser.userId(authentication), file, title, contractType);
         return ResponseEntity.created(java.net.URI.create("/api/v1/contracts/" + contract.id()))
-                .body(new UploadedContract(contract.id(), contract.status()));
+                .body(new UploadedContract(contract.id(), contract.status().name()));
     }
 
     /** FR-UPL-01 계약서 업로드 */
@@ -78,7 +78,7 @@ public class ContractRestController {
     public ContractStatus status(Authentication authentication, @PathVariable long id) {
         Contract contract = contracts.status(currentUser.userId(authentication), id);
         String errorMessage = contract.errorMessage() == null ? "" : contract.errorMessage();
-        return new ContractStatus(contract.status(), ContractState.progressOf(contract.status()), errorMessage);
+        return new ContractStatus(contract.status().name(), contract.status().progress(), errorMessage);
     }
 
     /** FR-UPL-01 계약서 업로드 */

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.MemberRole;
 import ac.mju.contractcheck.domain.MemberStatus;
@@ -62,7 +63,7 @@ class ServiceOrchestrationTest {
     @Test
     @DisplayName("계약서 삭제: 원본(S3) 삭제 → 트랜잭션 시작 → 조항 삭제 → 계약 삭제 순서다")
     void contractDeleteOrder() {
-        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", "UPLOADED", "", Instant.now(), null);
+        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", ContractState.UPLOADED, "", Instant.now(), null);
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         ContractService service = new ContractService(
                 contractRepository, clauseRepository, analysisRepository, mock(CreditService.class), storage, transaction,
@@ -80,7 +81,7 @@ class ServiceOrchestrationTest {
     @Test
     @DisplayName("API-CON-06 분석 진행 중인 계약서는 삭제할 수 없다(409 ANALYSIS_IN_PROGRESS). 원본도 지우지 않는다")
     void contractDeleteIsRejectedWhileAnalyzing() {
-        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", "SPLIT", "", Instant.now(), null);
+        Contract contract = new Contract(5L, OWNER, "제목", "MONTHLY", "contracts/7/k", ContractState.SPLIT, "", Instant.now(), null);
         when(contractRepository.findOwned(5L, OWNER)).thenReturn(Optional.of(contract));
         when(analysisRepository.existsInProgress(5L)).thenReturn(true);
         ContractService service = new ContractService(

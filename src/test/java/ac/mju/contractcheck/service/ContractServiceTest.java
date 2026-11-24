@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.contract.FileUrl;
@@ -55,7 +56,7 @@ class ContractServiceTest {
         Contract saved = contracts.upload(owner, pdf(1024), "신촌 원룸", "MONTHLY");
 
         assertThat(saved.id()).isPositive();
-        assertThat(saved.status()).isEqualTo("UPLOADED");
+        assertThat(saved.status()).isEqualTo(ContractState.UPLOADED);
         assertThat(saved.title()).isEqualTo("신촌 원룸");
         assertThat(saved.contractType()).isEqualTo("MONTHLY");
         assertThat(saved.s3Key()).startsWith("contracts/" + owner + "/");
@@ -93,7 +94,7 @@ class ContractServiceTest {
 
         Contract saved = contracts.upload(owner, pdf(MAX_BYTES), "제목", "JEONSE");
 
-        assertThat(saved.status()).isEqualTo("UPLOADED");
+        assertThat(saved.status()).isEqualTo(ContractState.UPLOADED);
         assertThatThrownBy(() -> contracts.upload(owner, pdf(MAX_BYTES + 1), "제목", "JEONSE"))
                 .isInstanceOf(ApiException.class)
                 .satisfies(ex -> {
