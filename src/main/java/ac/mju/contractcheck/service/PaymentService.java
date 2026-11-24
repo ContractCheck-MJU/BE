@@ -4,10 +4,12 @@ import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
-import ac.mju.contractcheck.repository.memory.PaymentRepository;
+import ac.mju.contractcheck.domain.enums.PaymentStatus;
+import ac.mju.contractcheck.repository.PaymentRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -22,34 +24,23 @@ public class PaymentService {
 
     /**
      * FR-PAY-01 결제 요청
-     *
-     * TODO(FR-PAY-01): 판매 중인 이용권 상품을 조회한다. 인증 불필요.
-     * 1. 입력 검증: 없음.
-     * 2. 권한/소유자 확인: 공개 API.
-     * 3. DB/외부 호출: products에서 active=true인 행을 읽는다(name, credits, price).
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 없음(빈 목록 가능).
-     * 6. 반환: 상품 목록.
+     * 판매 중(active)인 이용권 상품만 id 순으로 돌려준다. 공개 API라 인증이 필요 없다(TC-PAY-017).
+     * 스펙 미정: 상품 구성(이름·횟수·가격). V5 마이그레이션의 초기 상품은 임시 값이다.
      */
     public List<Product> products() {
-        return payments.products();
+        return payments.findActiveProducts();
     }
 
     /**
      * FR-PAY-01 결제 요청
-     *
-     * TODO(FR-PAY-01): 토스 결제 주문을 생성한다.
-     * 1. 입력 검증: productId 필수. 비활성이거나 없으면 PRODUCT_NOT_FOUND(404).
-     * 2. 권한/소유자 확인: 로그인 사용자.
-     * 3. DB/외부 호출: payments에 order_id(고유), user_id, product_id, amount=products.price, status=READY를 insert한다.
-     * 4. 상태 전이: READY 생성.
-     * 5. 예외/에러코드: PRODUCT_NOT_FOUND(404).
-     * 6. 반환: orderId, amount, orderName(상품명). 스펙 미정: payments.status 허용 값과 토스 상태 매핑(READY/DONE/CANCELED 등).
+     * 상품 가격(서버 저장값)으로 주문을 만들어 READY로 저장한다. 클라이언트가 보낸 금액은 받지 않는다(TC-PAY-001).
+     * 없는 상품이나 비활성 상품은 404 PRODUCT_NOT_FOUND다(TC-PAY-002). orderId는 토스 규칙(6~64자, 영문·숫자·-·_·=)에 맞는 UUID다.
+     * 스펙 미정: payments.status 허용 값과 토스 상태 매핑({@link PaymentStatus}는 임시 값).
      */
     public Payment order(UserId owner, long productId) {
-        Product product = payments.findProduct(productId)
+        Product product = payments.findActiveProduct(productId)
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "이용권 상품을 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(0, owner, UUID.randomUUID().toString(), product.price(), product.name(), "READY", product.credits()));
+        Payment saved = payments.save(Payment.ordered(owner, product, UUID.randomUUID().toString()));
         log.info("주문 생성 orderId={} owner={} amount={}", saved.orderId(), owner, saved.amount());
         return saved;
     }
@@ -68,10 +59,9 @@ public class PaymentService {
      * 6. 반환: 결제 id, status, 지급 횟수.
      */
     public Payment confirm(UserId owner, String paymentKey, String orderId, int amount) {
-        Payment payment = payments.findByOrderId(orderId)
-                .filter(item -> item.owner().equals(owner))
+        Payment payment = payments.findByOrderId(orderId, owner)
                 .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "주문을 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(payment.id(), owner, orderId, amount, payment.orderName(), "DONE", payment.creditsAdded()));
+        Payment saved = payments.save(payment.confirmed(paymentKey, "", Instant.now()));
         log.info("결제 승인 orderId={} owner={} amount={}", orderId, owner, amount);
         return saved;
     }
@@ -91,9 +81,13 @@ public class PaymentService {
      * 6. 반환: 200. 스펙 미정: 웹훅 서명 헤더명·검증 알고리즘, 멱등 키(이벤트 ID 컬럼 없음), IP 허용 목록 출처.
      */
     public void webhook(String paymentKey, String status) {
-        payments.findByOrderId(paymentKey).ifPresentOrElse(payment -> {
-            payments.save(new Payment(payment.id(), payment.owner(), payment.orderId(), payment.amount(), payment.orderName(), status, payment.creditsAdded()));
-            log.info("결제 웹훅 반영 paymentKey={} status={}", paymentKey, status);
+        payments.findByPaymentKey(paymentKey).ifPresentOrElse(payment -> {
+            try {
+                payments.save(payment.withStatus(PaymentStatus.valueOf(status)));
+                log.info("결제 웹훅 반영 paymentKey={} status={}", paymentKey, status);
+            } catch (IllegalArgumentException exception) {
+                log.warn("결제 웹훅 상태를 알 수 없음 paymentKey={} status={}", paymentKey, status);
+            }
         }, () -> log.warn("결제 웹훅 대상 없음 paymentKey={} status={}", paymentKey, status));
     }
 
@@ -128,7 +122,7 @@ public class PaymentService {
     public Payment cancel(UserId owner, long id) {
         Payment payment = payments.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "결제를 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(payment.id(), owner, payment.orderId(), payment.amount(), payment.orderName(), "CANCELED", payment.creditsAdded()));
+        Payment saved = payments.save(payment.withStatus(PaymentStatus.CANCELED));
         log.info("결제 취소 paymentId={} owner={}", saved.id(), owner);
         return saved;
     }
