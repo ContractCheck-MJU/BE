@@ -125,6 +125,60 @@ class CreditConsumptionTest {
         }
     }
 
+    @Test
+    @DisplayName("TC-CRD-008 무료→유료 차감 후 스택 역순으로 복구하면 유료·무료가 원래 잔여로 돌아오고 같은 analysisId는 중복 복구되지 않는다")
+    void restoreFollowsStackOrderAndIsIdempotent() {
+        UserId owner = walletWith(1, 2);
+        credits.use(owner, 201L); // FREE 차감 -> (0, 2)
+        credits.use(owner, 202L); // PAID 차감 -> (0, 1)
+
+        credits.restore(owner, 202L); // PAID 복구 -> (0, 2)
+        credits.restore(owner, 202L); // 중복 복구 무시 -> (0, 2)
+        assertThat(credits.me(owner).freeRemaining()).isZero();
+        assertThat(credits.me(owner).paidRemaining()).isEqualTo(2);
+
+        credits.restore(owner, 201L); // FREE 복구 -> (1, 2)
+        assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
+        assertThat(credits.me(owner).paidRemaining()).isEqualTo(2);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> "RESTORE".equals(entry.type())).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 같은 analysisId에 동시 복구 요청 2건이 들어와도 정확히 1회만 복구된다")
+    void concurrentRestoreOnlyRestoresOnce() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            for (int round = 0; round < 20; round++) {
+                UserId owner = walletWith(0, 1);
+                credits.use(owner, 300L);
+                CountDownLatch ready = new CountDownLatch(2);
+                CountDownLatch go = new CountDownLatch(1);
+                List<Future<?>> results = new ArrayList<>();
+                for (int worker = 0; worker < 2; worker++) {
+                    results.add(executor.submit(() -> {
+                        ready.countDown();
+                        try {
+                            go.await();
+                        } catch (InterruptedException exception) {
+                            Thread.currentThread().interrupt();
+                        }
+                        credits.restore(owner, 300L);
+                    }));
+                }
+                ready.await();
+                go.countDown();
+                for (Future<?> result : results) {
+                    result.get();
+                }
+
+                assertThat(credits.me(owner).paidRemaining()).as("round %d", round).isEqualTo(1);
+                assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> "RESTORE".equals(entry.type())).hasSize(1);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     private UserId walletWith(int free, int paid) {
         long userId = USER_IDS.incrementAndGet();
         wallets.save(new CreditWalletEntity(userId, free, paid));

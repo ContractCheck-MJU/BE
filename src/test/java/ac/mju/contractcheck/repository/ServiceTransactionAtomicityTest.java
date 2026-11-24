@@ -86,7 +86,7 @@ class ServiceTransactionAtomicityTest {
         doAnswer(invocation -> {
             invocation.callRealMethod();
             throw new ObjectOptimisticLockingFailureException(CreditWalletEntity.class, owner.value());
-        }).doCallRealMethod().when(creditRepository).appendLedger(any(), eq(LedgerType.USE), anyInt(), any(), any());
+        }).doCallRealMethod().when(creditRepository).appendLedger(any(), eq(LedgerType.USE), anyInt(), any(), any(), any());
 
         credits.use(owner, 1L);
 

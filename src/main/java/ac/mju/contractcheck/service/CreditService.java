@@ -1,7 +1,9 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditDeduction;
 import ac.mju.contractcheck.domain.CreditPolicy;
+import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
@@ -49,13 +51,14 @@ public class CreditService {
      */
     public void grantSignup(UserId owner) {
         credits.createAccount(new CreditAccount(owner, CreditPolicy.SIGNUP_FREE_CREDITS, 0));
-        credits.appendLedger(owner, LedgerType.GRANT, CreditPolicy.SIGNUP_FREE_CREDITS, null, null);
+        credits.appendLedger(owner, LedgerType.GRANT, CreditPolicy.SIGNUP_FREE_CREDITS, null, null, CreditSource.FREE);
         log.info("무료 이용권 지급 userId={} amount={}", owner, CreditPolicy.SIGNUP_FREE_CREDITS);
     }
 
     /**
      * FR-CRD-02 유료 차감
-     * 분석 1건에 대해 이용권 1회를 차감한다(무료 우선 → 유료, USE 원장 기록). 이용권이 없으면 402 CREDIT_INSUFFICIENT이다.
+     * 분석 1건에 대해 이용권 1회를 차감한다(무료 우선 → 유료, USE 원장에 차감 출처 FREE/PAID 기록).
+     * 이용권이 없으면 402 CREDIT_INSUFFICIENT이다.
      * 같은 지갑을 동시에 바꿔 낙관적 락이 충돌하면 잔액을 다시 읽어 최대 {@value #MAX_ATTEMPTS}번 시도한다.
      * 시도마다 새 트랜잭션을 열고(지갑 갱신과 USE 원장 기록을 함께 성공·실패시킨다) 재시도 루프는 트랜잭션 밖에 둔다.
      * 충돌 예외가 트랜잭션 밖으로 나가야 다음 시도가 깨끗한 상태로 지갑을 다시 읽는다. 외부 API는 부르지 않는다.
@@ -79,9 +82,9 @@ public class CreditService {
 
     /**
      * FR-CRD-02 유료 차감
-     * 실패한 분석의 차감을 되돌린다. 같은 분석 ID로 여러 번 불러도 RESTORE는 한 번만 기록하고(TC-CRD-008),
-     * 차감(USE) 기록이 없으면 아무것도 하지 않는다. 낙관적 락 충돌은 {@link #use}처럼 새 트랜잭션에서 다시 시도한다.
-     * 스펙 미정: 원장에 무료·유료 구분이 없어 복구분은 항상 무료 잔여로 되돌린다.
+     * 분석 실패 시 해당 분석({@code analysisId})에 차감했던 이용권 1회를 스택(LIFO) 역순 정책에 따라 원래 차감 출처(FREE/PAID)로 복구한다.
+     * 이미 같은 analysisId로 RESTORE가 기록돼 있거나 차감(USE) 이력이 없으면 아무것도 하지 않는다(멱등, TC-CRD-008).
+     * 같은 지갑에 낙관적 락 충돌이 나면 새 트랜잭션에서 다시 확인해 최대 {@value #MAX_ATTEMPTS}번 시도한다.
      */
     public void restore(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -95,27 +98,36 @@ public class CreditService {
         throw new IllegalStateException("이용권 복구 동시성 충돌이 계속된다");
     }
 
-    private void restoreOnce(UserId owner, long analysisId) {
-        boolean used = credits.hasLedger(owner, LedgerType.USE, LedgerRefType.ANALYSIS, analysisId);
-        boolean restored = credits.hasLedger(owner, LedgerType.RESTORE, LedgerRefType.ANALYSIS, analysisId);
-        if (!used || restored) {
-            return;
-        }
-        credits.saveAccount(me(owner).restoreOne());
-        credits.appendLedger(owner, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, analysisId);
-        log.info("이용권 복구 userId={} analysisId={}", owner, analysisId);
-    }
-
     /** 지갑을 읽어 도메인 규칙(무료 우선 → 유료)으로 차감하고, 지갑 저장과 USE 원장 기록을 이어서 한다. 호출하는 쪽이 연 트랜잭션 안에서 실행한다. */
     private CreditUseResult useOnce(UserId owner, long analysisId) {
-        Optional<CreditAccount> after = me(owner).useOne();
-        if (after.isEmpty()) {
+        Optional<CreditDeduction> deduction = me(owner).deductOne();
+        if (deduction.isEmpty()) {
             return CreditUseResult.INSUFFICIENT;
         }
-        credits.saveAccount(after.get());
-        credits.appendLedger(owner, LedgerType.USE, 1, LedgerRefType.ANALYSIS, analysisId);
-        log.info("이용권 차감 userId={} analysisId={}", owner, analysisId);
+        credits.saveAccount(deduction.get().account());
+        credits.appendLedger(owner, LedgerType.USE, 1, LedgerRefType.ANALYSIS, analysisId, deduction.get().source());
+        log.info("이용권 차감 userId={} analysisId={} source={}", owner, analysisId, deduction.get().source());
         return CreditUseResult.USED;
+    }
+
+    /**
+     * 지갑(version 포함)을 먼저 읽은 뒤 중복 복구·차감 이력을 확인한다.
+     * 다른 트랜잭션이 먼저 복구해 커밋했다면 지갑을 먼저 읽었을 때 version 충돌로 롤백·재시도되고,
+     * 커밋 뒤에 읽었다면 이어지는 hasLedger(RESTORE)에서 즉시 걸러져 동시 중복 복구가 일어나지 않는다.
+     */
+    private void restoreOnce(UserId owner, long analysisId) {
+        CreditAccount current = me(owner);
+        if (credits.hasLedger(owner, LedgerType.RESTORE, LedgerRefType.ANALYSIS, analysisId)) {
+            return;
+        }
+        if (!credits.hasLedger(owner, LedgerType.USE, LedgerRefType.ANALYSIS, analysisId)) {
+            return;
+        }
+        CreditSource source = credits.findLedgerSource(owner, LedgerType.USE, LedgerRefType.ANALYSIS, analysisId)
+                .orElse(CreditSource.PAID);
+        credits.saveAccount(current.restoreOne(source));
+        credits.appendLedger(owner, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, analysisId, source);
+        log.info("이용권 복구 userId={} analysisId={} source={}", owner, analysisId, source);
     }
 
     /**

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditPolicy;
+import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -59,11 +60,11 @@ class CreditServiceTest {
 
         InOrder order = inOrder(credits);
         order.verify(credits).createAccount(new CreditAccount(OWNER, CreditPolicy.SIGNUP_FREE_CREDITS, 0));
-        order.verify(credits).appendLedger(OWNER, LedgerType.GRANT, CreditPolicy.SIGNUP_FREE_CREDITS, null, null);
+        order.verify(credits).appendLedger(OWNER, LedgerType.GRANT, CreditPolicy.SIGNUP_FREE_CREDITS, null, null, CreditSource.FREE);
     }
 
     @Test
-    @DisplayName("TC-CRD-002 차감: 무료부터 1회 줄인 잔여를 저장하고 USE 원장을 분석 ID와 함께 남긴다")
+    @DisplayName("TC-CRD-002 차감: 무료부터 1회 줄인 잔여를 저장하고 USE 원장을 분석 ID·출처(FREE)와 함께 남긴다")
     void useDeductsFreeFirstAndRecordsLedger() {
         when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 2, 3)));
 
@@ -71,17 +72,18 @@ class CreditServiceTest {
 
         InOrder order = inOrder(credits);
         order.verify(credits).saveAccount(new CreditAccount(OWNER, 1, 3));
-        order.verify(credits).appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 42L);
+        order.verify(credits).appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 42L, CreditSource.FREE);
     }
 
     @Test
-    @DisplayName("TC-CRD-003 무료가 없으면 유료를 줄인다")
+    @DisplayName("TC-CRD-003 무료가 없으면 유료를 줄이고 USE 원장에 출처(PAID)를 남긴다")
     void useDeductsPaidWhenFreeIsEmpty() {
         when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 3)));
 
         service.use(OWNER, 1L);
 
         verify(credits).saveAccount(new CreditAccount(OWNER, 0, 2));
+        verify(credits).appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 1L, CreditSource.PAID);
     }
 
     @Test
@@ -92,7 +94,7 @@ class CreditServiceTest {
         assertThatThrownBy(() -> service.use(OWNER, 1L)).isInstanceOf(CreditInsufficientException.class);
 
         verify(credits, never()).saveAccount(any());
-        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any());
+        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any(), any());
     }
 
     @Test
@@ -116,7 +118,7 @@ class CreditServiceTest {
 
         verify(credits, times(2)).findAccount(OWNER);
         verify(transactionManager, times(2)).getTransaction(any());
-        verify(credits, times(1)).appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L);
+        verify(credits, times(1)).appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L, CreditSource.FREE);
     }
 
     @Test
@@ -128,6 +130,80 @@ class CreditServiceTest {
         assertThatThrownBy(() -> service.use(OWNER, 1L)).isInstanceOf(IllegalStateException.class);
 
         verify(credits, times(5)).saveAccount(any());
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 복구: 해당 분석이 차감했던 출처(PAID·FREE)에 1회를 되돌리고 RESTORE 원장을 남긴다")
+    void restoreReturnsCreditToOriginalSource() {
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 42L)).thenReturn(false);
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 42L)).thenReturn(true);
+        when(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 42L))
+                .thenReturn(Optional.of(CreditSource.PAID));
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 2)));
+
+        service.restore(OWNER, 42L);
+
+        InOrder order = inOrder(credits);
+        order.verify(credits).saveAccount(new CreditAccount(OWNER, 0, 3));
+        order.verify(credits).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 42L, CreditSource.PAID);
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 복구: 같은 analysisId로 이미 복구했으면 중복 복구하지 않는다")
+    void restoreIsIdempotentPerAnalysis() {
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 1, 0)));
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 42L)).thenReturn(true);
+
+        service.restore(OWNER, 42L);
+
+        verify(credits, never()).saveAccount(any());
+        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 복구: 차감(USE) 이력이 없는 분석은 복구하지 않는다")
+    void restoreWithoutPriorUseDoesNothing() {
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 1, 0)));
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 42L)).thenReturn(false);
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 42L)).thenReturn(false);
+
+        service.restore(OWNER, 42L);
+
+        verify(credits, never()).saveAccount(any());
+        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("FR-CRD-02 복구: 출처가 비어 있는 레거시 USE 원장은 스택 역순 기본값 PAID로 복구한다")
+    void restoreFallsBackToPaidWhenLegacySourceIsMissing() {
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 50L)).thenReturn(false);
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 50L)).thenReturn(true);
+        when(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 50L)).thenReturn(Optional.empty());
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 1)));
+
+        service.restore(OWNER, 50L);
+
+        verify(credits).saveAccount(new CreditAccount(OWNER, 0, 2));
+        verify(credits).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 50L, CreditSource.PAID);
+    }
+
+    @Test
+    @DisplayName("TC-CRD-008 복구 중 낙관적 락 충돌이 나면 새 트랜잭션에서 다시 확인해 재시도한다")
+    void restoreRetriesOnOptimisticLockConflict() {
+        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 60L)).thenReturn(false);
+        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 60L)).thenReturn(true);
+        when(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 60L))
+                .thenReturn(Optional.of(CreditSource.FREE));
+        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 1, 0)));
+        doThrow(new ObjectOptimisticLockingFailureException(CreditAccount.class, 7L))
+                .doNothing()
+                .when(credits).saveAccount(any());
+
+        service.restore(OWNER, 60L);
+
+        verify(credits, times(2)).findAccount(OWNER);
+        verify(transactionManager, times(2)).getTransaction(any());
+        verify(credits, times(1)).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 60L, CreditSource.FREE);
     }
 
     @Test
@@ -155,57 +231,5 @@ class CreditServiceTest {
                     });
         }
         verify(credits, never()).findLedgerPage(any(), anyInt(), anyInt());
-    }
-
-    @Test
-    @DisplayName("TC-CRD-007 복구: 차감 기록이 있으면 무료 잔여를 1회 되돌리고 RESTORE 원장을 같은 분석 ID로 남긴다")
-    void restoreReturnsOneCreditAndRecordsLedger() {
-        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
-        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
-        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 3, 2L)));
-
-        service.restore(OWNER, 9L);
-
-        InOrder order = inOrder(credits);
-        order.verify(credits).saveAccount(new CreditAccount(OWNER, 1, 3, 2L));
-        order.verify(credits).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 9L);
-    }
-
-    @Test
-    @DisplayName("TC-CRD-008 복구 중복 방지: 이미 RESTORE가 있으면 아무것도 하지 않는다")
-    void restoreTwiceRecordsOnce() {
-        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
-        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
-
-        service.restore(OWNER, 9L);
-
-        verify(credits, never()).saveAccount(any());
-        verify(credits, never()).appendLedger(any(), eq(LedgerType.RESTORE), anyInt(), any(), any());
-    }
-
-    @Test
-    @DisplayName("차감한 적 없는 분석은 복구하지 않는다(돌려줄 이용권이 없다)")
-    void restoreWithoutUseDoesNothing() {
-        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
-
-        service.restore(OWNER, 9L);
-
-        verify(credits, never()).saveAccount(any());
-        verify(credits, never()).appendLedger(any(), any(), anyInt(), any(), any());
-    }
-
-    @Test
-    @DisplayName("복구 중 낙관적 락 충돌이 나면 새 트랜잭션에서 다시 읽어 한 번만 복구한다")
-    void restoreRetriesOnConflict() {
-        when(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).thenReturn(true);
-        when(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).thenReturn(false);
-        when(credits.findAccount(OWNER)).thenReturn(Optional.of(new CreditAccount(OWNER, 0, 0, 1L)));
-        doThrow(new ObjectOptimisticLockingFailureException(CreditAccount.class, 7L))
-                .doNothing().when(credits).saveAccount(any());
-
-        service.restore(OWNER, 9L);
-
-        verify(credits, times(2)).saveAccount(any());
-        verify(credits, times(1)).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 9L);
     }
 }

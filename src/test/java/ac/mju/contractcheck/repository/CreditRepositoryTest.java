@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -76,7 +77,7 @@ class CreditRepositoryTest {
     @DisplayName("원장 존재 여부는 종류·참조 종류·참조 ID가 모두 같을 때만 true다")
     void hasLedgerMatchesTypeAndReference() {
         credits.createAccount(new CreditAccount(OWNER, 2, 0));
-        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L, CreditSource.FREE);
 
         assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).isTrue();
         assertThat(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).isFalse();
@@ -87,8 +88,8 @@ class CreditRepositoryTest {
     @Test
     @DisplayName("원장은 종류와 참조의 이름이 DB 문자열로 저장되고, 참조가 없으면 비어 있다")
     void ledgerStoresEnumNamesAsDatabaseValues() {
-        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
-        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L);
+        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L, CreditSource.PAID);
 
         List<LedgerEntry> ledger = credits.findLedgerPage(OWNER, 0, 20).items();
 
@@ -105,10 +106,10 @@ class CreditRepositoryTest {
     @DisplayName("원장 페이지는 최신순으로 잘라 전체 건수와 함께 돌려주고 타인 원장은 섞이지 않는다")
     void findLedgerPageSlicesNewestFirstAndIsolatesOwner() {
         UserId other = new UserId(990_002L);
-        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
-        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 11L);
-        credits.appendLedger(other, LedgerType.GRANT, 2, null, null);
-        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 22L);
+        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 11L, CreditSource.FREE);
+        credits.appendLedger(other, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 22L, CreditSource.FREE);
 
         PageSlice<LedgerEntry> firstPage = credits.findLedgerPage(OWNER, 0, 2);
         PageSlice<LedgerEntry> secondPage = credits.findLedgerPage(OWNER, 1, 2);
@@ -120,5 +121,20 @@ class CreditRepositoryTest {
         assertThat(secondPage.items()).extracting(LedgerEntry::type).containsExactly("GRANT");
         assertThat(emptyPage.total()).isZero();
         assertThat(emptyPage.items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("원장 존재 여부와 출처(FREE·PAID)를 회원·종류·참조 기준으로 조회한다")
+    void hasLedgerAndFindLedgerSourceLookupByOwnerAndRef() {
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 71L, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 72L, null);
+
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).isTrue();
+        assertThat(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 71L)).isFalse();
+        assertThat(credits.hasLedger(new UserId(990_002L), LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).isFalse();
+
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).contains(CreditSource.FREE);
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 72L)).isEmpty();
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 999L)).isEmpty();
     }
 }

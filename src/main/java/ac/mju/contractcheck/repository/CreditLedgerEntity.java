@@ -35,14 +35,18 @@ class CreditLedgerEntity {
 
     private Long refId;
 
+    @Column(length = 10)
+    private String creditSource;
+
     private Instant createdAt;
 
-    CreditLedgerEntity(Long userId, String type, int amount, String refType, Long refId, Instant now) {
+    CreditLedgerEntity(Long userId, String type, int amount, String refType, Long refId, String creditSource, Instant now) {
         this.userId = userId;
         this.type = type;
         this.amount = amount;
         this.refType = refType;
         this.refId = refId;
+        this.creditSource = creditSource;
         this.createdAt = now;
     }
 }
