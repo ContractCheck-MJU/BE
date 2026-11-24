@@ -29,7 +29,11 @@ API 경로를 바꿀 때는 스펙시트, `openapi/api-docs.yml`, `SecurityConfi
 
 OCR·분할 이후, `/classify`, `/embed`, Claude 등 외부 전송 전에 개인정보를 마스킹한다. 원문을 그대로 외부로 보내지 않는다. ([tech.md](tech.md), [anti-patterns.md](anti-patterns.md) 20)
 
-구현은 `PiiMaskingService`다. 정규식은 코드가 아니라 `src/main/resources/masking/pii-rules.yml` 한 파일에서만 고친다. 마스킹에 실패하면 원문을 돌려주지 않고 `MaskingException`을 던져 외부 전송을 막는다. 마스킹 건수 로그에는 규칙 id와 개수만 남기고 원문·결과는 남기지 않는다.
+구현은 `PiiMaskingService`다. 정규식은 코드가 아니라 `src/main/resources/masking/pii-rules.yml` 한 파일에서만 고친다. 마스킹에 실패하거나 재검사(`verify: true`: 주민번호·이메일·전화번호·계좌번호)에서 패턴이 남으면 원문을 돌려주지 않고 `MaskingException`을 던져 외부 전송을 막는다(fail-closed). 마스킹 건수 로그에는 규칙 id와 개수만 남기고 원문·결과는 남기지 않는다.
+
+- **주소 정책**: `소재지`·`임대목적물`·`목적물의 표시`·`물건지` 라벨 주소는 시·도 + 시·군·구까지만 남기고 상세만 가린다. 당사자 주소나 라벨이 없거나 구분이 불분명한 주소는 fail-safe로 전체를 가린다.
+- **법인·중개사 정책**: 사업자등록번호·법인등록번호·중개등록번호와 대표자·중개사 이름만 가리고 상호(사무소 명칭 등)는 유지한다.
+- **토큰·한계**: 이름은 고정 토큰 `[이름]`을 사용한다. 정규식 기반이라 호칭 없는 이름이나 시·도·라벨이 모두 없는 주소는 한계가 있으며, OCR 이전(원본 PDF 외부 전송) 단계의 처리는 별도 팀 결정이 필요하다.
 
 ## 로그
 

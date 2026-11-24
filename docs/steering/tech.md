@@ -32,9 +32,11 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 ## 개인정보 마스킹
 
-`PiiMaskingService`가 `PiiRuleRepository`가 읽은 규칙을 파일에 적힌 순서대로 적용한다. 규칙(정규식·치환 문자)은 `src/main/resources/masking/pii-rules.yml` 한 파일이고, 앱 시작 때 한 번 읽는다. 정규식이 틀렸거나 항목이 빠졌거나 id가 겹치면 시작이 실패한다. `contractcheck.masking.rules-location`으로 다른 파일(`file:/...`)을 가리키면 다시 빌드하지 않고 규칙을 바꿀 수 있다. `verify: true`인 규칙(주민번호·전화번호·계좌번호)은 마스킹 뒤 한 번 더 검사하고, 남아 있으면 `MaskingException`이다.
+`PiiMaskingService`가 `PiiRuleRepository`가 읽은 규칙을 파일에 적힌 순서대로 적용한다. 규칙(정규식·치환 문자)은 `src/main/resources/masking/pii-rules.yml` 한 파일이고, 앱 시작 때 한 번 읽는다. 정규식이 틀렸거나 항목이 빠졌거나 id가 겹치면 시작이 실패한다. `contractcheck.masking.rules-location`으로 다른 파일(`file:/...`)을 가리키면 다시 빌드하지 않고 규칙을 바꿀 수 있다. `verify: true`인 규칙(주민번호·이메일·전화번호·계좌번호)은 마스킹 뒤 한 번 더 검사하고, 남아 있으면 `MaskingException`이다.
 
-OCR 원문은 마스킹해 `contracts.masked_text`에 저장한다(`ContractProcessor`). 추론 서버로 나가는 분류·임베딩 요청은 `ClauseRiskService`가 조항을 마스킹한 뒤 보내며, 한 조항이라도 실패하면 아무것도 보내지 않고 분석이 FAILED가 된다(이용권 복구). 저장된 조항(`clauses.text`)은 원문이다. 이름은 호칭(임대인·임차인 등) 뒤의 이름만 가리고, 주소는 시·도로 시작하는 주소만 가린다. 스펙 미정: 마스킹 실패 오류 코드, 번호류 외 치환 토큰, `clauses.text`를 마스킹본으로 덮을지 여부.
+대상 범위는 주민·외국인등록번호, 법인·사업자·중개등록·부동산고유·운전면허·여권번호, 이메일, 전화·050X 안심번호, 계좌번호, 특약의 현관 비밀번호·차량번호, 우편번호, 계약서 호칭 뒤 한글·영문 이름(고정 토큰 `[이름]`), 주소·상세호실이다. 법인·중개사는 번호류와 대표자·중개사 이름만 가리고 상호(사무소 명칭 등)는 남긴다. 주소는 `소재지`·`임대목적물`·`목적물의 표시`·`물건지` 라벨이 붙은 경우 시·도 + 시·군·구까지만 남기고 상세(읍/면/로/길/동/번지/호/층)만 가리며, 당사자 주소나 라벨이 없는 주소는 fail-safe로 전체를 가린다.
+
+OCR 원문은 마스킹해 `contracts.masked_text`에 저장한다(`ContractProcessor`). 추론 서버로 나가는 분류·임베딩 요청은 `ClauseRiskService`가 조항을 마스킹한 뒤 보내며, 한 조항이라도 실패하면 아무것도 보내지 않고 분석이 FAILED가 된다(이용권 복구). 저장된 조항(`clauses.text`)은 원문이다. 한계: 호칭 없이 쓰인 이름, 시·도와 라벨이 모두 없는 주소, 비정형 표기는 정규식만으로 가리지 못하며 OCR 이전(원본 PDF) 단계는 마스킹 대상이 아니다. 스펙 미정: Upstage OCR 원본 PDF 처리 방침, 마스킹 실패 오류 코드, 번호류 등 임시 토큰 확정 값, `clauses.text`를 마스킹본으로 덮을지 여부, NER 모델 도입 및 체크섬 오류 번호 처리 여부.
 
 ## 분석 파이프라인
 
