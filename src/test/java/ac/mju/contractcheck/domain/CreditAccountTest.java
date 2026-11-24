@@ -68,4 +68,31 @@ class CreditAccountTest {
 
         assertThat(after.version()).isEqualTo(5L);
     }
+
+    @Test
+    @DisplayName("FR-CRD-02 deductOne은 무료 우선 차감 시 FREE, 유료 차감 시 PAID 출처를 함께 돌려준다")
+    void deductOneReportsCreditSource() {
+        CreditDeduction freeDeduction = new CreditAccount(new UserId(1), 1, 2).deductOne().orElseThrow();
+        CreditDeduction paidDeduction = freeDeduction.account().deductOne().orElseThrow();
+
+        assertThat(freeDeduction.source()).isEqualTo(CreditSource.FREE);
+        assertThat(freeDeduction.account().freeRemaining()).isZero();
+        assertThat(freeDeduction.account().paidRemaining()).isEqualTo(2);
+
+        assertThat(paidDeduction.source()).isEqualTo(CreditSource.PAID);
+        assertThat(paidDeduction.account().freeRemaining()).isZero();
+        assertThat(paidDeduction.account().paidRemaining()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FR-CRD-02 restoreOne은 지정한 출처(FREE·PAID)의 잔여를 1회 복구하고 version을 유지한다")
+    void restoreOneAddsBackToGivenSourceAndCarriesVersion() {
+        CreditAccount base = new CreditAccount(new UserId(1), 0, 2, 9L);
+
+        CreditAccount paidRestored = base.restoreOne(CreditSource.PAID);
+        CreditAccount freeRestored = base.restoreOne(CreditSource.FREE);
+
+        assertThat(paidRestored).isEqualTo(new CreditAccount(new UserId(1), 0, 3, 9L));
+        assertThat(freeRestored).isEqualTo(new CreditAccount(new UserId(1), 1, 2, 9L));
+    }
 }

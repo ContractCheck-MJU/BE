@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -73,13 +74,28 @@ class CreditRepositoryTest {
     @Test
     @DisplayName("원장은 종류와 참조의 이름이 DB 문자열로 저장되고, 참조가 없으면 비어 있다")
     void ledgerStoresEnumNamesAsDatabaseValues() {
-        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null);
-        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L);
+        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L, CreditSource.PAID);
 
         List<LedgerEntry> ledger = credits.ledger(OWNER);
 
         assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
         assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("55");
         assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("");
+    }
+
+    @Test
+    @DisplayName("원장 존재 여부와 출처(FREE·PAID)를 회원·종류·참조 기준으로 조회한다")
+    void hasLedgerAndFindLedgerSourceLookupByOwnerAndRef() {
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 71L, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 72L, null);
+
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).isTrue();
+        assertThat(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 71L)).isFalse();
+        assertThat(credits.hasLedger(new UserId(990_002L), LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).isFalse();
+
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 71L)).contains(CreditSource.FREE);
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 72L)).isEmpty();
+        assertThat(credits.findLedgerSource(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 999L)).isEmpty();
     }
 }

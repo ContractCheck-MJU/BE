@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.CreditAccount;
+import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
@@ -45,10 +46,36 @@ public class CreditRepository {
                 account.owner().value(), account.freeRemaining(), account.paidRemaining(), account.version()));
     }
 
-    /** 원장에 한 줄을 남긴다. 종류와 참조 이름이 DB 값(문자열)으로 저장된다. refType·refId는 없을 수 있다. */
-    public void appendLedger(UserId owner, @NonNull LedgerType type, int amount, LedgerRefType refType, Long refId) {
+    /** 원장에 한 줄을 남긴다. 종류·참조·출처 이름이 DB 값(문자열)으로 저장된다. refType·refId·creditSource는 없을 수 있다. */
+    public void appendLedger(
+            UserId owner,
+            @NonNull LedgerType type,
+            int amount,
+            LedgerRefType refType,
+            Long refId,
+            CreditSource creditSource) {
         ledgers.save(new CreditLedgerEntity(
-                owner.value(), type.name(), amount, refType == null ? null : refType.name(), refId, Instant.now()));
+                owner.value(),
+                type.name(),
+                amount,
+                refType == null ? null : refType.name(),
+                refId,
+                creditSource == null ? null : creditSource.name(),
+                Instant.now()));
+    }
+
+    /** 같은 회원·종류·참조의 원장 행이 이미 있는지 확인한다. */
+    public boolean hasLedger(UserId owner, @NonNull LedgerType type, @NonNull LedgerRefType refType, long refId) {
+        return ledgers.existsByUserIdAndTypeAndRefTypeAndRefId(owner.value(), type.name(), refType.name(), refId);
+    }
+
+    /** 같은 회원·종류·참조의 가장 최근 원장에 기록된 이용권 출처(FREE·PAID)를 읽는다. 행이 없거나 출처가 비어 있으면 비어 있다. */
+    public @NonNull Optional<CreditSource> findLedgerSource(
+            UserId owner, @NonNull LedgerType type, @NonNull LedgerRefType refType, long refId) {
+        return ledgers.findFirstByUserIdAndTypeAndRefTypeAndRefIdOrderByIdDesc(
+                        owner.value(), type.name(), refType.name(), refId)
+                .map(CreditLedgerEntity::getCreditSource)
+                .map(CreditSource::valueOf);
     }
 
     public @NonNull List<LedgerEntry> ledger(UserId owner) {
