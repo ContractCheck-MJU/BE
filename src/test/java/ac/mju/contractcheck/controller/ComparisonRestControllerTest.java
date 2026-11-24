@@ -3,6 +3,7 @@ package ac.mju.contractcheck.controller;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,7 +38,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * FR-CMP-01 비교 생성 HTTP 계약. H2에는 pgvector가 없어 유사도 조회(ClauseEmbeddingRepository)만 mock하고,
+ * FR-CMP-01 비교 생성·FR-CMP-02 비교 조회 HTTP 계약. H2에는 pgvector가 없어 유사도 조회(ClauseEmbeddingRepository)만 mock하고,
  * 계약·조항·분석은 실제 저장소에 만든다. 유사도 SQL 자체는 ClauseSimilarityPostgresTest가 확인한다.
  */
 @SpringBootTest
@@ -126,6 +127,57 @@ class ComparisonRestControllerTest {
         mvc.perform(post("/api/v1/comparisons").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"beforeContractId\":1,\"afterContractId\":2}").with(user(owner.principalName())))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("FR-CMP-02 비교를 조회하면 요약과 조항 쌍(양쪽 조항 번호·본문·위험 등급, 변경 유형, 유사도, 위험 변화)을 돌려준다")
+    void getsComparisonWithPairs() throws Exception {
+        UserId owner = newOwner();
+        long before = analyzedContract(owner, "보증금은 1,000만 원으로 한다.");
+        long after = analyzedContract(owner, "보증금은 500만 원으로 한다.");
+        long beforeClause = clauses.findByContract(before, owner).getFirst().id();
+        long afterClause = clauses.findByContract(after, owner).getFirst().id();
+        when(embeddings.findSimilarities(before, after))
+                .thenReturn(List.of(new ClauseSimilarity(beforeClause, afterClause, 0.91)));
+        long comparisonId = createdId(mvc.perform(create(owner, before, after)).andReturn());
+
+        mvc.perform(get("/api/v1/comparisons/{id}", comparisonId).with(user(owner.principalName())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comparisonId").value(comparisonId))
+                .andExpect(jsonPath("$.beforeContractId").value(before))
+                .andExpect(jsonPath("$.afterContractId").value(after))
+                .andExpect(jsonPath("$.createdAt").isString())
+                .andExpect(jsonPath("$.summary.modified").value(1))
+                .andExpect(jsonPath("$.summary.added").value(0))
+                .andExpect(jsonPath("$.pairs.length()").value(1))
+                .andExpect(jsonPath("$.pairs[0].changeType").value("MODIFIED"))
+                .andExpect(jsonPath("$.pairs[0].similarity").value(0.91))
+                .andExpect(jsonPath("$.pairs[0].riskDelta").value(0))
+                .andExpect(jsonPath("$.pairs[0].before.clauseId").value(beforeClause))
+                .andExpect(jsonPath("$.pairs[0].before.no").value(1))
+                .andExpect(jsonPath("$.pairs[0].before.text").value("보증금은 1,000만 원으로 한다."))
+                .andExpect(jsonPath("$.pairs[0].before.riskLevel").value("CAUTION"))
+                .andExpect(jsonPath("$.pairs[0].after.text").value("보증금은 500만 원으로 한다."));
+    }
+
+    @Test
+    @DisplayName("FR-CMP-02 남의 비교는 404 COMPARISON_NOT_FOUND, 로그인하지 않으면 401이다")
+    void getRejectsOtherOwnerAndAnonymous() throws Exception {
+        UserId owner = newOwner();
+        long before = analyzedContract(owner, "보증금 조항");
+        long after = analyzedContract(owner, "월세 조항");
+        long comparisonId = createdId(mvc.perform(create(owner, before, after)).andReturn());
+
+        mvc.perform(get("/api/v1/comparisons/{id}", comparisonId).with(user(newOwner().principalName())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("COMPARISON_NOT_FOUND"));
+        mvc.perform(get("/api/v1/comparisons/{id}", comparisonId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private static long createdId(org.springframework.test.web.servlet.MvcResult result) {
+        String location = result.getResponse().getHeader("Location");
+        return Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
     }
 
     private org.springframework.test.web.servlet.RequestBuilder create(UserId owner, long before, long after) {

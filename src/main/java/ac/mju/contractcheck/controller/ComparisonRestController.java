@@ -7,7 +7,6 @@ import ac.mju.contractcheck.dto.comparison.CreatedComparison;
 import ac.mju.contractcheck.global.security.CurrentUser;
 import ac.mju.contractcheck.service.ComparisonService;
 
-import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -40,14 +39,9 @@ public class ComparisonRestController {
                 .body(new CreatedComparison(comparison.id()));
     }
 
-    /**
-     * FR-CMP-02 변경 사항 표시
-     *
-     * TODO(FR-CMP-02): 서비스가 돌려주는 comparison_pairs를 응답에 넣는다. 현재는 조회만 하고 빈 목록을 내린다. 상세 로직은 ComparisonService.get.
-     */
+    /** FR-CMP-02 변경 사항 표시 */
     @GetMapping("/api/v1/comparisons/{id}")
     public ComparisonResult get(Authentication authentication, @PathVariable long id) {
-        comparisons.get(currentUser.userId(authentication), id);
-        return new ComparisonResult(List.of());
+        return ComparisonResult.from(comparisons.get(currentUser.userId(authentication), id));
     }
 }

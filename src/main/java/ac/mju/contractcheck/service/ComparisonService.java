@@ -1,8 +1,11 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Analysis;
+import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseComparator;
+import ac.mju.contractcheck.domain.ComparedClause;
 import ac.mju.contractcheck.domain.Comparison;
+import ac.mju.contractcheck.domain.ComparisonDetail;
 import ac.mju.contractcheck.domain.ComparisonPair;
 import ac.mju.contractcheck.domain.ComparisonPolicy;
 import ac.mju.contractcheck.domain.RiskResult;
@@ -90,19 +93,38 @@ public class ComparisonService {
 
     /**
      * FR-CMP-02 변경 사항 표시
+     * 본인 비교의 조항 쌍을 저장 순서대로 읽어 양쪽 조항의 번호·제목·본문과 위험 등급을 붙인다. 남의 비교나 없는 비교는
+     * 404 COMPARISON_NOT_FOUND다. 조항은 계약마다 한 번씩만 읽는다(쌍마다 조회하지 않는다). SAME 쌍도 모두 돌려준다.
      *
-     * TODO(FR-CMP-02): 비교 헤더와 comparison_pairs 목록을 함께 반환한다.
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: comparisons.user_id. 아니면 COMPARISON_NOT_FOUND(404).
-     * 3. DB/외부 호출: comparisons와 comparison_pairs를 조회하고, 조항 텍스트·위험 변화를 붙인다.
-     *    컨트롤러가 현재 빈 pairs를 내려 서비스가 쌍을 포함해 반환하도록 맞춰야 한다.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: COMPARISON_NOT_FOUND(404).
-     * 6. 반환: 변경 유형별 쌍 목록.
+     * <p>위험 등급은 조회 시점의 최신 분석 완료 건 기준이다. 비교한 뒤 재분석했다면 저장된 risk_delta(비교 당시 기준)와
+     * 어긋날 수 있다. 비교에 쓴 분석을 저장하려면 마이그레이션이 필요해 지금은 한계로 둔다.
+     * 쌍이 가리키는 조항이 없어졌으면 그쪽만 비우고 나머지는 보여 준다.
      */
-    public Comparison get(UserId owner, long id) {
-        return comparisons.findOwned(id, owner)
+    @Transactional(readOnly = true)
+    public ComparisonDetail get(UserId owner, long id) {
+        Comparison comparison = comparisons.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("COMPARISON_NOT_FOUND", "비교 결과를 찾을 수 없습니다."));
+        Map<Long, ComparedClause> before = comparedClauses(owner, comparison.beforeContractId());
+        Map<Long, ComparedClause> after = comparedClauses(owner, comparison.afterContractId());
+        List<ComparisonDetail.Entry> entries = comparisons.findPairs(comparison.id()).stream()
+                .map(pair -> new ComparisonDetail.Entry(
+                        pair,
+                        pair.beforeClauseId() == null ? null : before.get(pair.beforeClauseId()),
+                        pair.afterClauseId() == null ? null : after.get(pair.afterClauseId())))
+                .toList();
+        return new ComparisonDetail(comparison, entries);
+    }
+
+    private Map<Long, ComparedClause> comparedClauses(UserId owner, long contractId) {
+        Map<Long, RiskLevel> levels = analyses.findLatestAnalyzed(contractId, owner)
+                .map(this::riskLevels)
+                .orElse(Map.of());
+        return clauses.findByContract(contractId, owner).stream()
+                .collect(Collectors.toMap(
+                        Clause::id,
+                        clause -> new ComparedClause(
+                                clause.id(), clause.no(), clause.title(), clause.text(), levels.get(clause.id())),
+                        (first, second) -> first));
     }
 
     private Analysis latestAnalyzed(UserId owner, long contractId) {

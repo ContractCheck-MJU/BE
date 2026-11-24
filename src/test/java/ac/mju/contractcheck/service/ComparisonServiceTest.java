@@ -15,7 +15,9 @@ import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.domain.AnalysisSummary;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseSimilarity;
+import ac.mju.contractcheck.domain.ComparedClause;
 import ac.mju.contractcheck.domain.Comparison;
+import ac.mju.contractcheck.domain.ComparisonDetail;
 import ac.mju.contractcheck.domain.ComparisonPair;
 import ac.mju.contractcheck.domain.ComparisonPolicy;
 import ac.mju.contractcheck.domain.RiskResult;
@@ -36,7 +38,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-/** FR-CMP-01 비교 생성: 검증 순서, 분석 완료 요구, 짝 계산 결과 저장. */
+/** FR-CMP-01 비교 생성: 검증 순서, 분석 완료 요구, 짝 계산 결과 저장. FR-CMP-02 비교 조회: 조항·위험 등급 붙이기. */
 class ComparisonServiceTest {
 
     private static final UserId OWNER = new UserId(7);
@@ -122,6 +124,59 @@ class ComparisonServiceTest {
                 .isInstanceOfSatisfying(NotFoundException.class,
                         exception -> assertThat(exception.code()).isEqualTo("COMPARISON_NOT_FOUND"));
         verify(comparisons, never()).savePairs(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("FR-CMP-02 저장된 쌍 순서대로 양쪽 조항의 번호·제목·본문과 최신 분석 위험 등급을 붙인다")
+    void getAttachesClausesAndRiskLevelsInSavedOrder() {
+        Comparison comparison = new Comparison(55, OWNER, BEFORE, AFTER, Instant.parse("2026-11-24T00:00:00Z"));
+        when(comparisons.findOwned(55, OWNER)).thenReturn(Optional.of(comparison));
+        when(comparisons.findPairs(55)).thenReturn(List.of(
+                new ComparisonPair(1L, 11L, 0.93, ChangeType.MODIFIED, -1),
+                new ComparisonPair(null, 12L, null, ChangeType.ADDED, 2),
+                new ComparisonPair(2L, null, null, ChangeType.DELETED, 0)));
+        when(clauses.findByContract(BEFORE, OWNER)).thenReturn(List.of(
+                new Clause(1, BEFORE, OWNER, 3, "제3조(위약금)", "위약금은 월세의 3배", ""),
+                new Clause(2, BEFORE, OWNER, 4, "제4조(원상복구)", "원상복구 비용은 임차인 부담", "")));
+        when(clauses.findByContract(AFTER, OWNER)).thenReturn(List.of(
+                new Clause(11, AFTER, OWNER, 3, "제3조(위약금)", "위약금은 월세의 1배", ""),
+                new Clause(12, AFTER, OWNER, 4, "제4조(중도해지)", "중도 해지 불가", "")));
+        when(analyses.findLatestAnalyzed(BEFORE, OWNER)).thenReturn(Optional.of(analyzed(100, BEFORE)));
+        when(analyses.findLatestAnalyzed(AFTER, OWNER)).thenReturn(Optional.of(analyzed(200, AFTER)));
+        when(analyses.findResults(100)).thenReturn(List.of(risk(1, RiskLevel.HIGH)));
+        when(analyses.findResults(200)).thenReturn(List.of(risk(11, RiskLevel.CAUTION), risk(12, RiskLevel.HIGH)));
+
+        ComparisonDetail detail = service.get(OWNER, 55);
+
+        assertThat(detail.comparison()).isEqualTo(comparison);
+        assertThat(detail.entries()).extracting(entry -> entry.pair().changeType())
+                .containsExactly(ChangeType.MODIFIED, ChangeType.ADDED, ChangeType.DELETED);
+        ComparisonDetail.Entry modified = detail.entries().getFirst();
+        assertThat(modified.before()).isEqualTo(new ComparedClause(1, 3, "제3조(위약금)", "위약금은 월세의 3배", RiskLevel.HIGH));
+        assertThat(modified.after()).isEqualTo(new ComparedClause(11, 3, "제3조(위약금)", "위약금은 월세의 1배", RiskLevel.CAUTION));
+        assertThat(detail.entries().get(1).before()).isNull();
+        assertThat(detail.entries().get(1).after().riskLevel()).isEqualTo(RiskLevel.HIGH);
+        assertThat(detail.entries().get(2).after()).isNull();
+        assertThat(detail.entries().get(2).before().riskLevel()).isNull();
+        assertThat(detail.summary()).isEqualTo(new ComparisonDetail.Summary(1, 1, 1, 0));
+    }
+
+    @Test
+    @DisplayName("FR-CMP-02 쌍이 가리키는 조항이 없어졌거나 분석 완료 건이 없으면 그쪽 정보만 비우고 나머지는 보여 준다")
+    void getToleratesMissingClausesAndAnalyses() {
+        Comparison comparison = new Comparison(55, OWNER, BEFORE, AFTER, Instant.parse("2026-11-24T00:00:00Z"));
+        when(comparisons.findOwned(55, OWNER)).thenReturn(Optional.of(comparison));
+        when(comparisons.findPairs(55)).thenReturn(List.of(new ComparisonPair(1L, 11L, 1.0, ChangeType.SAME, 0)));
+        when(clauses.findByContract(BEFORE, OWNER)).thenReturn(List.of());
+        when(clauses.findByContract(AFTER, OWNER)).thenReturn(List.of(new Clause(11, AFTER, OWNER, 1, "제1조", "본문", "")));
+        when(analyses.findLatestAnalyzed(anyLong(), any())).thenReturn(Optional.empty());
+
+        ComparisonDetail detail = service.get(OWNER, 55);
+
+        assertThat(detail.entries()).singleElement().satisfies(entry -> {
+            assertThat(entry.before()).isNull();
+            assertThat(entry.after()).isEqualTo(new ComparedClause(11, 1, "제1조", "본문", null));
+        });
     }
 
     private static Analysis analyzed(long id, long contractId) {
