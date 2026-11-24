@@ -94,8 +94,8 @@ public class CreditRepository {
     }
 
     private LedgerEntry toLedgerEntry(UserId owner, CreditLedgerEntity entry) {
-        String refType = entry.getRefType() == null ? "" : entry.getRefType();
+        LedgerRefType refType = entry.getRefType() == null ? null : LedgerRefType.valueOf(entry.getRefType());
         String refId = entry.getRefId() == null ? "" : String.valueOf(entry.getRefId());
-        return new LedgerEntry(owner, entry.getType(), entry.getAmount(), refType, refId, entry.getCreatedAt().toString());
+        return new LedgerEntry(owner, LedgerType.valueOf(entry.getType()), entry.getAmount(), refType, refId, entry.getCreatedAt().toString());
     }
 }

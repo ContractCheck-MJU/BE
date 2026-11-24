@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.MemberRole;
 import ac.mju.contractcheck.domain.OAuthProfile;
@@ -59,7 +60,7 @@ class AuthServiceTest {
         assertThat(account.paidRemaining()).isZero();
         List<LedgerEntry> ledger = credits.ledger(owner, 0, 20).items();
         assertThat(ledger).hasSize(1);
-        assertThat(ledger.get(0).type()).isEqualTo("GRANT");
+        assertThat(ledger.get(0).type()).isEqualTo(LedgerType.GRANT);
         assertThat(ledger.get(0).amount()).isEqualTo(2);
     }
 

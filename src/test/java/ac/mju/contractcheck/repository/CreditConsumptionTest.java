@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.LedgerRefType;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.service.CreditService;
@@ -50,9 +52,9 @@ class CreditConsumptionTest {
         assertThat(account.paidRemaining()).isEqualTo(3);
         List<LedgerEntry> ledger = credits.ledger(owner, 0, 20).items();
         assertThat(ledger).hasSize(1);
-        assertThat(ledger.get(0).type()).isEqualTo("USE");
+        assertThat(ledger.get(0).type()).isEqualTo(LedgerType.USE);
         assertThat(ledger.get(0).amount()).isEqualTo(1);
-        assertThat(ledger.get(0).refType()).isEqualTo("ANALYSIS");
+        assertThat(ledger.get(0).refType()).isEqualTo(LedgerRefType.ANALYSIS);
         assertThat(ledger.get(0).refId()).isEqualTo("101");
     }
 
@@ -140,7 +142,7 @@ class CreditConsumptionTest {
         credits.restore(owner, 201L); // FREE 복구 -> (1, 2)
         assertThat(credits.me(owner).freeRemaining()).isEqualTo(1);
         assertThat(credits.me(owner).paidRemaining()).isEqualTo(2);
-        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> "RESTORE".equals(entry.type())).hasSize(2);
+        assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type() == LedgerType.RESTORE).hasSize(2);
     }
 
     @Test
@@ -172,7 +174,7 @@ class CreditConsumptionTest {
                 }
 
                 assertThat(credits.me(owner).paidRemaining()).as("round %d", round).isEqualTo(1);
-                assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> "RESTORE".equals(entry.type())).hasSize(1);
+                assertThat(credits.ledger(owner, 0, 100).items()).filteredOn(entry -> entry.type() == LedgerType.RESTORE).hasSize(1);
             }
         } finally {
             executor.shutdownNow();

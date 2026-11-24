@@ -15,6 +15,7 @@ import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.domain.LedgerType;
 import ac.mju.contractcheck.repository.AnalysisRepository;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
@@ -65,7 +66,7 @@ class StuckJobRecoveryTest {
     }
 
     private long restoreCount() {
-        return credits.ledger(owner, 0, 100).items().stream().filter(entry -> entry.type().equals("RESTORE")).count();
+        return credits.ledger(owner, 0, 100).items().stream().filter(entry -> entry.type() == LedgerType.RESTORE).count();
     }
 
     @Test

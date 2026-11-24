@@ -93,13 +93,13 @@ class CreditRepositoryTest {
 
         List<LedgerEntry> ledger = credits.findLedgerPage(OWNER, 0, 20).items();
 
-        assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
-        assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type()))
+        assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder(LedgerType.GRANT, LedgerType.USE);
+        assertThat(ledger).filteredOn(entry -> entry.type() == LedgerType.USE)
                 .extracting(LedgerEntry::refType, LedgerEntry::refId)
-                .containsExactly(tuple("ANALYSIS", "55"));
-        assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type()))
+                .containsExactly(tuple(LedgerRefType.ANALYSIS, "55"));
+        assertThat(ledger).filteredOn(entry -> entry.type() == LedgerType.GRANT)
                 .extracting(LedgerEntry::refType, LedgerEntry::refId)
-                .containsExactly(tuple("", ""));
+                .containsExactly(tuple(null, ""));
     }
 
     @Test
@@ -118,7 +118,7 @@ class CreditRepositoryTest {
         assertThat(firstPage.total()).isEqualTo(3);
         assertThat(firstPage.items()).extracting(LedgerEntry::refId).containsExactly("22", "11");
         assertThat(secondPage.total()).isEqualTo(3);
-        assertThat(secondPage.items()).extracting(LedgerEntry::type).containsExactly("GRANT");
+        assertThat(secondPage.items()).extracting(LedgerEntry::type).containsExactly(LedgerType.GRANT);
         assertThat(emptyPage.total()).isZero();
         assertThat(emptyPage.items()).isEmpty();
     }
