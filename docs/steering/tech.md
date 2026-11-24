@@ -38,7 +38,7 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 조항은 배치로 `/classify`, `/embed`에 보낸다. 단건 추론 루프를 돌리지 않는다. Claude에는 위험 조항만 병렬로 보낸다. 전체 조항을 Claude에 넣지 않는다. ([anti-patterns.md](anti-patterns.md) 18)
 
-분석은 `AnalysisService`가 접수(이용권 차감, `ANALYZING`)와 비동기 판정(`analysisExecutor`)을 나눠 처리한다. 접수 뒤 어느 단계든 실패하면 `FAILED`로 바꾸고 같은 분석 ID로 이용권을 한 번만 복구한다. 조항 임베딩(`clauses.embedding`)은 JPA에 매핑하지 않고 `ClauseEmbeddingRepository`가 네이티브 SQL로 쓰며, H2에서는 검증되지 않으므로 `./gradlew postgresTest`로 확인한다. 종합 점수·요약 공식은 스펙 미정이라 `AnalysisSummary`의 임시 규칙이다.
+분석은 `AnalysisService`가 접수(이용권 차감, `ANALYZING`)와 비동기 판정(`analysisExecutor`)을 나눠 처리한다. 접수 뒤 어느 단계든 실패하면 `FAILED`로 바꾸고 같은 분석 ID로 이용권을 한 번만 복구한다. 조항 임베딩(`clauses.embedding`)은 JPA에 매핑하지 않고 `ClauseEmbeddingRepository`가 네이티브 SQL로 쓰며, H2에서는 검증되지 않으므로 `./gradlew postgresTest`로 확인한다. 종합 점수·요약 공식은 스펙 미정이라 `AnalysisSummary`의 임시 규칙이다. 서버가 비동기 작업 중에 죽어 `UPLOADED`·`OCR`·`ANALYZING`에 멈춘 건은 `StuckJobRecovery`(`@Scheduled`, 기본 5분마다, 15분 넘은 건만)가 `FAILED`로 바꾸고 분석은 이용권도 복구한다. 자동 재처리는 하지 않고 사용자가 다시 올리거나 요청한다.
 
 신뢰도·근거 점수 등 임계값은 `RiskPolicy`에 둔다. 코드에 매직 넘버로 하드코딩하지 않는다. ([anti-patterns.md](anti-patterns.md) 21)
 

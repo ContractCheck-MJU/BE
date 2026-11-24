@@ -34,7 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>TODO(FR-UPL-04): 개인정보 마스킹. 지금은 OCR 원문으로 조항을 나눠 저장하고 contracts.masked_text는 비워 둔다.
  * 스펙 미정: OCR 원문(ocr_raw JSONB) 보관 여부와 형식, Upstage 구현체(운영 기본값인데 없어 운영에서는 이 처리가 FAILED로 끝난다),
- * 서버가 중간에 죽어 OCR 상태로 남은 계약의 재처리.
+ * 서버가 중간에 죽어 OCR 상태로 남은 계약의 자동 재처리(지금은 StuckJobRecovery가 FAILED로만 정리한다).
  */
 @Slf4j
 @Service

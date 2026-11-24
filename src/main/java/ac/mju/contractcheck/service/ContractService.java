@@ -3,6 +3,7 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.ContractState;
 import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.PageSlice;
@@ -34,6 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 public class ContractService {
+
+    static final String MESSAGE_INTERRUPTED = "처리가 중단되었습니다. 다시 올려 주세요";
 
     private static final int MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     private static final int MAX_TITLE_LENGTH = 200;
@@ -165,6 +168,27 @@ public class ContractService {
             contracts.delete(id);
         });
         log.info("계약서 삭제 contractId={} userId={}", id, owner);
+    }
+
+    /**
+     * 올린 지 {@code before}보다 오래됐는데 아직 UPLOADED나 OCR에 머문 계약을 FAILED와 사유로 바꾼다.
+     * 서버가 OCR 처리 중에 죽으면 그 계약은 영원히 처리 중으로 보이기 때문에, 사용자가 다시 올릴 수 있게 실패로 알려 준다.
+     * 이용권은 분석 단계에서 차감하므로 복구할 것이 없다. 찾은 뒤 그 사이 처리가 끝난 계약은 다시 읽어 건너뛴다.
+     */
+    public int failStuck(Instant before) {
+        Set<String> processing = Set.of(ContractState.UPLOADED.name(), ContractState.OCR.name());
+        int failed = 0;
+        for (Contract stuck : contracts.findInStatusBefore(processing, before)) {
+            boolean stillProcessing = contracts.findOwned(stuck.id(), stuck.owner())
+                    .filter(current -> processing.contains(current.status())).isPresent();
+            if (!stillProcessing) {
+                continue;
+            }
+            log.warn("멈춘 계약서 처리 정리 contractId={} 상태={} 업로드={}", stuck.id(), stuck.status(), stuck.createdAt());
+            contracts.save(stuck.withStatus(ContractState.FAILED.name(), MESSAGE_INTERRUPTED));
+            failed++;
+        }
+        return failed;
     }
 
     private void validateMetadata(String title, String contractType) {

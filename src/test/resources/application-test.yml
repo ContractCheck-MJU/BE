@@ -30,3 +30,6 @@ logging:
 contractcheck:
   ocr:
     enabled: false
+  # 멈춘 작업 정리 스케줄러는 끈다. 정리 동작은 서비스를 직접 불러 확인한다.
+  recovery:
+    enabled: false

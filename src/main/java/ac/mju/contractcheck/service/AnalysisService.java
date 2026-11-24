@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.service;
 
 import ac.mju.contractcheck.domain.Analysis;
+import ac.mju.contractcheck.domain.AnalysisStatus;
 import ac.mju.contractcheck.domain.AnalysisSummary;
 import ac.mju.contractcheck.domain.Clause;
 import ac.mju.contractcheck.domain.ClauseEmbedding;
@@ -70,7 +71,7 @@ public class AnalysisService {
      *
      * TODO(FR-ANL-01): kftc_cases 검색과 similar_case_ids, 위험 조항의 Claude 설명(FR-EXP-01), 업로드 429 한도(스펙 미정).
      * 스펙 미정: overall_score·summary 산출 공식(AnalysisSummary는 임시 규칙), 재분석 시 기존 분석 보존 범위,
-     * contracts.status(UPLOADED/OCR/SPLIT)와 분석 상태의 동기화, 서버가 중간에 죽어 ANALYZING으로 남은 분석의 복구.
+     * contracts.status(UPLOADED/OCR/SPLIT)와 분석 상태의 동기화. 서버가 중간에 죽어 ANALYZING으로 남은 분석은 {@link #failStuck}가 정리한다.
      * 같은 계약의 동시 접수는 확인과 저장 사이에 틈이 있어 DB 유니크 제약이 필요하다(마이그레이션 번호 공지 후 추가).
      */
     public Analysis start(UserId owner, long contractId) {
@@ -124,6 +125,26 @@ public class AnalysisService {
             log.warn("분석 실패 analysisId={} 원인={}", accepted.id(), exception.toString());
             fail(accepted);
         }
+    }
+
+    /**
+     * 접수한 지 {@code before}보다 오래됐는데 아직 ANALYZING인 분석을 FAILED로 바꾸고 이용권을 복구한다.
+     * 서버가 판정 중에 죽으면 그 분석은 영원히 ANALYZING으로 남아 새 분석도 막고 차감한 이용권도 돌아오지 않기 때문이다.
+     * 찾은 뒤 그 사이 끝난 분석은 다시 읽어 건너뛴다. 복구가 멱등이라 다시 불러도 이용권은 한 번만 돌아온다.
+     */
+    public int failStuck(Instant before) {
+        int failed = 0;
+        for (Analysis stuck : analyses.findInProgressBefore(before)) {
+            boolean stillRunning = analyses.findOwned(stuck.id(), stuck.owner())
+                    .filter(current -> current.status() == AnalysisStatus.ANALYZING).isPresent();
+            if (!stillRunning) {
+                continue;
+            }
+            log.warn("멈춘 분석 정리 analysisId={} contractId={} 접수={}", stuck.id(), stuck.contractId(), stuck.createdAt());
+            fail(stuck);
+            failed++;
+        }
+        return failed;
     }
 
     /** FAILED로 바꾸고 이용권을 복구한다. 둘 중 하나가 실패해도 다른 하나는 시도하고, 예외는 밖으로 내보내지 않는다. */
