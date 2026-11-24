@@ -16,6 +16,12 @@ interface AnalysisJpaRepository extends JpaRepository<AnalysisEntity, Long> {
 
     boolean existsByContractIdAndStatus(Long contractId, String status);
 
+    @Query("select a from AnalysisEntity a where a.contractId = :contractId and a.status = :status "
+            + "and a.contractId in (select c.id from ContractEntity c where c.userId = :userId) "
+            + "order by a.createdAt desc, a.id desc")
+    List<AnalysisEntity> findOwnedByStatusNewestFirst(
+            @Param("contractId") Long contractId, @Param("userId") Long userId, @Param("status") String status);
+
     List<AnalysisEntity> findByStatusAndCreatedAtBefore(String status, Instant before);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)

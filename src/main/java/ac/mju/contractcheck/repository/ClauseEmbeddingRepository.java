@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.ClauseEmbedding;
+import ac.mju.contractcheck.domain.ClauseSimilarity;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -26,5 +27,27 @@ public class ClauseEmbeddingRepository {
                     .param("id", item.clauseId())
                     .update();
         }
+    }
+
+    /**
+     * FR-CMP-01 두 계약의 조항끼리 모든 조합의 코사인 유사도(1 − {@code <=>})를 SQL 한 번으로 구한다.
+     * 임베딩이 없는 조항은 빠진다. 소유자 확인은 호출하는 service가 먼저 한다.
+     */
+    public @NonNull List<ClauseSimilarity> findSimilarities(long beforeContractId, long afterContractId) {
+        return jdbc.sql("""
+                        SELECT b.id AS before_clause_id, a.id AS after_clause_id,
+                               1 - (b.embedding <=> a.embedding) AS similarity
+                          FROM clauses b
+                          CROSS JOIN clauses a
+                         WHERE b.contract_id = :before
+                           AND a.contract_id = :after
+                           AND b.embedding IS NOT NULL
+                           AND a.embedding IS NOT NULL
+                        """)
+                .param("before", beforeContractId)
+                .param("after", afterContractId)
+                .query((rs, rowNumber) -> new ClauseSimilarity(
+                        rs.getLong("before_clause_id"), rs.getLong("after_clause_id"), rs.getDouble("similarity")))
+                .list();
     }
 }

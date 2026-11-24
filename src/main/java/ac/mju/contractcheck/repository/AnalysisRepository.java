@@ -47,6 +47,13 @@ public class AnalysisRepository implements OwnedDataEraser {
         return analyses.findOwned(id, owner.value()).map(entity -> toAnalysis(entity, owner));
     }
 
+    /** 계약의 분석 중 가장 최근에 완료(ANALYZED)된 건. 판정 중·실패 건은 제외하고, 다른 회원의 계약이면 비어 있다. */
+    public @NonNull Optional<Analysis> findLatestAnalyzed(long contractId, UserId owner) {
+        return analyses.findOwnedByStatusNewestFirst(contractId, owner.value(), AnalysisStatus.ANALYZED.name()).stream()
+                .findFirst()
+                .map(entity -> toAnalysis(entity, owner));
+    }
+
     /** 같은 계약에 판정 중인 분석이 있는지 본다. */
     public boolean existsInProgress(long contractId) {
         return analyses.existsByContractIdAndStatus(contractId, AnalysisStatus.ANALYZING.name());

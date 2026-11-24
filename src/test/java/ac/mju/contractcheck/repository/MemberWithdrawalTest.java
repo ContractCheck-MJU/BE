@@ -22,7 +22,6 @@ import ac.mju.contractcheck.domain.Milestone;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.repository.memory.ComparisonRepository;
 import ac.mju.contractcheck.repository.memory.ExplanationRepository;
 import ac.mju.contractcheck.repository.memory.NotificationRepository;
 import ac.mju.contractcheck.domain.OAuthProfile;
@@ -235,7 +234,7 @@ class MemberWithdrawalTest {
     private Seeded seed(UserId owner) {
         long contractId = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/seed", ContractState.SPLIT, "", Instant.now(), null)).id();
         long analysis = analyses.save(new Analysis(0, contractId, owner, AnalysisStatus.ANALYZED, 50, "요약", "m1", Instant.now())).id();
-        long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L)).id();
+        long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L, Instant.now())).id();
         long explanation = explanations.save(new Explanation(0, 1L, owner, "기본", "설명", "제안")).id();
         milestones.save(new Milestone(0, owner, 1L, "END", "만기", "2027-01-01", 30, false));
         notifications.save(new Notification(System.nanoTime(), owner, "EMAIL", "알림", "2026-11-23", false));
