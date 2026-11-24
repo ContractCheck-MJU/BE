@@ -33,11 +33,6 @@ public record   CreditAccount(UserId owner, int freeRemaining, int paidRemaining
         return Optional.empty();
     }
 
-    /** 무료가 있으면 무료부터, 없으면 유료에서 1회 차감한 새 계정을 돌려준다. 둘 다 없으면 비어 있다. */
-    public Optional<CreditAccount> useOne() {
-        return deductOne().map(CreditDeduction::account);
-    }
-
     /** 지정한 출처(FREE·PAID)의 잔여를 1회 복구한 새 계정을 돌려준다. */
     public CreditAccount restoreOne(@NonNull CreditSource source) {
         return switch (source) {
