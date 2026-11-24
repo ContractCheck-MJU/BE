@@ -1,5 +1,7 @@
 package ac.mju.contractcheck.repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +15,8 @@ interface AnalysisJpaRepository extends JpaRepository<AnalysisEntity, Long> {
     Optional<AnalysisEntity> findOwned(@Param("id") Long id, @Param("userId") Long userId);
 
     boolean existsByContractIdAndStatus(Long contractId, String status);
+
+    List<AnalysisEntity> findByStatusAndCreatedAtBefore(String status, Instant before);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from AnalysisEntity a where a.contractId in (select c.id from ContractEntity c where c.userId = :userId)")

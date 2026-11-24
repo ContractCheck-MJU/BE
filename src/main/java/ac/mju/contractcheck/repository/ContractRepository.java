@@ -3,6 +3,8 @@ package ac.mju.contractcheck.repository;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -43,6 +45,11 @@ public class ContractRepository {
         Page<ContractEntity> found = contracts.findByUserIdOrderByCreatedAtDescIdDesc(owner.value(), PageRequest.of(page, size));
         List<Contract> items = found.getContent().stream().map(this::toContract).toList();
         return new PageSlice<>(items, found.getTotalElements());
+    }
+
+    /** 올린 지 {@code before}보다 오래됐는데 아직 주어진 상태에 머문 계약. 서버가 중간에 죽어 멈춘 계약을 찾는 데 쓴다. */
+    public @NonNull List<Contract> findInStatusBefore(@NonNull Collection<String> statuses, @NonNull Instant before) {
+        return contracts.findByStatusInAndCreatedAtBefore(statuses, before).stream().map(this::toContract).toList();
     }
 
     public void delete(long id) {

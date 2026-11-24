@@ -7,6 +7,7 @@ import ac.mju.contractcheck.domain.RiskResult;
 import ac.mju.contractcheck.domain.UserId;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -49,6 +50,14 @@ public class AnalysisRepository implements OwnedDataEraser {
     /** 같은 계약에 판정 중인 분석이 있는지 본다. */
     public boolean existsInProgress(long contractId) {
         return analyses.existsByContractIdAndStatus(contractId, AnalysisStatus.ANALYZING.name());
+    }
+
+    /** 접수한 지 {@code before}보다 오래됐는데 아직 판정 중인 분석. 서버가 중간에 죽어 멈춘 분석을 찾는 데 쓴다. */
+    public @NonNull List<Analysis> findInProgressBefore(@NonNull Instant before) {
+        return analyses.findByStatusAndCreatedAtBefore(AnalysisStatus.ANALYZING.name(), before).stream()
+                .flatMap(entity -> contracts.findById(entity.getContractId())
+                        .map(contract -> toAnalysis(entity, new UserId(contract.getUserId()))).stream())
+                .toList();
     }
 
     /** 분석 행과 그 조항별 결과를 지운다. 접수 직후 차감에 실패했을 때 분석 행을 남기지 않으려고 쓴다. */
