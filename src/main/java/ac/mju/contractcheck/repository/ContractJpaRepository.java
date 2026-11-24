@@ -1,5 +1,7 @@
 package ac.mju.contractcheck.repository;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,8 @@ interface ContractJpaRepository extends JpaRepository<ContractEntity, Long> {
 
     @Query("select c.s3Key from ContractEntity c where c.userId = :userId and c.s3Key is not null")
     List<String> findS3KeysByUserId(@Param("userId") Long userId);
+
+    List<ContractEntity> findByStatusInAndCreatedAtBefore(Collection<String> statuses, Instant before);
 
     void deleteByUserId(Long userId);
 }

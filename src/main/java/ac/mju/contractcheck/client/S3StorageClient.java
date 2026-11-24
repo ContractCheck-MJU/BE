@@ -55,6 +55,11 @@ public class S3StorageClient implements StorageClient {
     }
 
     @Override
+    public byte[] get(String key) {
+        return s3.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build()).asByteArray();
+    }
+
+    @Override
     public void delete(String key) {
         s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
     }

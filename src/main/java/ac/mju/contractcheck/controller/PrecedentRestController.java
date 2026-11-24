@@ -1,8 +1,10 @@
 package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.dto.common.ItemsResponse;
+import ac.mju.contractcheck.dto.precedent.PrecedentSearchItem;
 import ac.mju.contractcheck.service.PrecedentService;
 
+import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +24,14 @@ public class PrecedentRestController {
 
     /** FR-PRC-01 근거 검색 */
     @GetMapping("/api/v1/precedents/search")
-    public ItemsResponse<Map<String, Object>> precedents(
+    public ItemsResponse<PrecedentSearchItem> precedents(
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(required = false) String type,
             @RequestParam(defaultValue = "5") int k) {
-        return new ItemsResponse<>(precedents.searchPrecedents(query, type, k));
+        List<PrecedentSearchItem> items = precedents.searchPrecedents(query, type, k).stream()
+                .map(PrecedentSearchItem::from)
+                .toList();
+        return new ItemsResponse<>(items);
     }
 
     /** FR-PRC-01 근거 검색 */

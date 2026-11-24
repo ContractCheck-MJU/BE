@@ -29,4 +29,12 @@ public record CreditAccount(UserId owner, int freeRemaining, int paidRemaining, 
         }
         return Optional.empty();
     }
+
+    /**
+     * 실패한 분석의 차감을 되돌린 새 계정을 돌려준다.
+     * 스펙 미정: credit_ledger에 무료·유료 구분이 없어 복구분은 항상 무료 잔여로 되돌린다(TC-CRD-007).
+     */
+    public CreditAccount restoreOne() {
+        return new CreditAccount(owner, freeRemaining + 1, paidRemaining, version);
+    }
 }

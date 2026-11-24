@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface CreditLedgerJpaRepository extends JpaRepository<CreditLedgerEntity, Long> {
 
     Page<CreditLedgerEntity> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
+
+    boolean existsByUserIdAndTypeAndRefTypeAndRefId(Long userId, String type, String refType, Long refId);
 }

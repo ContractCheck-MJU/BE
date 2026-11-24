@@ -54,6 +54,11 @@ public class CreditRepository {
                 owner.value(), type.name(), amount, refType == null ? null : refType.name(), refId, Instant.now()));
     }
 
+    /** 같은 종류·참조의 원장이 이미 있는지 본다. 복구의 중복 방지에 쓴다. */
+    public boolean hasLedger(UserId owner, @NonNull LedgerType type, @NonNull LedgerRefType refType, long refId) {
+        return ledgers.existsByUserIdAndTypeAndRefTypeAndRefId(owner.value(), type.name(), refType.name(), refId);
+    }
+
     public @NonNull PageSlice<LedgerEntry> findLedgerPage(UserId owner, int page, int size) {
         Page<CreditLedgerEntity> found = ledgers.findByUserIdOrderByCreatedAtDescIdDesc(owner.value(), PageRequest.of(page, size));
         List<LedgerEntry> items = found.getContent().stream()

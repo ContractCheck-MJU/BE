@@ -23,25 +23,49 @@ public class EvidenceRepository {
 
     /** 코사인 거리가 가까운 순으로 limit개를 돌려준다. similarity = 1 - 거리. 임베딩이 없는 청크는 제외한다. */
     public @NonNull List<EvidenceHit> findSimilar(@NonNull float[] embedding, int limit) {
+        return findSimilar(embedding, null, limit);
+    }
+
+    /** docType이 주어지면 해당 문서 유형(LAW·PRECEDENT)으로 좁혀 코사인 거리가 가까운 순으로 limit개를 돌려준다. */
+    public @NonNull List<EvidenceHit> findSimilar(@NonNull float[] embedding, String docType, int limit) {
         String vector = toVectorLiteral(embedding);
-        return jdbc.sql("""
-                        SELECT d.id AS document_id, c.id AS chunk_id, d.doc_type, d.title, d.ref, c.text,
+        if (docType == null) {
+            return mapHits(jdbc.sql("""
+                            SELECT d.id AS document_id, c.id AS chunk_id, d.doc_type, d.title, d.ref, c.text, d.url,
+                                   1 - (c.embedding <=> CAST(:vector AS vector)) AS similarity
+                              FROM legal_chunks c
+                              JOIN legal_documents d ON d.id = c.document_id
+                             WHERE c.embedding IS NOT NULL
+                             ORDER BY c.embedding <=> CAST(:vector AS vector)
+                             LIMIT :limit
+                            """)
+                    .param("vector", vector)
+                    .param("limit", limit));
+        }
+        return mapHits(jdbc.sql("""
+                        SELECT d.id AS document_id, c.id AS chunk_id, d.doc_type, d.title, d.ref, c.text, d.url,
                                1 - (c.embedding <=> CAST(:vector AS vector)) AS similarity
                           FROM legal_chunks c
                           JOIN legal_documents d ON d.id = c.document_id
                          WHERE c.embedding IS NOT NULL
+                           AND d.doc_type = :docType
                          ORDER BY c.embedding <=> CAST(:vector AS vector)
                          LIMIT :limit
                         """)
                 .param("vector", vector)
-                .param("limit", limit)
-                .query((rs, rowNumber) -> new EvidenceHit(
+                .param("docType", docType)
+                .param("limit", limit));
+    }
+
+    private static List<EvidenceHit> mapHits(JdbcClient.StatementSpec spec) {
+        return spec.query((rs, rowNumber) -> new EvidenceHit(
                         rs.getLong("document_id"),
                         rs.getLong("chunk_id"),
                         rs.getString("doc_type"),
                         rs.getString("title"),
                         rs.getString("ref") == null ? "" : rs.getString("ref"),
                         rs.getString("text") == null ? "" : rs.getString("text"),
+                        rs.getString("url") == null ? "" : rs.getString("url"),
                         rs.getDouble("similarity")))
                 .list();
     }

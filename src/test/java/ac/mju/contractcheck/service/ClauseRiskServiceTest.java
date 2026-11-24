@@ -191,6 +191,6 @@ class ClauseRiskServiceTest {
     }
 
     private static EvidenceHit hit(double similarity) {
-        return new EvidenceHit(1, 1, "LAW", "민법 제640조", "제640조", "본문", similarity);
+        return new EvidenceHit(1, 1, "LAW", "민법 제640조", "제640조", "본문", "", similarity);
     }
 }
