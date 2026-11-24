@@ -47,14 +47,16 @@ public class MilestoneRestController {
         return new ItemsResponse<>(created.stream().map(MilestoneItem::from).toList());
     }
 
-    /**
-     * FR-MIL-02 일정 관리
-     *
-     * TODO(FR-MIL-02): from/to를 MilestoneService.list에 넘겨 due_date 구간을 필터한다. 현재 두 파라미터는 사용되지 않는다.
-     */
+    /** FR-MIL-02 일정 관리 */
     @GetMapping("/api/v1/milestones")
-    public ItemsResponse<MilestoneItem> list(Authentication authentication, @RequestParam(required = false) String from, @RequestParam(required = false) String to) {
-        return new ItemsResponse<>(milestones.list(currentUser.userId(authentication)).stream().map(MilestoneItem::from).toList());
+    public ItemsResponse<MilestoneItem> list(
+            Authentication authentication,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return new ItemsResponse<>(
+                milestones.list(currentUser.userId(authentication), from, to).stream()
+                        .map(MilestoneItem::from)
+                        .toList());
     }
 
     /** FR-MIL-02 일정 관리 */

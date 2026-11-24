@@ -3,13 +3,17 @@ package ac.mju.contractcheck.service;
 import ac.mju.contractcheck.client.StorageClient;
 import ac.mju.contractcheck.domain.Contract;
 import ac.mju.contractcheck.domain.ContractFileType;
+import ac.mju.contractcheck.domain.ContractState;
+import ac.mju.contractcheck.domain.ContractUploaded;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.dto.contract.FileUrl;
 import ac.mju.contractcheck.global.error.ApiException;
+import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.global.error.NotFoundException;
+import ac.mju.contractcheck.repository.AnalysisRepository;
 import ac.mju.contractcheck.repository.ClauseRepository;
 import ac.mju.contractcheck.repository.ContractRepository;
 
@@ -22,6 +26,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 public class ContractService {
+
+    static final String MESSAGE_INTERRUPTED = "처리가 중단되었습니다. 다시 올려 주세요";
 
     private static final int MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     private static final int MAX_TITLE_LENGTH = 200;
@@ -41,11 +48,15 @@ public class ContractService {
     @NonNull
     private final ClauseRepository clauses;
     @NonNull
+    private final AnalysisRepository analyses;
+    @NonNull
     private final CreditService credits;
     @NonNull
     private final StorageClient storage;
     @NonNull
     private final TransactionTemplate transaction;
+    @NonNull
+    private final ApplicationEventPublisher events;
 
     /*
      * TODO(FR-UPL-04): 개인정보 마스킹. 조항 분할이 끝난 직후, classify/embed/Claude 등 외부 전송 전에 수행한다.
@@ -64,8 +75,8 @@ public class ContractService {
      * 검증(제목 200자·계약 유형 MONTHLY/JEONSE·20MB·PDF/JPG/PNG 매직바이트)과 이용권 잔여 확인을 통과한 파일만 저장소에 올리고
      * contracts 행(status=UPLOADED)을 만든다. 이용권은 차감하지 않고 잔여만 확인한다(실제 USE는 분석 시작, TC-UPL-001·TC-CRD-002).
      * 저장소 호출은 트랜잭션 밖이며, 행 저장이 실패하면 올린 객체를 지운다.
+     * 저장이 끝나면 ContractUploaded 이벤트를 발행하고, OCR·조항 분할은 ContractProcessor가 비동기로 이어 간다(FR-UPL-02).
      *
-     * TODO(FR-UPL-02): 업로드 직후 비동기 OCR을 시작한다.
      * 스펙 미정: 업로드 한도 429 RATE_LIMITED(시간당 10회, TC-UPL-005), 원본 보관 90일 만료 삭제 배치.
      */
     public Contract upload(UserId owner, MultipartFile file, String title, String contractType) {
@@ -87,6 +98,7 @@ public class ContractService {
             Contract saved = contracts.save(new Contract(
                     0, owner, title, contractType, key, "UPLOADED", "", Instant.now(), null));
             log.info("계약서 업로드 contractId={} userId={}", saved.id(), owner);
+            events.publishEvent(new ContractUploaded(owner, saved.id()));
             return saved;
         } catch (RuntimeException exception) {
             deleteQuietly(key);
@@ -116,17 +128,11 @@ public class ContractService {
 
     /**
      * FR-UPL-02 OCR 변환
+     * 계약서의 처리 상태를 돌려준다. 업로드 뒤 OCR·조항 분할은 ContractProcessor가 비동기로 진행하며
+     * UPLOADED → OCR → SPLIT 순서로 바뀌고, 실패하면 FAILED와 사유(errorMessage)가 담긴다. 없는 계약과 타인 계약은 404다.
      *
-     * TODO(FR-UPL-02): OCR·조항 분할 진행 상태를 조회하고, 미완료면 파이프라인을 이어간다.
-     * 1. 입력 검증: id 필수.
-     * 2. 권한/소유자 확인: CONTRACT_NOT_FOUND(404).
-     * 3. DB/외부 호출: status=UPLOADED이면 Upstage Document Digitization
-     *    (POST https://api.upstage.ai/v1/document-digitization, model=document-parse)을 호출하고, 실패 시 3회 백오프한다.
-     *    성공 시 ocr_raw(JSONB) 저장, status=OCR. 이어서 조항 분할(FR-UPL-03)로 clauses(clause_no, title, text)를 insert하고 status=SPLIT.
-     *    그다음 FR-UPL-04 마스킹으로 masked_text를 채운다.
-     * 4. 상태 전이: UPLOADED → OCR → SPLIT. OCR 실패 시 실패 상태, 예약·차감한 이용권이 있으면 RESTORE.
-     * 5. 예외/에러코드: 시트 OCR 실패 코드. 스펙 미정: 실패 시 contracts.status 값(스키마에 FAILED 제약이 없음).
-     * 6. 반환: 현재 status. 스펙 미정: 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
+     * TODO(FR-UPL-02): Upstage Document Parse 구현체(운영 기본값인데 아직 없다), OCR 원문(ocr_raw) 보관.
+     * 스펙 미정: OCR 원문 저장 위치·형식, 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
      */
     public Contract status(UserId owner, long id) {
         return owned(owner, id);
@@ -146,19 +152,43 @@ public class ContractService {
     /**
      * FR-UPL-01 계약서 업로드
      * 저장소 객체를 먼저 지운 뒤, 한 트랜잭션에서 조항과 contracts 행을 지운다. 쓴 이용권은 복구하지 않는다(TC-CRD-011).
-     * 객체 삭제가 실패하면 행을 남겨 다시 시도할 수 있게 한다.
+     * 객체 삭제가 실패하면 행을 남겨 다시 시도할 수 있게 한다. 분석이 진행 중이면 409 ANALYSIS_IN_PROGRESS다.
      *
      * TODO(FR-UPL-01): 분석·비교·설명·일정이 영속화되면 DB cascade(V2)로 함께 지워지는지 확인한다.
      * 스펙 미정: 물리 삭제 vs 상태 변경, 비교·설명 등 타 테이블 보존 범위.
      */
     public void delete(UserId owner, long id) {
         Contract contract = owned(owner, id);
+        if (analyses.existsInProgress(id)) {
+            throw new ConflictException("ANALYSIS_IN_PROGRESS", "분석이 진행 중인 계약서는 삭제할 수 없습니다.");
+        }
         storage.delete(contract.s3Key());
         transaction.executeWithoutResult(status -> {
             clauses.deleteByContract(id);
             contracts.delete(id);
         });
         log.info("계약서 삭제 contractId={} userId={}", id, owner);
+    }
+
+    /**
+     * 올린 지 {@code before}보다 오래됐는데 아직 UPLOADED나 OCR에 머문 계약을 FAILED와 사유로 바꾼다.
+     * 서버가 OCR 처리 중에 죽으면 그 계약은 영원히 처리 중으로 보이기 때문에, 사용자가 다시 올릴 수 있게 실패로 알려 준다.
+     * 이용권은 분석 단계에서 차감하므로 복구할 것이 없다. 찾은 뒤 그 사이 처리가 끝난 계약은 다시 읽어 건너뛴다.
+     */
+    public int failStuck(Instant before) {
+        Set<String> processing = Set.of(ContractState.UPLOADED.name(), ContractState.OCR.name());
+        int failed = 0;
+        for (Contract stuck : contracts.findInStatusBefore(processing, before)) {
+            boolean stillProcessing = contracts.findOwned(stuck.id(), stuck.owner())
+                    .filter(current -> processing.contains(current.status())).isPresent();
+            if (!stillProcessing) {
+                continue;
+            }
+            log.warn("멈춘 계약서 처리 정리 contractId={} 상태={} 업로드={}", stuck.id(), stuck.status(), stuck.createdAt());
+            contracts.save(stuck.withStatus(ContractState.FAILED.name(), MESSAGE_INTERRUPTED));
+            failed++;
+        }
+        return failed;
     }
 
     private void validateMetadata(String title, String contractType) {

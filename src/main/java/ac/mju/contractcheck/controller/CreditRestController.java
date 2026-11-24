@@ -1,12 +1,15 @@
 package ac.mju.contractcheck.controller;
 
 import ac.mju.contractcheck.domain.CreditAccount;
-import ac.mju.contractcheck.dto.common.PageResponse;
+import ac.mju.contractcheck.domain.LedgerEntry;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.dto.credit.CreditBalance;
 import ac.mju.contractcheck.dto.credit.LedgerItem;
+import ac.mju.contractcheck.dto.credit.LedgerPage;
 import ac.mju.contractcheck.global.security.CurrentUser;
 import ac.mju.contractcheck.service.CreditService;
 
+import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -34,15 +37,14 @@ public class CreditRestController {
         return new CreditBalance(account.freeRemaining(), account.paidRemaining());
     }
 
-    /**
-     * FR-CRD-02 유료 차감
-     *
-     * TODO(FR-CRD-02): page(및 size)를 CreditService.ledger의 OFFSET/LIMIT·총건수에 전달한다. 현재는 전체 목록을 가져와 page만 응답에 넣는다.
-     */
+    /** FR-CRD-02 유료 차감 */
     @GetMapping("/api/v1/credits/me/ledger")
-    public PageResponse<LedgerItem> ledger(Authentication authentication, @RequestParam(defaultValue = "0") int page) {
-        return new PageResponse<>(
-                credits.ledger(currentUser.userId(authentication)).stream().map(LedgerItem::from).toList(),
-                page);
+    public LedgerPage ledger(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageSlice<LedgerEntry> found = credits.ledger(currentUser.userId(authentication), page, size);
+        List<LedgerItem> items = found.items().stream().map(LedgerItem::from).toList();
+        return new LedgerPage(items, page, size, (int) found.total());
     }
 }

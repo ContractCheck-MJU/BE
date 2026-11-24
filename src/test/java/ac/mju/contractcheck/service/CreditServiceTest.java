@@ -1,8 +1,10 @@
 package ac.mju.contractcheck.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -14,11 +16,15 @@ import static org.mockito.Mockito.when;
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditPolicy;
 import ac.mju.contractcheck.domain.CreditSource;
+import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.repository.CreditRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -198,5 +204,32 @@ class CreditServiceTest {
         verify(credits, times(2)).findAccount(OWNER);
         verify(transactionManager, times(2)).getTransaction(any());
         verify(credits, times(1)).appendLedger(OWNER, LedgerType.RESTORE, 1, LedgerRefType.ANALYSIS, 60L, CreditSource.FREE);
+    }
+
+    @Test
+    @DisplayName("FR-CRD-02 원장 조회는 page·size를 저장소에 그대로 전달해 결과를 돌려준다")
+    void ledgerDelegatesPagingToRepository() {
+        PageSlice<LedgerEntry> expected = new PageSlice<>(
+                List.of(new LedgerEntry(OWNER, "USE", 1, "ANALYSIS", "42", "2026-11-24T00:00:00Z")), 5);
+        when(credits.findLedgerPage(OWNER, 1, 10)).thenReturn(expected);
+
+        PageSlice<LedgerEntry> actual = service.ledger(OWNER, 1, 10);
+
+        assertThat(actual).isEqualTo(expected);
+        verify(credits).findLedgerPage(OWNER, 1, 10);
+    }
+
+    @Test
+    @DisplayName("FR-CRD-02 원장 조회에서 page가 음수이거나 size가 1 미만이면 400 VALIDATION_ERROR이고 저장소를 부르지 않는다")
+    void ledgerRejectsInvalidPageOrSize() {
+        for (int[] invalid : new int[][] {{-1, 20}, {0, 0}, {0, -5}}) {
+            assertThatThrownBy(() -> service.ledger(OWNER, invalid[0], invalid[1]))
+                    .isInstanceOf(ApiException.class)
+                    .satisfies(ex -> {
+                        assertThat(((ApiException) ex).status()).isEqualTo(400);
+                        assertThat(((ApiException) ex).code()).isEqualTo("VALIDATION_ERROR");
+                    });
+        }
+        verify(credits, never()).findLedgerPage(any(), anyInt(), anyInt());
     }
 }

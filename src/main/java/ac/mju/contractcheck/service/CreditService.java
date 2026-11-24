@@ -8,14 +8,15 @@ import ac.mju.contractcheck.domain.CreditUseResult;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.global.error.ApiException;
 import ac.mju.contractcheck.global.error.CreditInsufficientException;
 import ac.mju.contractcheck.repository.CreditRepository;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import java.util.List;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -61,7 +62,8 @@ public class CreditService {
      * 같은 지갑을 동시에 바꿔 낙관적 락이 충돌하면 잔액을 다시 읽어 최대 {@value #MAX_ATTEMPTS}번 시도한다.
      * 시도마다 새 트랜잭션을 열고(지갑 갱신과 USE 원장 기록을 함께 성공·실패시킨다) 재시도 루프는 트랜잭션 밖에 둔다.
      * 충돌 예외가 트랜잭션 밖으로 나가야 다음 시도가 깨끗한 상태로 지갑을 다시 읽는다. 외부 API는 부르지 않는다.
-     * 호출은 FR-ANL-01에서 분석을 접수할 때 한다.
+     *
+     * 분석 실패 때의 복구는 {@link #restore}가 한다.
      */
     public void use(UserId owner, long analysisId) {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -130,17 +132,13 @@ public class CreditService {
 
     /**
      * FR-CRD-02 유료 차감
-     *
-     * TODO(FR-CRD-02): 이용권 원장 목록을 페이지로 조회한다. 실제 차감(USE)·복구(RESTORE)·지급(GRANT)·환불(REFUND)은
-     * 분석 시작·실패, 가입, 결제 승인/취소에서 수행하고, 이 API는 조회만 한다.
-     * 1. 입력 검증: page/size를 서비스로 전달한다.
-     * 2. 권한/소유자 확인: credit_ledger.user_id = 현재 사용자.
-     * 3. DB/외부 호출: created_at 내림차순, OFFSET/LIMIT. type, amount, ref_type, ref_id를 포함한다.
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 없음(빈 목록 허용).
-     * 6. 반환: 원장 페이지.
+     * 내 이용권 원장을 최신순으로 한 페이지 돌려준다(OFFSET/LIMIT, 전체 건수 포함). 빈 목록은 허용한다.
+     * page가 0 미만이거나 size가 1 미만이면 400 VALIDATION_ERROR다.
      */
-    public List<LedgerEntry> ledger(UserId owner) {
-        return credits.ledger(owner);
+    public PageSlice<LedgerEntry> ledger(UserId owner, int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new ApiException(400, "VALIDATION_ERROR", "page는 0 이상, size는 1 이상이어야 합니다.");
+        }
+        return credits.findLedgerPage(owner, page, size);
     }
 }

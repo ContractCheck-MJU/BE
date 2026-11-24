@@ -14,6 +14,9 @@ public interface StorageClient {
     /** 제한 시간 동안만 유효한 읽기 전용 사전서명 URL을 만든다. */
     String presignGet(String key, Duration validity);
 
+    /** 객체의 내용을 읽는다. 없거나 읽지 못하면 예외를 던진다. OCR처럼 원본을 다시 읽는 처리에서 쓴다. */
+    byte[] get(String key);
+
     /** 객체를 지운다. 이미 없어도 성공으로 본다. */
     void delete(String key);
 }

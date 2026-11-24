@@ -2,12 +2,14 @@ package ac.mju.contractcheck.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import ac.mju.contractcheck.domain.CreditAccount;
 import ac.mju.contractcheck.domain.CreditSource;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.LedgerRefType;
 import ac.mju.contractcheck.domain.LedgerType;
+import ac.mju.contractcheck.domain.PageSlice;
 import ac.mju.contractcheck.domain.UserId;
 import java.util.List;
 import java.util.Optional;
@@ -72,16 +74,53 @@ class CreditRepositoryTest {
     }
 
     @Test
+    @DisplayName("원장 존재 여부는 종류·참조 종류·참조 ID가 모두 같을 때만 true다")
+    void hasLedgerMatchesTypeAndReference() {
+        credits.createAccount(new CreditAccount(OWNER, 2, 0));
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 9L, CreditSource.FREE);
+
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 9L)).isTrue();
+        assertThat(credits.hasLedger(OWNER, LedgerType.RESTORE, LedgerRefType.ANALYSIS, 9L)).isFalse();
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.ANALYSIS, 10L)).isFalse();
+        assertThat(credits.hasLedger(OWNER, LedgerType.USE, LedgerRefType.PAYMENT, 9L)).isFalse();
+    }
+
+    @Test
     @DisplayName("원장은 종류와 참조의 이름이 DB 문자열로 저장되고, 참조가 없으면 비어 있다")
     void ledgerStoresEnumNamesAsDatabaseValues() {
         credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
         credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 55L, CreditSource.PAID);
 
-        List<LedgerEntry> ledger = credits.ledger(OWNER);
+        List<LedgerEntry> ledger = credits.findLedgerPage(OWNER, 0, 20).items();
 
         assertThat(ledger).extracting(LedgerEntry::type).containsExactlyInAnyOrder("GRANT", "USE");
-        assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("55");
-        assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type())).extracting(LedgerEntry::refId).containsExactly("");
+        assertThat(ledger).filteredOn(entry -> "USE".equals(entry.type()))
+                .extracting(LedgerEntry::refType, LedgerEntry::refId)
+                .containsExactly(tuple("ANALYSIS", "55"));
+        assertThat(ledger).filteredOn(entry -> "GRANT".equals(entry.type()))
+                .extracting(LedgerEntry::refType, LedgerEntry::refId)
+                .containsExactly(tuple("", ""));
+    }
+
+    @Test
+    @DisplayName("원장 페이지는 최신순으로 잘라 전체 건수와 함께 돌려주고 타인 원장은 섞이지 않는다")
+    void findLedgerPageSlicesNewestFirstAndIsolatesOwner() {
+        UserId other = new UserId(990_002L);
+        credits.appendLedger(OWNER, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 11L, CreditSource.FREE);
+        credits.appendLedger(other, LedgerType.GRANT, 2, null, null, CreditSource.FREE);
+        credits.appendLedger(OWNER, LedgerType.USE, 1, LedgerRefType.ANALYSIS, 22L, CreditSource.FREE);
+
+        PageSlice<LedgerEntry> firstPage = credits.findLedgerPage(OWNER, 0, 2);
+        PageSlice<LedgerEntry> secondPage = credits.findLedgerPage(OWNER, 1, 2);
+        PageSlice<LedgerEntry> emptyPage = credits.findLedgerPage(new UserId(990_003L), 0, 20);
+
+        assertThat(firstPage.total()).isEqualTo(3);
+        assertThat(firstPage.items()).extracting(LedgerEntry::refId).containsExactly("22", "11");
+        assertThat(secondPage.total()).isEqualTo(3);
+        assertThat(secondPage.items()).extracting(LedgerEntry::type).containsExactly("GRANT");
+        assertThat(emptyPage.total()).isZero();
+        assertThat(emptyPage.items()).isEmpty();
     }
 
     @Test

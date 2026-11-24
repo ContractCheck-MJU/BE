@@ -2,6 +2,7 @@ package ac.mju.contractcheck.client.mac;
 
 import ac.mju.contractcheck.client.OcrClient;
 import ac.mju.contractcheck.client.OcrException;
+import ac.mju.contractcheck.client.OcrTimeoutException;
 import ac.mju.contractcheck.domain.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 import java.io.IOException;
@@ -151,7 +152,7 @@ public class AppleVisionOcrClient implements OcrClient {
             }
             if (!waitFor(process, limit)) {
                 process.destroyForcibly();
-                throw new OcrException("OCR 처리 시간 초과");
+                throw new OcrTimeoutException("OCR 처리 시간 초과");
             }
             if (process.exitValue() != 0) {
                 throw new OcrException("OCR 처리에 실패했습니다: " + firstLine(err));
