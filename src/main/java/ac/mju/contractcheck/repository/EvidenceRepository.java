@@ -57,6 +57,26 @@ public class EvidenceRepository {
                 .param("limit", limit));
     }
 
+    /**
+     * 분석 때 저장한 조항 임베딩(clauses.embedding)으로 근거를 찾는다. 추론 서버(/embed)를 다시 부르지 않는다.
+     * 조항에 임베딩이 없으면(분석 전이거나 적재 실패) 빈 목록이다. 소유자 확인은 호출하는 service가 먼저 한다.
+     */
+    public @NonNull List<EvidenceHit> findSimilarToClause(long clauseId, int limit) {
+        return mapHits(jdbc.sql("""
+                        SELECT d.id AS document_id, c.id AS chunk_id, d.doc_type, d.title, d.ref, c.text, d.url,
+                               1 - (c.embedding <=> q.embedding) AS similarity
+                          FROM clauses q
+                          JOIN legal_chunks c ON c.embedding IS NOT NULL
+                          JOIN legal_documents d ON d.id = c.document_id
+                         WHERE q.id = :clauseId
+                           AND q.embedding IS NOT NULL
+                         ORDER BY c.embedding <=> q.embedding
+                         LIMIT :limit
+                        """)
+                .param("clauseId", clauseId)
+                .param("limit", limit));
+    }
+
     private static List<EvidenceHit> mapHits(JdbcClient.StatementSpec spec) {
         return spec.query((rs, rowNumber) -> new EvidenceHit(
                         rs.getLong("document_id"),

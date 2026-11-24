@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 법령·판례 근거 검색기. Spring AI RAG의 {@link DocumentRetriever}를 우리 테이블(legal_chunks)에 맞춰 구현했다.
- * 쉬운말 설명(FR-EXP-01)에서는 이 검색기를 RetrievalAugmentationAdvisor에 꽂아 Claude에 근거 컨텍스트를 준다.
+ * 쉬운말 설명(FR-EXP-01)은 {@link #searchByClause(long, int)}로 저장된 조항 임베딩에서 근거를 찾아 Claude 프롬프트에 넣는다.
  *
  * <p>조항을 이미 임베딩해 둔 경우(위험 판정)에는 {@link #search(float[], int)}로 다시 임베딩하지 않고 바로 검색한다.
  * Spring AI VectorStore 테이블은 만들지 않는다. 트랜잭션 밖에서 부른다(임베딩이 외부 호출이다).
@@ -50,6 +50,11 @@ public class EvidenceRetriever implements DocumentRetriever {
     /** 이미 만든 임베딩으로 검색한다. */
     public List<EvidenceHit> search(@NonNull float[] embedding, int limit) {
         return evidence.findSimilar(embedding, limit);
+    }
+
+    /** 분석 때 저장한 조항 임베딩으로 찾는다. 임베딩을 다시 만들지 않아 추론 서버가 없어도 된다. 임베딩이 없는 조항이면 빈 목록이다. */
+    public List<EvidenceHit> searchByClause(long clauseId, int limit) {
+        return evidence.findSimilarToClause(clauseId, limit);
     }
 
     static Document toDocument(EvidenceHit hit) {

@@ -26,8 +26,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-session-jdbc'
     implementation 'software.amazon.awssdk:s3'
-    // RAG(EmbeddingModel·DocumentRetriever·ChatClient). 스타터는 쓰지 않아 자동 설정·키 요구가 없다. VectorStore 테이블은 쓰지 않는다.
+    // RAG(EmbeddingModel·DocumentRetriever). 스타터는 쓰지 않아 자동 설정·키 요구가 없다. VectorStore 테이블은 쓰지 않는다.
     implementation 'org.springframework.ai:spring-ai-rag'
+    // Claude 호출(FR-EXP). LlmClient 구현체(AnthropicLlmClient)에서만 쓴다.
+    implementation 'com.anthropic:anthropic-java:3.3.0'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-logging'

@@ -101,6 +101,15 @@ contractcheck:
     max-attempts: 3
     retry-backoff: 200ms
     batch-size: 64
+  # Claude(쉬운말 설명·수정 문구, FR-EXP). 키는 환경변수로만 주입하고, 없으면 앱은 뜨지만 설명 생성만 503이다.
+  # 응답 목표 10초(TC-EXP-013)라 effort는 low, SDK 재시도는 1회(시간 초과 포함)다.
+  llm:
+    api-key: ${ANTHROPIC_API_KEY:unset}
+    model: ${LLM_MODEL:claude-sonnet-5-5}
+    effort: ${LLM_EFFORT:low}
+    timeout: ${LLM_TIMEOUT:10s}
+    max-retries: 1
+    max-tokens: 4096
   session:
     cookie-secure: true   # SESSION 쿠키 Secure. local 프로필만 http 개발을 위해 끈다. 나머지 속성은 SessionConfig
   frontend:
