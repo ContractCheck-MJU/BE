@@ -108,6 +108,8 @@ contractcheck:
   analysis:
     confidence-threshold: 0.6       # TC-ANL-017
     evidence-score-threshold: 0.5   # AI·RAG 파이프라인 7단계 리랭크 임계
+  comparison:
+    match-threshold: 0.6            # FR-CMP-01 조항 짝 맞추기 유사도 임계(이 값 미만은 ADDED·DELETED)
 
 # Actuator: health·info만 웹에 노출
 management:
