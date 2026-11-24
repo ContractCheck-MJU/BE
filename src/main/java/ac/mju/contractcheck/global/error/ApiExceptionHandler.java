@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,8 +72,11 @@ public class ApiExceptionHandler {
                 .body(new PaymentRejectedError(exception.code(), exception.publicMessage(), traceId, exception.providerCode()));
     }
 
-    /** 요청 본문·파라미터 검증 실패. 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다. */
-    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
+    /**
+     * 요청 본문·파라미터 검증 실패. 본문을 읽지 못한 경우(JSON 형식 오류, 필수 값 누락)도 스펙의 400 VALIDATION_ERROR로 내린다.
+     * 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다.
+     */
+    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiError> invalidRequest(Exception exception) {
         String traceId = traceId();
         log.warn("요청 검증 실패 type={} traceId={}", exception.getClass().getSimpleName(), traceId);
