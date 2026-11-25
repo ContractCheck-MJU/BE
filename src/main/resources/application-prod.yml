@@ -15,8 +15,7 @@ logging:
     root: warn
     ac.mju.contractcheck: info
 
-# 운영은 Linux라 Apple Vision을 쓸 수 없다. Upstage 구현체가 생기기 전에는 OCR 빈이 없다.
-# TODO(FR-UPL-02): UpstageOcrClient 구현 후 OCR을 쓰는 서비스를 붙인다.
+# 운영은 Linux라 Apple Vision을 쓸 수 없어 Upstage를 쓴다. UPSTAGE_API_KEY가 없으면 OCR 빈이 없다.
 contractcheck:
   ocr:
     provider: ${OCR_PROVIDER:upstage}

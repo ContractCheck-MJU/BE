@@ -18,7 +18,9 @@ Spring이 DB, 인증, OCR(Upstage), Claude, Toss 결제를 소유한다.
 
 외부 API는 서비스당 클라이언트 인터페이스 하나(`InferenceClient`, `OcrClient`, `LlmClient`, `PaymentGatewayClient`)를 통해서만 호출한다. `RestClient`를 여러 서비스에 흩뜨리지 않는다. 설정은 YAML과 환경변수다. 타임아웃·재시도·실패 처리를 빠뜨리지 않는다. 테스트에서는 이 클라이언트를 mock한다. ([testing.md](testing.md), [anti-patterns.md](anti-patterns.md) 15·16)
 
-OCR 구현체는 `contractcheck.ocr.provider`(환경변수 `OCR_PROVIDER`)로 고른다. 서비스는 `OcrClient`만 부르고, 구현체는 `@ConditionalOnProperty`로 등록한다. 지금은 `apple-vision`(macOS 로컬 시연용, `client.mac.AppleVisionOcrClient`)뿐이고 기본값이다. 운영은 Linux라 Apple Vision을 쓸 수 없어 prod 프로필 기본값을 `upstage`로 두었다. Upstage 구현체(스펙: Upstage Document Parse)는 아직 없다. 추가할 때는 `OcrClient`를 구현하고 `@ConditionalOnProperty(..., havingValue = "upstage")`만 달면 서비스 코드는 바꾸지 않는다. Apple Vision 구현체는 Xcode Command Line Tools(`swiftc`)가 필요하고, 처음 쓸 때 `ocr/apple-vision/main.swift`를 한 번 컴파일한다.
+OCR 구현체는 `contractcheck.ocr.provider`(환경변수 `OCR_PROVIDER`)로 고른다. 서비스는 `OcrClient`만 부르고, 구현체는 `@ConditionalOnProperty`로 등록한다. 구현체는 둘이다. `apple-vision`(macOS 로컬 시연용, `client.mac.AppleVisionOcrClient`)이 기본값이고, 운영은 Linux라 Apple Vision을 쓸 수 없어 prod 프로필 기본값이 `upstage`(`client.UpstageOcrClient`)다. 새 구현체는 `OcrClient`를 구현하고 `@ConditionalOnProperty(..., havingValue = "<이름>")`를 달면 서비스 코드는 바꾸지 않는다. Apple Vision 구현체는 Xcode Command Line Tools(`swiftc`)가 필요하고, 처음 쓸 때 `ocr/apple-vision/main.swift`를 한 번 컴파일한다.
+
+Upstage는 동기 API(`POST /v1/document-digitization`, `model=document-parse`, `mode=standard`, `ocr=auto`, 출력 `text`)를 쓴다. 키는 환경변수 `UPSTAGE_API_KEY`로만 받고, 비어 있으면 빈이 없어 앱은 뜨지만 계약서 처리가 `FAILED`다. 제한 시간은 `OCR_TIMEOUT`, 재시도는 `ContractProcessor`가 한다. 동기 API는 100쪽까지라 넘으면 실패한다. 스펙시트 '외부 연동'에는 "비동기 폴링"이라고 되어 있으나, 처리가 이미 별도 스레드이고 비동기 API는 결과를 Upstage에 보관하므로 쓰지 않았다(팀 확인 필요). 원본 파일이 마스킹 없이 전송된다.
 
 OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키지로 묶는다. macOS 전용은 `client.mac`이다. 공통 인터페이스·예외는 `client`에 둔다.
 
@@ -48,7 +50,7 @@ OCR 원문은 마스킹해 `contracts.masked_text`에 저장한다(`ContractProc
 
 ## 분석 파이프라인
 
-업로드가 끝나면 `ContractService`가 `ContractUploaded` 이벤트를 발행하고, `ContractProcessor`가 `ocrExecutor`에서 원본을 읽어 OCR → 조항 분할을 진행하며 `contracts.status`를 `UPLOADED → OCR → SPLIT`으로 옮긴다. 실패하면 `FAILED`와 `error_message`(V3)에 사유를 남긴다. OCR은 `contractcheck.ocr.max-attempts`(3)까지 지수 백오프로 다시 시도하고, 이용권은 이 단계에서 차감하지 않는다. OCR 구현체가 없으면(운영의 `upstage` 미구현) 앱은 뜨지만 처리가 `FAILED`로 끝난다. 테스트는 `contractcheck.ocr.enabled=false`로 처리기를 끈다.
+업로드가 끝나면 `ContractService`가 `ContractUploaded` 이벤트를 발행하고, `ContractProcessor`가 `ocrExecutor`에서 원본을 읽어 OCR → 조항 분할을 진행하며 `contracts.status`를 `UPLOADED → OCR → SPLIT`으로 옮긴다. 실패하면 `FAILED`와 `error_message`(V3)에 사유를 남긴다. OCR은 `contractcheck.ocr.max-attempts`(3)까지 지수 백오프로 다시 시도하고, 이용권은 이 단계에서 차감하지 않는다. OCR 구현체가 없으면(운영에서 `UPSTAGE_API_KEY`가 없는 경우 등) 앱은 뜨지만 처리가 `FAILED`로 끝난다. 테스트는 `contractcheck.ocr.enabled=false`로 처리기를 끈다.
 
 분석은 비동기다. `analysis_id`를 즉시 돌려주고 폴링으로 조회한다. 동기 요청-응답으로 분석을 끝내지 않는다. ([anti-patterns.md](anti-patterns.md) 17)
 

@@ -119,7 +119,7 @@ public class ContractService {
      * 계약서의 처리 상태를 돌려준다. 업로드 뒤 OCR·조항 분할은 ContractProcessor가 비동기로 진행하며
      * UPLOADED → OCR → SPLIT 순서로 바뀌고, 실패하면 FAILED와 사유(errorMessage)가 담긴다. 없는 계약과 타인 계약은 404다.
      *
-     * TODO(FR-UPL-02): Upstage Document Parse 구현체(운영 기본값인데 아직 없다), OCR 원문(ocr_raw) 보관.
+     * TODO(FR-UPL-02): OCR 원문(ocr_raw) 보관.
      * 스펙 미정: OCR 원문 저장 위치·형식, 분할 완료 후 contracts.status와 API의 ANALYZING/ANALYZED/FAILED 사용 범위.
      */
     public Contract status(UserId owner, long id) {

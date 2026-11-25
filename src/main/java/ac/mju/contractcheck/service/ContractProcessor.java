@@ -35,7 +35,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>OCR 원문은 {@link PiiMaskingService}로 마스킹해 contracts.masked_text에 저장한다(FR-UPL-04). 마스킹에 실패하면 FAILED다.
  * 조항(clauses.text)은 마스킹하지 않은 원문으로 나눠 저장한다. 외부로 나가는 쪽(ClauseRiskService)이 보내기 전에 마스킹한다.
  * 스펙 미정: clauses.text를 마스킹본으로 덮을지 여부.
- * 스펙 미정: OCR 원문(ocr_raw JSONB) 보관 여부와 형식, Upstage 구현체(운영 기본값인데 없어 운영에서는 이 처리가 FAILED로 끝난다),
+ * 스펙 미정: OCR 원문(ocr_raw JSONB) 보관 여부와 형식, Upstage에 보내는 원본의 개인정보 처리 방침,
  * 서버가 중간에 죽어 OCR 상태로 남은 계약의 자동 재처리(지금은 StuckJobRecovery가 FAILED로만 정리한다).
  */
 @Slf4j

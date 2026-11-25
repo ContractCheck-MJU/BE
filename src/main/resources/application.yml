@@ -87,11 +87,14 @@ contractcheck:
     secret-key: ${STORAGE_SECRET_KEY:unset}
     path-style: true
     server-side-encryption: ${STORAGE_SSE:true}
-  # OCR 구현체(FR-UPL-02). apple-vision은 macOS 로컬 시연용이고, 운영은 upstage(구현 예정)로 바꾼다. 구현체 추가·교체 방법은 OcrClient를 본다.
+  # OCR 구현체(FR-UPL-02). apple-vision은 macOS 로컬 시연용이고, 운영은 upstage(Upstage Document Parse)다. 구현체 추가·교체 방법은 OcrClient를 본다.
+  # upstage는 원본 파일을 마스킹 없이 외부로 보낸다. 키(UPSTAGE_API_KEY)가 없으면 계약서 처리만 FAILED가 된다.
   # 첫 Apple Vision 인식은 모델을 불러오느라 수십 초 걸릴 수 있어 제한 시간을 넉넉히 둔다.
   ocr:
     provider: ${OCR_PROVIDER:apple-vision}
     timeout: ${OCR_TIMEOUT:120s}
+    upstage:
+      api-key: ${UPSTAGE_API_KEY:}
   # Python 추론 서버(FastAPI, 내부망). POST /classify, /embed. 키(X-Internal-Api-Key)는 환경변수로만 주입한다.
   # 분류와 임베딩은 주소를 따로 둔다(운영: 분류는 서버 컨테이너, 임베딩은 별도 PC). 따로 주지 않으면 INFERENCE_BASE_URL 하나를 같이 쓴다.
   # 타임아웃 10초는 스펙시트 값이고, 재시도 횟수(총 3회)는 스펙에 없어 제안값이다. 서킷브레이커는 아직 없다(NFR-03).
