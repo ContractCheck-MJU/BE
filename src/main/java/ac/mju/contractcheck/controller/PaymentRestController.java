@@ -51,7 +51,7 @@ public class PaymentRestController {
     @PostMapping("/api/v1/payments/orders")
     public ResponseEntity<PaymentOrder> order(Authentication authentication, @RequestBody PaymentOrderRequest request) {
         Payment payment = payments.order(currentUser.userId(authentication), request.productId());
-        return ResponseEntity.created(java.net.URI.create("/api/v1/payments/" + payment.id()))
+        return ResponseEntity.created(java.net.URI.create("/api/v1/payments/orders/" + payment.orderId()))
                 .body(new PaymentOrder(payment.orderId(), payment.amount(), payment.orderName(), payment.owner().principalName()));
     }
 
@@ -60,7 +60,7 @@ public class PaymentRestController {
     public ConfirmedPayment confirm(Authentication authentication, @RequestBody PaymentConfirmRequest request) {
         Payment payment = payments.confirm(
                 currentUser.userId(authentication), request.paymentKey(), request.orderId(), request.amount());
-        return new ConfirmedPayment(payment.id(), payment.status(), payment.creditsAdded());
+        return new ConfirmedPayment(payment.id(), payment.status().name(), payment.creditsAdded());
     }
 
     /** FR-PAY-03 웹훅 검증 */
@@ -90,6 +90,6 @@ public class PaymentRestController {
     @PostMapping("/api/v1/payments/{id}/cancel")
     public CanceledPayment cancel(Authentication authentication, @PathVariable long id, @RequestBody PaymentCancelRequest request) {
         Payment payment = payments.cancel(currentUser.userId(authentication), id);
-        return new CanceledPayment(payment.status(), request.reason() == null ? "" : request.reason());
+        return new CanceledPayment(payment.status().name(), request.reason() == null ? "" : request.reason());
     }
 }

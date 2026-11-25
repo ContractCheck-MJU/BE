@@ -34,6 +34,14 @@ public record   CreditAccount(UserId owner, int freeRemaining, int paidRemaining
         return Optional.empty();
     }
 
+    /** 결제로 산 유료 이용권을 {@code count}회 더한 새 계정을 돌려준다. 횟수는 1 이상이어야 한다. */
+    public CreditAccount grantPaid(int count) {
+        if (count < 1) {
+            throw new IllegalArgumentException("지급 횟수는 1 이상이어야 합니다: " + count);
+        }
+        return new CreditAccount(owner, freeRemaining, paidRemaining + count, version);
+    }
+
     /** 지정한 출처(FREE·PAID)의 잔여를 1회 복구한 새 계정을 돌려준다. */
     public CreditAccount restoreOne(@NonNull CreditSource source) {
         return switch (source) {
