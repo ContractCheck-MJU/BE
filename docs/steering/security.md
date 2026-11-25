@@ -37,4 +37,4 @@ OCR·분할 이후, `/classify`, `/embed`, Claude 등 외부 전송 전에 개�
 
 ## 로그
 
-개인정보와 토큰, 요청 본문, 계약서 원문, SQL 바인딩 값을 로그에 남기지 않는다. `local`의 바인딩 TRACE는 로컬 콘솔 전용이다. ([conventions.md](conventions.md), [logging.md](../logging.md), [anti-patterns.md](anti-patterns.md) 24)
+개인정보와 토큰, 요청 본문, 계약서 원문, SQL 바인딩 값을 로그에 남기지 않는다. `local`의 바인딩 TRACE는 로컬 콘솔 전용이다. 예외는 외부 호출 기록이다. `local`·`dev`에서는 요청·응답 본문을 키·토큰을 지우고 마스킹해 로그 파일에 남긴다. `prod`에는 정해 둔 필드의 값만 남기고 나머지를 길이로 바꾼 비식별 본문을 남긴다. ([conventions.md](conventions.md), [logging.md](../logging.md), [anti-patterns.md](anti-patterns.md) 24)

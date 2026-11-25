@@ -1,10 +1,13 @@
 package ac.mju.contractcheck.config;
 
+import ac.mju.contractcheck.global.interceptor.ExternalCallLog;
+import ac.mju.contractcheck.global.interceptor.S3CallLoggingInterceptor;
 import java.net.URI;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
@@ -21,6 +24,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
  * 클라이언트는 만들 때 접속하지 않으므로 저장소가 없어도 앱은 기동한다.
  */
 @Configuration
+@Import(ExternalCallLogConfig.class)
 public class StorageConfig {
 
     private static final Duration CALL_TIMEOUT = Duration.ofSeconds(30);
@@ -32,7 +36,8 @@ public class StorageConfig {
             @Value("${contractcheck.storage.region}") String region,
             @Value("${contractcheck.storage.access-key}") String accessKey,
             @Value("${contractcheck.storage.secret-key}") String secretKey,
-            @Value("${contractcheck.storage.path-style:true}") boolean pathStyle) {
+            @Value("${contractcheck.storage.path-style:true}") boolean pathStyle,
+            ExternalCallLog log) {
         return S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(Region.of(region))
@@ -43,6 +48,7 @@ public class StorageConfig {
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
                         .apiCallTimeout(CALL_TIMEOUT)
                         .apiCallAttemptTimeout(ATTEMPT_TIMEOUT)
+                        .addExecutionInterceptor(new S3CallLoggingInterceptor(log))
                         .build())
                 .build();
     }

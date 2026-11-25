@@ -20,7 +20,7 @@ Spring이 DB, 인증, OCR(Upstage), Claude, Toss 결제를 소유한다.
 
 OCR 구현체는 `contractcheck.ocr.provider`(환경변수 `OCR_PROVIDER`)로 고른다. 서비스는 `OcrClient`만 부르고, 구현체는 `@ConditionalOnProperty`로 등록한다. 구현체는 둘이다. `apple-vision`(macOS 로컬 시연용, `client.mac.AppleVisionOcrClient`)이 기본값이고, 운영은 Linux라 Apple Vision을 쓸 수 없어 prod 프로필 기본값이 `upstage`(`client.UpstageOcrClient`)다. 새 구현체는 `OcrClient`를 구현하고 `@ConditionalOnProperty(..., havingValue = "<이름>")`를 달면 서비스 코드는 바꾸지 않는다. Apple Vision 구현체는 Xcode Command Line Tools(`swiftc`)가 필요하고, 처음 쓸 때 `ocr/apple-vision/main.swift`를 한 번 컴파일한다.
 
-Upstage는 동기 API(`POST /v1/document-digitization`, `model=document-parse`, `mode=standard`, `ocr=auto`, 출력 `text`)를 쓴다. 키는 환경변수 `UPSTAGE_API_KEY`로만 받고, 비어 있으면 빈이 없어 앱은 뜨지만 계약서 처리가 `FAILED`다. 제한 시간은 `OCR_TIMEOUT`, 재시도는 `ContractProcessor`가 한다. 동기 API는 100쪽까지라 넘으면 실패한다. 스펙시트 '외부 연동'에는 "비동기 폴링"이라고 되어 있으나, 처리가 이미 별도 스레드이고 비동기 API는 결과를 Upstage에 보관하므로 쓰지 않았다(팀 확인 필요). 원본 파일이 마스킹 없이 전송된다.
+Upstage는 동기 API(`POST /v1/document-digitization`, `model=document-parse`, `mode=standard`, `ocr=auto`, 출력 `text`)를 쓴다. 키는 환경변수 `UPSTAGE_API_KEY`로만 받고, 비어 있으면 빈이 없어 앱은 뜨지만 계약서 처리가 `FAILED`다. 제한 시간은 `OCR_TIMEOUT`, 재시도는 `ContractProcessor`가 한다. 동기 API는 100쪽까지라 넘으면 실패한다. 스펙시트 '외부 연동'에는 "비동기 폴링"이라고 되어 있으나, 처리가 이미 별도 스레드이고 비동기 API는 결과를 Upstage에 보관하므로 쓰지 않았다(팀 확인 필요). 원본 파일이 마스킹 없이 전송된다. 호출 기록은 [logging.md](../logging.md)의 '외부 호출 기록'을 본다.
 
 OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키지로 묶는다. macOS 전용은 `client.mac`이다. 공통 인터페이스·예외는 `client`에 둔다.
 
@@ -29,6 +29,8 @@ OS나 로컬 환경에서만 되는 구현체는 `client` 아래 하위 패키�
 RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `InferenceEmbeddingModel`(추론 서버 `/embed`를 감싼 `EmbeddingModel`), 근거 검색은 `EvidenceRetriever`(`DocumentRetriever`, `legal_chunks` native SQL)다. Spring AI의 VectorStore와 그 테이블은 쓰지 않고, 스타터(자동 설정)도 넣지 않았다.
 
 Claude는 `LlmClient`(`AnthropicLlmClient`, Anthropic 공식 Java SDK `anthropic-java`)로만 부른다. Spring AI `ChatClient`는 쓰지 않는다. 접속은 `contractcheck.llm.*`(`ANTHROPIC_API_KEY`, 모델 기본 `claude-sonnet-5-5`, effort `low`, 제한 시간 10초, SDK 재시도 1회)다. 응답은 구조화 출력(JSON 스키마)으로 받고, 안전 분류 거절은 서버 측 대체 모델(`fallbacks: default`, 베타)이 받는다. 스키마는 코드에 직접 적는다. SDK의 클래스 기반 구조화 출력은 victools 4(Jackson 2)를 쓰는데 Spring AI가 victools 5(Jackson 3)를 끌어와 실행 중 `NoSuchMethodError`가 난다. 시간 초과는 504 `LLM_TIMEOUT`, 그 밖의 실패는 503 `LLM_UNAVAILABLE`이다(상태 코드는 제안값). 설명(FR-EXP)의 근거는 분석 때 저장한 `clauses.embedding`으로 찾으므로(`EvidenceRetriever.searchByClause`) 설명 시점에는 추론 서버를 부르지 않는다.
+
+새 외부 클라이언트를 만들면 `ExternalCallLog`에 남기는 인터셉터를 설정(`config`)에서 붙인다([logging.md](../logging.md)).
 
 트랜잭션 안에서 외부 API를 호출하지 않는다. ([anti-patterns.md](anti-patterns.md) 12)
 

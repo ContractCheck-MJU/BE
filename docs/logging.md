@@ -6,22 +6,37 @@ Spring Boot 4.1.2 내장 설정(`logging.*`)과 필요한 경우만 `logback-spr
 
 | 프로필 | 앱(`ac.mju.contractcheck`) | 루트·라이브러리 | SQL | 출력 |
 |---|---|---|---|---|
-| `local` | DEBUG | 기본(INFO) | `org.hibernate.SQL` DEBUG, `org.hibernate.orm.jdbc.bind` TRACE(로컬 콘솔 전용) | 콘솔만, 사람이 읽는 패턴 |
+| `local` | DEBUG | 기본(INFO) | `org.hibernate.SQL` DEBUG, `org.hibernate.orm.jdbc.bind` TRACE(로컬 콘솔 전용) | 콘솔, 사람이 읽는 패턴. 외부 호출 기록만 파일에도 |
 | `dev` | INFO | 루트 INFO. Spring·Hibernate·Tomcat·Hikari 기동 로그도 INFO로 나온다 | 끔 | 콘솔은 local과 같은 패턴, 파일은 ECS JSON |
 | `prod` | INFO | 루트 WARN | 끔 | 콘솔+파일, ECS JSON |
 | `test` | WARN | 루트 WARN, 주요 라이브러리 WARN | 끔 | 콘솔만 |
 
 `local`의 바인딩 값 로그는 공유 파일이나 dev/prod로 복사하지 않는다.
 
+## 외부 호출 기록
+
+외부 클라이언트 호출은 로거 `ac.mju.contractcheck.external`에 한 줄씩 남는다(`ExternalCallLog`). 대상은 Upstage, 토스, 추론 서버(분류·임베딩), Claude, 저장소, 소셜 로그인(토큰 교환·사용자 정보)이다. 로컬 프로세스인 Apple Vision은 대상이 아니다.
+
+```
+외부 호출 target=upstage method=POST url=https://api.upstage.ai/v1/document-digitization status=200 elapsedMs=2496 requestBytes=131021 responseBytes=1843 responseBody={...}
+```
+
+- 모든 환경: 대상, 메서드, URL(쿼리·결제 키 제외), 상태, 소요 시간, 크기, 실패하면 예외 이름. 4xx·5xx·실패는 WARN, 나머지는 INFO. 재시도하는 추론 서버는 시도마다 남는다. 헤더는 남기지 않는다.
+- `local`·`dev`: 내용을 볼 수 있는 가린 요청·응답 본문. 키·토큰·결제 키 필드와 이름·이메일·계좌 필드는 지우고, 나머지 문자열은 개인정보 마스킹 규칙을 거친다. URL은 호스트까지, 숫자 배열과 파일은 크기만 남긴다. 10만 자를 넘으면 자른다.
+- `prod`(다른 프로필과 함께 켜도): 비식별 본문(`ExternalBodyDeidentifier`). JSON 구조와 필드 이름, 상태·코드·모델·쪽 수·금액·토큰 수처럼 정해 둔 값만 남기고 문자열은 길이, 그 밖의 숫자는 `(숫자)`로 남긴다. JSON이 아니면 크기만 남긴다. 남길 필드를 늘릴 때는 개인정보가 들어갈 수 없는지 확인한다.
+- 저장소와 소셜 로그인은 어느 환경에서도 본문을 남기지 않는다.
+- **`local`·`dev`의 마스킹은 정규식 규칙이라 완전하지 않다.** 그 로그 파일은 계약서 내용이 담긴 것으로 다루고 저장소·메신저에 올리지 않는다.
+
 ## 파일이 가는 곳과 롤링
 
 경로 루트는 환경변수 `LOG_PATH`다. 기본값은 `./logs`, 컨테이너 이미지는 `/var/log/contractcheck`다.
 
-- 앱 로그: `$LOG_PATH/contractcheck.log`
+- 앱 로그: `$LOG_PATH/contractcheck.log`(dev/prod)
+- 외부 호출 기록: `local`은 `$LOG_PATH/contractcheck-external.log`, `dev`/`prod`는 앱 로그에 함께
 - 에러 전용(ERROR 이상): `$LOG_PATH/contractcheck-error.log`
 - Tomcat 액세스 로그(dev/prod): `$LOG_PATH/access/access.yyyy-MM-dd.log`
 
-롤링은 날짜와 크기(파일당 100MB)를 함께 쓴다. 보관은 30일, 전체 용량 상한은 3GB, 아카이브는 gzip(`.%d{yyyy-MM-dd}.%i.gz`)이다. 로컬·테스트는 파일 Appender를 두지 않는다.
+롤링은 날짜와 크기(파일당 100MB)를 함께 쓴다. 보관은 30일, 전체 용량 상한은 3GB, 아카이브는 gzip(`.%d{yyyy-MM-dd}.%i.gz`)이다. 로컬은 외부 호출 기록만 파일에 쓰고(그 밖의 로그는 콘솔), 테스트는 파일 Appender를 두지 않는다.
 
 Docker에서 확인하려면 호스트 `./logs`를 컨테이너 `LOG_PATH`에 마운트한다. `docker-compose.prod.yml`은 이 볼륨을 포함한다. 로컬 IntelliJ(8080)와 별도로 띄울 때는 예:
 
