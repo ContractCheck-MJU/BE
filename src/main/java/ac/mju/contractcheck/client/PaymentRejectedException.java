@@ -8,10 +8,32 @@ package ac.mju.contractcheck.client;
 public class PaymentRejectedException extends RuntimeException {
 
     private final String providerCode;
+    private final Integer httpStatus;
+    private final String responseBody;
 
     public PaymentRejectedException(String providerCode, String message) {
+        this(providerCode, message, null, null);
+    }
+
+    /**
+     * @param httpStatus 토스가 돌려준 HTTP 상태
+     * @param responseBody 토스 응답 원문(JSON). payment_gateway_logs에 보존한다. 없으면 null
+     */
+    public PaymentRejectedException(String providerCode, String message, Integer httpStatus, String responseBody) {
         super(message);
         this.providerCode = providerCode;
+        this.httpStatus = httpStatus;
+        this.responseBody = responseBody;
+    }
+
+    /** 토스가 돌려준 HTTP 상태. 없으면 null. */
+    public Integer httpStatus() {
+        return httpStatus;
+    }
+
+    /** 토스 응답 원문(JSON). 없으면 null. 로그에는 남기지 않는다. */
+    public String responseBody() {
+        return responseBody;
     }
 
     public int status() {

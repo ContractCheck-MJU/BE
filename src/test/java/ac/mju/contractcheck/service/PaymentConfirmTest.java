@@ -19,9 +19,11 @@ import ac.mju.contractcheck.domain.GatewayPayment;
 import ac.mju.contractcheck.domain.LedgerEntry;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.domain.Payment;
+import ac.mju.contractcheck.domain.PaymentGatewayLog;
 import ac.mju.contractcheck.domain.Product;
 import ac.mju.contractcheck.domain.UserId;
 import ac.mju.contractcheck.domain.enums.CreditSource;
+import ac.mju.contractcheck.domain.enums.GatewayOutcome;
 import ac.mju.contractcheck.domain.enums.LedgerRefType;
 import ac.mju.contractcheck.domain.enums.LedgerType;
 import ac.mju.contractcheck.domain.enums.PaymentStatus;
@@ -240,6 +242,61 @@ class PaymentConfirmTest {
 
         assertThat(credits.me(owner).paidRemaining()).isZero();
         assertThat(grantCount()).isZero();
+    }
+
+    private List<PaymentGatewayLog> gatewayLogs() {
+        return paymentRepository.findGatewayLogs(order.id());
+    }
+
+    @Test
+    @DisplayName("FR-PAY-02 승인 호출은 시도마다 한 행씩 이력에 쌓이고 앞선 실패 응답이 덮어써지지 않는다")
+    void everyGatewayCallIsAppendedAsItsOwnRow() {
+        when(gateway.confirm(anyString(), anyString(), anyInt()))
+                .thenThrow(new PaymentGatewayTimeoutException("시간 초과", null))
+                .thenThrow(PaymentGatewayException.withResponse("오류", 500, "{\"code\":\"FAILED_INTERNAL_SYSTEM_PROCESSING\"}"))
+                .thenReturn(approved(order, "WAITING_FOR_DEPOSIT", 4900))
+                .thenReturn(approved(order, "DONE", 4900));
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            assertThatThrownBy(() -> payments.confirm(owner, paymentKey, order.orderId(), 4900)).isInstanceOf(PaymentGatewayException.class);
+        }
+        payments.confirm(owner, paymentKey, order.orderId(), 4900);
+
+        assertThat(gatewayLogs()).extracting(PaymentGatewayLog::outcome).containsExactly(
+                GatewayOutcome.NO_RESPONSE, GatewayOutcome.ERROR, GatewayOutcome.UNEXPECTED, GatewayOutcome.SUCCESS);
+        assertThat(gatewayLogs()).extracting(PaymentGatewayLog::httpStatus).containsExactly(null, 500, 200, 200);
+        assertThat(gatewayLogs().get(0).response()).isNull();
+        assertThat(gatewayLogs().get(1).response()).contains("FAILED_INTERNAL_SYSTEM_PROCESSING");
+        assertThat(gatewayLogs().get(2).response()).contains("WAITING_FOR_DEPOSIT");
+        assertThat(gatewayLogs().get(3).response()).contains("DONE");
+    }
+
+    @Test
+    @DisplayName("FR-PAY-02 거절과 금액 불일치 응답도 이력에 남는다")
+    void rejectionAndMismatchAreLogged() {
+        when(gateway.confirm(anyString(), anyString(), anyInt())).thenThrow(new PaymentRejectedException(
+                "REJECT_CARD_COMPANY", "거절", 400, "{\"code\":\"REJECT_CARD_COMPANY\"}"));
+        assertThatThrownBy(() -> payments.confirm(owner, paymentKey, order.orderId(), 4900)).isInstanceOf(PaymentRejectedException.class);
+        assertThat(gatewayLogs()).singleElement().satisfies(log -> {
+            assertThat(log.outcome()).isEqualTo(GatewayOutcome.REJECTED);
+            assertThat(log.httpStatus()).isEqualTo(400);
+            assertThat(log.response()).contains("REJECT_CARD_COMPANY");
+        });
+
+        order = payments.order(owner, order.productId());
+        org.mockito.Mockito.reset(gateway);
+        when(gateway.confirm(anyString(), anyString(), anyInt())).thenReturn(approved(order, "DONE", 100));
+        assertThatThrownBy(() -> payments.confirm(owner, paymentKey, order.orderId(), 4900)).isInstanceOf(PaymentGatewayException.class);
+        assertThat(gatewayLogs()).singleElement()
+                .satisfies(log -> assertThat(log.outcome()).isEqualTo(GatewayOutcome.UNEXPECTED));
+    }
+
+    @Test
+    @DisplayName("FR-PAY-02 토스를 부르기 전에 거절한 요청은 이력을 남기지 않는다")
+    void requestsRejectedBeforeGatewayLeaveNoLog() {
+        assertThatThrownBy(() -> payments.confirm(owner, paymentKey, order.orderId(), 100)).isInstanceOf(ApiException.class);
+
+        assertThat(gatewayLogs()).isEmpty();
     }
 
     @Test

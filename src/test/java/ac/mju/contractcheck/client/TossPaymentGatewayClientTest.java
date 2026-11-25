@@ -85,7 +85,26 @@ class TossPaymentGatewayClientTest {
                     assertThat(exception.status()).isEqualTo(422);
                     assertThat(exception.code()).isEqualTo("PAYMENT_REJECTED");
                     assertThat(exception.providerCode()).isEqualTo("REJECT_CARD_COMPANY");
+                    assertThat(exception.httpStatus()).isEqualTo(400);
+                    assertThat(exception.responseBody()).as("응답 원문을 예외에 실어 이력에 남기게 한다")
+                            .contains("REJECT_CARD_COMPANY", "카드사에서 거절했습니다.");
                 });
+    }
+
+    @Test
+    @DisplayName("FR-PAY-02 토스 오류 응답이 JSON이 아니어도 JSONB에 들어갈 수 있게 감싸고, 본문이 없으면 null이며 HTTP 상태는 남는다")
+    void errorBodyIsKeptAsValidJson() {
+        server.expect(requestTo(CONFIRM_URL)).andRespond(withStatus(HttpStatus.BAD_GATEWAY).contentType(MediaType.TEXT_HTML).body("<html>bad gateway</html>"));
+        server.expect(requestTo(CONFIRM_URL)).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        assertThatThrownBy(() -> client.confirm("k1", "order-1234", 4900)).isInstanceOfSatisfying(PaymentGatewayException.class, exception -> {
+            assertThat(exception.httpStatus()).isEqualTo(502);
+            assertThat(exception.responseBody()).isEqualTo("{\"unparsedBody\":\"<html>bad gateway</html>\"}");
+        });
+        assertThatThrownBy(() -> client.confirm("k2", "order-1234", 4900)).isInstanceOfSatisfying(PaymentGatewayException.class, exception -> {
+            assertThat(exception.httpStatus()).isEqualTo(500);
+            assertThat(exception.responseBody()).isNull();
+        });
     }
 
     @Test

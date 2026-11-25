@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Set;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,8 @@ public class TossPaymentGatewayClient implements PaymentGatewayClient {
     /** 우리 쪽 키 설정이 틀렸을 때 토스가 돌려주는 코드. 사용자의 결제 문제가 아니라 서버 문제라 502로 본다. */
     private static final Set<String> KEY_ERROR_CODES = Set.of("UNAUTHORIZED_KEY", "INVALID_API_KEY");
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    /** JSON이 아닌 응답 본문을 감싸 저장할 때의 최대 길이. */
+    private static final int MAX_UNPARSED_BODY = 2000;
 
     private final RestClient restClient;
     private final String authorization;
@@ -64,7 +67,7 @@ public class TossPaymentGatewayClient implements PaymentGatewayClient {
             throw translate(exception, orderId);
         }
         if (response.status() / 100 == 2) {
-            return toPayment(response.body(), orderId);
+            return toPayment(response, orderId);
         }
         throw toFailure(response, orderId);
     }
@@ -82,12 +85,32 @@ public class TossPaymentGatewayClient implements PaymentGatewayClient {
 
     private static RuntimeException toFailure(Response response, String orderId) {
         String providerCode = errorCode(response.body());
+        String raw = asJson(response.body());
         log.warn("토스 승인 실패 orderId={} status={} providerCode={}", orderId, response.status(), providerCode);
         boolean ourFault = response.status() == 429 || response.status() / 100 == 5 || KEY_ERROR_CODES.contains(providerCode);
         if (ourFault || providerCode.isEmpty()) {
-            return new PaymentGatewayException("토스 승인 API가 오류를 돌려줬습니다. status=" + response.status() + " code=" + providerCode);
+            return PaymentGatewayException.withResponse(
+                    "토스 승인 API가 오류를 돌려줬습니다. status=" + response.status() + " code=" + providerCode, response.status(), raw);
         }
-        return new PaymentRejectedException(providerCode, "토스가 승인을 거절했습니다. status=" + response.status() + " code=" + providerCode);
+        return new PaymentRejectedException(
+                providerCode, "토스가 승인을 거절했습니다. status=" + response.status() + " code=" + providerCode, response.status(), raw);
+    }
+
+    /**
+     * 응답 본문을 JSONB 컬럼에 넣을 수 있는 JSON으로 만든다. 본문이 JSON이면 그대로, 아니면(프록시의 HTML 오류 등)
+     * {@code {"unparsedBody": "..."}}로 감싼다. 본문이 없으면 null이다.
+     */
+    private static String asJson(String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            JSON.readTree(body);
+            return body;
+        } catch (JacksonException exception) {
+            String clipped = body.length() > MAX_UNPARSED_BODY ? body.substring(0, MAX_UNPARSED_BODY) : body;
+            return JSON.writeValueAsString(Map.of("unparsedBody", clipped));
+        }
     }
 
     private static String errorCode(String body) {
@@ -99,19 +122,20 @@ public class TossPaymentGatewayClient implements PaymentGatewayClient {
         }
     }
 
-    private static GatewayPayment toPayment(String body, String orderId) {
+    private static GatewayPayment toPayment(Response response, String orderId) {
+        String body = response.body();
         try {
             JsonNode node = JSON.readTree(body == null ? "" : body);
             String paymentKey = text(node, "paymentKey");
             String confirmedOrderId = text(node, "orderId");
             String status = text(node, "status");
             if (paymentKey.isEmpty() || confirmedOrderId.isEmpty() || status.isEmpty() || !node.hasNonNull("totalAmount")) {
-                throw new PaymentGatewayException("토스 승인 응답에 필수 값이 없습니다. orderId=" + orderId);
+                throw PaymentGatewayException.withResponse("토스 승인 응답에 필수 값이 없습니다. orderId=" + orderId, response.status(), asJson(body));
             }
             return new GatewayPayment(paymentKey, confirmedOrderId, status, text(node, "method"),
                     node.get("totalAmount").asInt(), approvedAt(text(node, "approvedAt")), body);
         } catch (JacksonException exception) {
-            throw new PaymentGatewayException("토스 승인 응답을 읽지 못했습니다. orderId=" + orderId, exception);
+            throw PaymentGatewayException.withResponse("토스 승인 응답을 읽지 못했습니다. orderId=" + orderId, response.status(), asJson(body));
         }
     }
 
