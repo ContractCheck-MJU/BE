@@ -301,8 +301,10 @@ paths:
     tag: explanations
     summary: 조항 설명 생성
     description: |
-      조항에 대한 설명을 만들고 201을 반환한다. 요청 본문의 tone이 없거나 본문 자체가 없으면 톤은 "기본"으로 저장된다.
-      현재 구현은 조항 존재 여부를 검사하지 않으며, text·suggestion은 빈 문자열, citations는 빈 목록이다.
+      본인 조항의 쉬운말 설명(text)과 수정 문구 제안(suggestion)을 Claude로 만들고 201을 반환한다. 이용권은 쓰지 않는다.
+      근거는 분석 때 저장한 조항 임베딩으로 찾은 법령·판례 중 근거 임계값 이상이며, 프롬프트에 넣은 근거를 citations로 저장한다.
+      Claude에는 개인정보를 가린 조항만 보낸다. 같은 조항은 최초 1회와 재생성 3회까지 만들 수 있다.
+      tone은 없거나 "기본"만 받는다(다른 값은 스펙 미정이라 400).
     auth: login
     requestBody: 선택. 설명 톤(tone)
     params:
@@ -311,12 +313,18 @@ paths:
         description: 조항 ID
     responses:
       "201": 생성된 설명
+      "400": 지원하지 않는 tone (VALIDATION_ERROR)
       "401": 로그인되어 있지 않음
+      "404": 조항을 찾을 수 없음 (CLAUSE_NOT_FOUND)
+      "409": 계약서 분석을 마치지 않음 (ANALYSIS_REQUIRED)
+      "429": 재생성 한도 초과 (REGENERATE_LIMIT)
+      "503": Claude 호출 실패 (LLM_UNAVAILABLE)
+      "504": Claude 응답 시간 초과 (LLM_TIMEOUT)
 
   "GET /api/v1/explanations/{id}":
     tag: explanations
     summary: 설명 조회
-    description: 본인 소유의 설명을 반환한다. 없거나 소유자가 아니면 404(EXPLANATION_NOT_FOUND)다. 현재 citations는 항상 빈 목록이다.
+    description: 본인 소유의 설명을 근거 인용과 함께 반환한다. 없거나 소유자가 아니면 404(EXPLANATION_NOT_FOUND)다.
     auth: login
     params:
       - name: id
@@ -717,11 +725,11 @@ schemas:
     afterContractId: 변경 후 계약서 ID
   ExplanationResponse:
     explanationId: 설명 ID
-    text: 설명 본문
-    suggestion: 수정 제안
-    citations: 근거 목록. 현재는 항상 빈 목록
+    text: 쉬운말 설명
+    suggestion: 수정 문구 제안
+    citations: 근거 목록(유사도 높은 순). 항목은 sourceType(LAW·PRECEDENT), sourceId(법령·판례 문서 ID), score(코사인 유사도 0~1)
   ExplanationToneRequest:
-    tone: 설명 톤. 없으면 "기본"
+    tone: 설명 톤. 없거나 "기본"만 받는다
   CreditBalance:
     freeRemaining: 무료 잔여 크레딧
     paidRemaining: 유료 잔여 크레딧

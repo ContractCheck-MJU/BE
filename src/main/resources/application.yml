@@ -105,6 +105,15 @@ contractcheck:
     retry-backoff: 200ms
     classify-batch-size: ${INFERENCE_CLASSIFY_BATCH_SIZE:16}
     embed-batch-size: ${INFERENCE_EMBED_BATCH_SIZE:64}
+  # Claude(쉬운말 설명·수정 문구, FR-EXP). 키는 환경변수로만 주입하고, 없으면 앱은 뜨지만 설명 생성만 503이다.
+  # 응답 목표 10초(TC-EXP-013)라 effort는 low, SDK 재시도는 1회(시간 초과 포함)다.
+  llm:
+    api-key: ${ANTHROPIC_API_KEY:unset}
+    model: ${LLM_MODEL:claude-sonnet-5-5}
+    effort: ${LLM_EFFORT:low}
+    timeout: ${LLM_TIMEOUT:10s}
+    max-retries: 1
+    max-tokens: 4096
   # 토스페이먼츠 서버 연동(FR-PAY-02). 시크릿 키(테스트는 test_sk로 시작)는 환경변수로만 주입한다. 비어 있으면 토스 클라이언트가 등록되지 않아
   # 결제 승인이 502 PAYMENT_GATEWAY_ERROR로 거절되고 앱은 정상 기동한다. timeout은 스펙에 없어 제안값이다.
   toss:

@@ -16,13 +16,13 @@ import ac.mju.contractcheck.domain.Analysis;
 import ac.mju.contractcheck.domain.enums.AnalysisStatus;
 import ac.mju.contractcheck.domain.Comparison;
 import ac.mju.contractcheck.domain.Explanation;
+import ac.mju.contractcheck.domain.ExplanationCitation;
 import ac.mju.contractcheck.domain.Member;
 import ac.mju.contractcheck.domain.enums.MemberRole;
 import ac.mju.contractcheck.domain.Milestone;
 import ac.mju.contractcheck.domain.Notification;
 import ac.mju.contractcheck.domain.NotificationSettings;
 import ac.mju.contractcheck.domain.UserId;
-import ac.mju.contractcheck.repository.memory.ExplanationRepository;
 import ac.mju.contractcheck.repository.memory.NotificationRepository;
 import ac.mju.contractcheck.domain.OAuthProfile;
 import ac.mju.contractcheck.global.error.ConflictException;
@@ -230,12 +230,15 @@ class MemberWithdrawalTest {
 
     private record Seeded(long analysis, long comparison, long explanation) {}
 
-    /** 한 회원 몫의 인메모리 종속 데이터를 한 세트 만든다. 설정은 기본값(emailEnabled=true)과 다르게 저장한다. */
+    /** 한 회원 몫의 종속 데이터(설명은 조항·인용 포함)를 한 세트 만든다. 설정은 기본값(emailEnabled=true)과 다르게 저장한다. */
     private Seeded seed(UserId owner) {
         long contractId = contracts.save(new Contract(0, owner, "계약", "MONTHLY", "contracts/" + owner + "/seed", ContractState.SPLIT, "", Instant.now(), null)).id();
         long analysis = analyses.save(new Analysis(0, contractId, owner, AnalysisStatus.ANALYZED, 50, "요약", "m1", Instant.now())).id();
         long comparison = comparisons.save(new Comparison(0, owner, 1L, 2L, Instant.now())).id();
-        long explanation = explanations.save(new Explanation(0, 1L, owner, "기본", "설명", "제안")).id();
+        long clauseId = clauseRepository.saveAll(contractId, owner, List.of(new ClauseDraft(1, "제1조(보증금)", "본문"))).getFirst().id();
+        long explanation = explanations.save(new Explanation(
+                0, clauseId, owner, "설명", "제안", "claude-sonnet-5-5", "exp-v1", Instant.now(),
+                List.of(new ExplanationCitation("LAW", 1L, 0.8)))).id();
         milestones.save(new Milestone(0, owner, 1L, "END", "만기", "2027-01-01", 30, false));
         notifications.save(new Notification(System.nanoTime(), owner, "EMAIL", "알림", "2026-11-23", false));
         notifications.saveSettings(new NotificationSettings(owner, false, true, List.of(7)));
