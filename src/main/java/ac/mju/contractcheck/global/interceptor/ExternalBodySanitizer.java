@@ -14,7 +14,7 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * 외부 호출의 요청·응답 본문을 로그에 남길 수 있는 문자열로 바꾼다.
+ * local·dev용 본문. 내용을 볼 수 있게 두고 비밀값과 개인정보만 가린다.
  *
  * <ul>
  *   <li>키·토큰·결제 키 필드는 값을 지우고, 이름·이메일·계좌처럼 필드 이름으로 알 수 있는 개인정보도 지운다.</li>
@@ -25,7 +25,7 @@ import tools.jackson.databind.node.ObjectNode;
  * 한계: 마스킹은 정규식 규칙이라 놓치는 값이 있다(호칭 뒤에 다른 항목이 이어지는 이름 등).
  */
 @RequiredArgsConstructor
-public class ExternalBodySanitizer {
+public class ExternalBodySanitizer implements ExternalBodyView {
 
     static final int MAX_LENGTH = 100_000;
     private static final int MAX_NUMBERS = 8;
@@ -47,7 +47,8 @@ public class ExternalBodySanitizer {
     @NonNull
     private final PiiMaskingService masking;
 
-    public String sanitize(byte[] body, String contentType) {
+    @Override
+    public String describe(byte[] body, String contentType) {
         if (body == null || body.length == 0) {
             return "";
         }

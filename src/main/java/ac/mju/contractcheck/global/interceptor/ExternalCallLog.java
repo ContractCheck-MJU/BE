@@ -8,7 +8,8 @@ import org.slf4j.LoggerFactory;
 /**
  * 외부 클라이언트 호출 기록. 모든 호출을 {@code ac.mju.contractcheck.external} 로거에 한 줄씩 남긴다.
  * 대상·메서드·URL(쿼리 제외)·상태·소요 시간·크기는 모든 환경에서 남긴다.
- * 본문은 {@link ExternalBodySanitizer}가 있을 때만(local·dev 프로필) 가려서 붙인다. 헤더는 남기지 않는다.
+ * 본문은 {@link ExternalBodyView}가 바꾼 문자열을 붙인다. local·dev는 가린 내용({@link ExternalBodySanitizer}),
+ * 그 밖(prod 포함)은 비식별 본문({@link ExternalBodyDeidentifier})이다. 헤더는 남기지 않는다.
  * 기록에 실패해도 호출 결과에는 영향이 없다.
  */
 public class ExternalCallLog {
@@ -18,11 +19,11 @@ public class ExternalCallLog {
     /** 결제 조회·취소 경로의 결제 키({@code /v1/payments/{paymentKey}...}). 승인 경로(confirm)는 키가 아니다. */
     private static final Pattern PAYMENT_KEY_PATH = Pattern.compile("(/v1/payments/)(?!confirm(?:$|/))[^/]+");
 
-    private final ExternalBodySanitizer sanitizer;
+    private final ExternalBodyView bodyView;
 
-    /** @param sanitizer null이면 본문을 남기지 않는다. */
-    public ExternalCallLog(ExternalBodySanitizer sanitizer) {
-        this.sanitizer = sanitizer;
+    /** @param bodyView null이면 본문을 남기지 않는다. */
+    public ExternalCallLog(ExternalBodyView bodyView) {
+        this.bodyView = bodyView;
     }
 
     /** 요청이나 응답의 본문. {@code content}가 null이면 크기만 안다(-1은 크기도 모름). */
@@ -62,7 +63,7 @@ public class ExternalCallLog {
             if (call.error() != null) {
                 line.append(" error=").append(call.error().getClass().getSimpleName());
             }
-            if (sanitizer != null && call.bodies()) {
+            if (bodyView != null && call.bodies()) {
                 appendBody(line, " requestBody=", call.request());
                 appendBody(line, " responseBody=", call.response());
             }
@@ -78,7 +79,7 @@ public class ExternalCallLog {
 
     private void appendBody(StringBuilder line, String label, Payload payload) {
         if (payload.content() != null && payload.content().length > 0) {
-            line.append(label).append(sanitizer.sanitize(payload.content(), payload.contentType()));
+            line.append(label).append(bodyView.describe(payload.content(), payload.contentType()));
         }
     }
 

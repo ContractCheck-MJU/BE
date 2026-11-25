@@ -19,7 +19,7 @@ class ExternalBodySanitizerTest {
             new PiiRuleRepository(new DefaultResourceLoader(), "classpath:masking/pii-rules.yml")));
 
     private String sanitize(String body, String contentType) {
-        return sanitizer.sanitize(body.getBytes(StandardCharsets.UTF_8), contentType);
+        return sanitizer.describe(body.getBytes(StandardCharsets.UTF_8), contentType);
     }
 
     @Test
@@ -53,8 +53,8 @@ class ExternalBodySanitizerTest {
 
         assertThat(sanitize("{\"vectors\":[[" + vector + "]],\"encoded\":\"" + "A".repeat(600) + "\"}", "application/json"))
                 .isEqualTo("{\"vectors\":[\"(숫자 1024개)\"],\"encoded\":\"(문자열 600자)\"}");
-        assertThat(sanitizer.sanitize(new byte[2048], "multipart/form-data;boundary=x")).isEqualTo("(본문 생략 2048 bytes)");
-        assertThat(sanitizer.sanitize(new byte[10], "application/octet-stream")).isEqualTo("(본문 생략 10 bytes)");
+        assertThat(sanitizer.describe(new byte[2048], "multipart/form-data;boundary=x")).isEqualTo("(본문 생략 2048 bytes)");
+        assertThat(sanitizer.describe(new byte[10], "application/octet-stream")).isEqualTo("(본문 생략 10 bytes)");
     }
 
     @Test
@@ -71,7 +71,7 @@ class ExternalBodySanitizerTest {
         PiiRule leaky = new PiiRule("leaky", "치환해도 남는 규칙", java.util.regex.Pattern.compile("비밀값"), "비밀값", true);
         ExternalBodySanitizer failing = new ExternalBodySanitizer(new PiiMaskingService(PiiRuleRepository.of(List.of(leaky))));
 
-        assertThat(failing.sanitize("{\"text\":\"비밀값 원문\"}".getBytes(StandardCharsets.UTF_8), "application/json"))
+        assertThat(failing.describe("{\"text\":\"비밀값 원문\"}".getBytes(StandardCharsets.UTF_8), "application/json"))
                 .isEqualTo("{\"text\":\"[마스킹 실패]\"}");
     }
 }

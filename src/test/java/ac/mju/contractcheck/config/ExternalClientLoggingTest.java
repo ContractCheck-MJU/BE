@@ -117,13 +117,14 @@ class ExternalClientLoggingTest {
 
     @ParameterizedTest
     @CsvSource({"prod", "test", "'local,prod'", "'dev,prod'"})
-    @DisplayName("local·dev가 아니거나 prod가 켜져 있으면 호출 기록만 남기고 본문은 남기지 않는다")
-    void bodiesAreOmittedOutsideLocalAndDev(String profiles) {
+    @DisplayName("local·dev가 아니거나 prod가 켜져 있으면 값을 비식별화한 본문을 남긴다")
+    void bodiesAreDeidentifiedOutsideLocalAndDev(String profiles) {
         runner(profiles).run(context -> {
             post(context.getBean("upstageRestClient", RestClient.class), "/v1/document-digitization");
 
-            assertThat(logs.text()).contains("target=upstage", "status=200", "responseBytes=")
-                    .doesNotContain("requestBody", "responseBody", "전화");
+            assertThat(logs.text()).contains("target=upstage", "status=200",
+                            "requestBody={\"query\":\"(문자열 16자)\"}", "responseBody={\"text\":\"(문자열 16자)\"}")
+                    .doesNotContain("전화", PHONE);
         });
     }
 
