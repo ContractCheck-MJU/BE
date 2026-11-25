@@ -197,6 +197,55 @@ class ExternalClientLoggingTest {
         client.close();
     }
 
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    @DisplayName("Claude 응답 본문을 읽다 시간이 초과되면 인터셉터가 있어도 SDK의 예외(원인은 InterruptedIOException)다")
+    void claudeBodyReadTimeoutKeepsSdkExceptionType(boolean logged) throws Exception {
+        HttpServer stalled = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        stalled.createContext("/", exchange -> {
+            exchange.getRequestBody().readAllBytes();
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, 500);
+            exchange.getResponseBody().write("{\"id\":".getBytes(StandardCharsets.UTF_8));
+            exchange.getResponseBody().flush();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.close();
+        });
+        stalled.start();
+        var builder = AnthropicOkHttpClient.builder().baseUrl("http://127.0.0.1:" + stalled.getAddress().getPort())
+                .apiKey("sk-ant-unit-test").timeout(Duration.ofSeconds(1)).maxRetries(0);
+        if (logged) {
+            builder.addInterceptor(new AnthropicCallLoggingInterceptor(
+                    new ExternalCallLogConfig().externalCallLog(environment("local"), runnerMasking())));
+        }
+        AnthropicClient client = builder.build();
+        try {
+            assertThatThrownBy(() -> client.messages().create(MessageCreateParams.builder()
+                    .model("claude-sonnet-5-5").maxTokens(16).addUserMessage("질문").build()))
+                    .isExactlyInstanceOf(com.anthropic.errors.AnthropicInvalidDataException.class)
+                    .hasRootCauseInstanceOf(java.io.IOException.class)
+                    .satisfies(error -> assertThat(causes(error)).anyMatch(cause -> cause instanceof java.io.InterruptedIOException));
+            if (logged) {
+                assertThat(logs.text()).contains("target=claude", "status=200", "error=");
+            }
+        } finally {
+            client.close();
+            stalled.stop(0);
+        }
+    }
+
+    private static java.util.List<Throwable> causes(Throwable error) {
+        java.util.List<Throwable> causes = new java.util.ArrayList<>();
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            causes.add(cause);
+        }
+        return causes;
+    }
+
     private static org.springframework.mock.env.MockEnvironment environment(String profile) {
         var environment = new org.springframework.mock.env.MockEnvironment();
         environment.setActiveProfiles(profile);
