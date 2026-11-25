@@ -166,14 +166,8 @@ public class PaymentService {
      * 6. 반환: 200. 스펙 미정: 웹훅 서명 헤더명·검증 알고리즘, 멱등 키(이벤트 ID 컬럼 없음), IP 허용 목록 출처.
      */
     public void webhook(String paymentKey, String status) {
-        payments.findByPaymentKey(paymentKey).ifPresentOrElse(payment -> {
-            try {
-                payments.save(payment.withStatus(PaymentStatus.valueOf(status)));
-                log.info("결제 웹훅 반영 paymentKey={} status={}", paymentKey, status);
-            } catch (IllegalArgumentException exception) {
-                log.warn("결제 웹훅 상태를 알 수 없음 paymentKey={} status={}", paymentKey, status);
-            }
-        }, () -> log.warn("결제 웹훅 대상 없음 paymentKey={} status={}", paymentKey, status));
+        // 서명 검증이 없는 경로라 본문을 믿고 상태를 바꾸지 않는다. FR-PAY-03에서 서명·재조회를 구현한 뒤 반영한다.
+        log.warn("결제 웹훅 수신, 검증 구현 전이라 상태를 바꾸지 않음 status={}", status);
     }
 
     /**
