@@ -1,10 +1,14 @@
 package ac.mju.contractcheck.config;
 
+import ac.mju.contractcheck.global.interceptor.ExternalCallLog;
+import ac.mju.contractcheck.global.interceptor.RestCallLoggingInterceptor;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -16,25 +20,28 @@ import org.springframework.web.client.RestClient;
  */
 @Configuration
 @EnableConfigurationProperties(InferenceProperties.class)
+@Import(ExternalCallLogConfig.class)
 public class InferenceConfig {
 
     public static final String CLASSIFY_REST_CLIENT = "inferenceClassifyRestClient";
     public static final String EMBED_REST_CLIENT = "inferenceEmbedRestClient";
 
     @Bean(CLASSIFY_REST_CLIENT)
-    public RestClient inferenceClassifyRestClient(InferenceProperties properties) {
-        return restClient(properties.classifyBaseUrl(), properties.timeout());
+    public RestClient inferenceClassifyRestClient(InferenceProperties properties, ExternalCallLog log) {
+        return restClient(properties.classifyBaseUrl(), properties.timeout(),
+                new RestCallLoggingInterceptor("inference-classify", log, true));
     }
 
     @Bean(EMBED_REST_CLIENT)
-    public RestClient inferenceEmbedRestClient(InferenceProperties properties) {
-        return restClient(properties.embedBaseUrl(), properties.timeout());
+    public RestClient inferenceEmbedRestClient(InferenceProperties properties, ExternalCallLog log) {
+        return restClient(properties.embedBaseUrl(), properties.timeout(),
+                new RestCallLoggingInterceptor("inference-embed", log, true));
     }
 
-    static RestClient restClient(String baseUrl, Duration timeout) {
+    static RestClient restClient(String baseUrl, Duration timeout, ClientHttpRequestInterceptor logging) {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(timeout).build());
         factory.setReadTimeout(timeout);
-        return RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+        return RestClient.builder().baseUrl(baseUrl).requestFactory(factory).requestInterceptor(logging).build();
     }
 }

@@ -5,7 +5,6 @@ import ac.mju.contractcheck.domain.OAuthProfile;
 import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +16,7 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * FR-AUTH-01 소셜 로그인
@@ -27,15 +27,20 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
     static final String USER_ID_ATTRIBUTE = "userId";
 
-    @NonNull
     private final AuthService auth;
+    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate;
 
-    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
+    /** 사용자 정보 조회에는 호출 기록이 붙은 {@code oauthUserInfoRestTemplate}을 쓴다. */
+    public CustomOAuth2UserService(@NonNull AuthService auth, @NonNull RestTemplate oauthUserInfoRestTemplate) {
+        DefaultOAuth2UserService userInfo = new DefaultOAuth2UserService();
+        userInfo.setRestOperations(oauthUserInfoRestTemplate);
+        this.auth = auth;
+        this.delegate = userInfo;
+    }
 
     /** FR-AUTH-01 소셜 로그인 */
     @Override

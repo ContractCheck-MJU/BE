@@ -28,7 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code contractcheck.ocr.provider=upstage}이고 API 키가 있을 때만 빈으로 등록된다.
  *
  * <p><b>원본 파일을 마스킹하지 않고 그대로 보낸다.</b> 파일 이름은 사용자가 올린 이름 대신 {@code contract.<확장자>}를 쓴다.
- * 로그에는 상태 코드·오류 코드·쪽 수·글자 수만 남기고 키·본문은 남기지 않는다.
+ * 이 클래스의 로그에는 쪽 수·글자 수만 남긴다. 호출 기록(가린 본문 포함)은 RestClient에 붙은 공통 인터셉터가 남긴다.
  *
  * <p>동기 API는 100쪽까지라 넘으면 실패한다. 스펙시트 '외부 연동'의 "비동기 폴링"(비동기 API)은 쓰지 않는다.
  * 재시도는 호출하는 쪽(ContractProcessor)이 한다.

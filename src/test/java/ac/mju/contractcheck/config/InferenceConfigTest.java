@@ -1,5 +1,6 @@
 package ac.mju.contractcheck.config;
 
+import ac.mju.contractcheck.global.interceptor.ExternalCallLog;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sun.net.httpserver.HttpServer;
@@ -32,7 +33,7 @@ class InferenceConfigTest {
             InferenceProperties properties = new InferenceProperties(
                     "http://unused.test", url, "key", Duration.ofSeconds(2), 1, Duration.ZERO, 16, 64);
 
-            new InferenceConfig().inferenceEmbedRestClient(properties).post().uri("/embed")
+            new InferenceConfig().inferenceEmbedRestClient(properties, new ExternalCallLog(null)).post().uri("/embed")
                     .contentType(MediaType.APPLICATION_JSON).body("{\"texts\":[\"a\"]}").retrieve().toBodilessEntity();
 
             assertThat(upgrade.get()).isEqualTo("null");
