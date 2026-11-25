@@ -1,6 +1,7 @@
 package ac.mju.contractcheck.client;
 
 import ac.mju.contractcheck.config.InferenceProperties;
+import java.util.Map;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,9 @@ final class InferenceTransport {
     private final InferenceProperties properties;
     @NonNull
     private final RestClient restClient;
+    /** 키 말고 이 경로에 늘 붙이는 헤더(예: /classify의 연구 시연 모드). 없으면 빈 맵이다. */
+    @NonNull
+    private final Map<String, String> extraHeaders;
 
     <T> T post(String path, Object body, Class<T> responseType) {
         RuntimeException last = null;
@@ -33,6 +37,7 @@ final class InferenceTransport {
                 T response = restClient.post()
                         .uri(path)
                         .header(KEY_HEADER, properties.apiKey())
+                        .headers(headers -> extraHeaders.forEach(headers::set))
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(body)
                         .retrieve()

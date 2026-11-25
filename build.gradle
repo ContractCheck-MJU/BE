@@ -100,7 +100,7 @@ tasks.register('inferenceTest', Test) {
     useJUnitPlatform {
         includeTags 'inference'
     }
-    envFromDotenv(it, /^((?:INFERENCE_(?:BASE_URL|API_KEY))|(?:DB_(?:URL|USERNAME|PASSWORD)))=(.*)$/)
+    envFromDotenv(it, /^((?:INFERENCE_(?:BASE_URL|CLASSIFY_URL|EMBED_URL|API_KEY))|(?:DB_(?:URL|USERNAME|PASSWORD)))=(.*)$/)
 }
 
 tasks.register('postgresTest', Test) {
