@@ -1,10 +1,12 @@
 package ac.mju.contractcheck.global.error;
 
+import ac.mju.contractcheck.client.PaymentRejectedException;
 import ac.mju.contractcheck.global.filter.MdcRequestIdFilter;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -61,8 +63,20 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(exception.status()).body(new ApiError(exception.code(), exception.publicMessage(), traceId));
     }
 
-    /** 요청 본문·파라미터 검증 실패. 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다. */
-    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class})
+    /** 결제 대행사가 승인을 거절했을 때. 스펙(API-PAY-03 422)에 따라 토스 오류 코드를 providerCode로 함께 내린다. */
+    @ExceptionHandler(PaymentRejectedException.class)
+    public ResponseEntity<PaymentRejectedError> paymentRejected(PaymentRejectedException exception) {
+        String traceId = traceId();
+        log.warn("결제 승인 거절 providerCode={} traceId={}", exception.providerCode(), traceId);
+        return ResponseEntity.status(exception.status())
+                .body(new PaymentRejectedError(exception.code(), exception.publicMessage(), traceId, exception.providerCode()));
+    }
+
+    /**
+     * 요청 본문·파라미터 검증 실패. 본문을 읽지 못한 경우(JSON 형식 오류, 필수 값 누락)도 스펙의 400 VALIDATION_ERROR로 내린다.
+     * 어느 값이 틀렸는지는 알려 주되 입력값 자체는 로그에 남기지 않는다.
+     */
+    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiError> invalidRequest(Exception exception) {
         String traceId = traceId();
         log.warn("요청 검증 실패 type={} traceId={}", exception.getClass().getSimpleName(), traceId);
@@ -75,4 +89,6 @@ public class ApiExceptionHandler {
     }
 
     public record ApiError(String code, String message, String traceId) {}
+
+    public record PaymentRejectedError(String code, String message, String traceId, String providerCode) {}
 }

@@ -96,4 +96,24 @@ class CreditAccountTest {
         assertThat(paidRestored).isEqualTo(new CreditAccount(new UserId(1), 0, 3, 9L));
         assertThat(freeRestored).isEqualTo(new CreditAccount(new UserId(1), 1, 2, 9L));
     }
+
+    @Test
+    @DisplayName("FR-PAY-02 결제 지급은 유료 잔여만 늘리고 무료·version은 그대로이며 원본을 바꾸지 않는다")
+    void grantPaidAddsOnlyToPaid() {
+        CreditAccount before = new CreditAccount(new UserId(1), 2, 1, 7L);
+
+        CreditAccount after = before.grantPaid(5);
+
+        assertThat(after).isEqualTo(new CreditAccount(new UserId(1), 2, 6, 7L));
+        assertThat(before.paidRemaining()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("FR-PAY-02 지급 횟수가 1보다 작으면 만들 수 없다")
+    void grantPaidRejectsNonPositive() {
+        CreditAccount account = new CreditAccount(new UserId(1), 0, 0);
+
+        assertThatThrownBy(() -> account.grantPaid(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> account.grantPaid(-1)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

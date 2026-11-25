@@ -1,79 +1,154 @@
 package ac.mju.contractcheck.service;
 
+import ac.mju.contractcheck.client.PaymentGatewayClient;
+import ac.mju.contractcheck.client.PaymentGatewayException;
+import ac.mju.contractcheck.client.PaymentRejectedException;
+import ac.mju.contractcheck.domain.GatewayPayment;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.global.error.ApiException;
+import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
-import ac.mju.contractcheck.repository.memory.PaymentRepository;
+import ac.mju.contractcheck.domain.enums.PaymentStatus;
+import ac.mju.contractcheck.repository.PaymentRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+
+    private static final int MAX_ATTEMPTS = 5;
+
     @NonNull
     private final PaymentRepository payments;
+    @NonNull
+    private final CreditService credits;
+    @NonNull
+    private final TransactionTemplate transaction;
+    /** 시크릿 키가 없으면 빈이 없다. 그때는 승인만 502로 거절하고 앱은 정상 기동한다. */
+    @NonNull
+    private final ObjectProvider<PaymentGatewayClient> gateways;
 
 
     /**
      * FR-PAY-01 결제 요청
-     *
-     * TODO(FR-PAY-01): 판매 중인 이용권 상품을 조회한다. 인증 불필요.
-     * 1. 입력 검증: 없음.
-     * 2. 권한/소유자 확인: 공개 API.
-     * 3. DB/외부 호출: products에서 active=true인 행을 읽는다(name, credits, price).
-     * 4. 상태 전이: 없음.
-     * 5. 예외/에러코드: 없음(빈 목록 가능).
-     * 6. 반환: 상품 목록.
+     * 판매 중(active)인 이용권 상품만 id 순으로 돌려준다. 공개 API라 인증이 필요 없다(TC-PAY-017).
+     * 스펙 미정: 상품 구성(이름·횟수·가격). V5 마이그레이션의 초기 상품은 임시 값이다.
      */
     public List<Product> products() {
-        return payments.products();
+        return payments.findActiveProducts();
     }
 
     /**
      * FR-PAY-01 결제 요청
-     *
-     * TODO(FR-PAY-01): 토스 결제 주문을 생성한다.
-     * 1. 입력 검증: productId 필수. 비활성이거나 없으면 PRODUCT_NOT_FOUND(404).
-     * 2. 권한/소유자 확인: 로그인 사용자.
-     * 3. DB/외부 호출: payments에 order_id(고유), user_id, product_id, amount=products.price, status=READY를 insert한다.
-     * 4. 상태 전이: READY 생성.
-     * 5. 예외/에러코드: PRODUCT_NOT_FOUND(404).
-     * 6. 반환: orderId, amount, orderName(상품명). 스펙 미정: payments.status 허용 값과 토스 상태 매핑(READY/DONE/CANCELED 등).
+     * 상품 가격(서버 저장값)으로 주문을 만들어 READY로 저장한다. 클라이언트가 보낸 금액은 받지 않는다(TC-PAY-001).
+     * 없는 상품이나 비활성 상품은 404 PRODUCT_NOT_FOUND다(TC-PAY-002). orderId는 토스 규칙(6~64자, 영문·숫자·-·_·=)에 맞는 UUID다.
+     * 스펙 미정: payments.status 허용 값과 토스 상태 매핑({@link PaymentStatus}는 임시 값).
      */
     public Payment order(UserId owner, long productId) {
-        Product product = payments.findProduct(productId)
+        Product product = payments.findActiveProduct(productId)
                 .orElseThrow(() -> new NotFoundException("PRODUCT_NOT_FOUND", "이용권 상품을 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(0, owner, UUID.randomUUID().toString(), product.price(), product.name(), "READY", product.credits()));
+        Payment saved = payments.save(Payment.ordered(owner, product, UUID.randomUUID().toString()));
         log.info("주문 생성 orderId={} owner={} amount={}", saved.orderId(), owner, saved.amount());
         return saved;
     }
 
     /**
      * FR-PAY-02 결제 승인
+     * 토스 승인 API를 부르기 전에 서버가 확인할 것을 모두 확인한다: 입력 값(400 VALIDATION_ERROR), 내 주문인지(404 ORDER_NOT_FOUND),
+     * 금액이 주문 금액과 같은지(400 AMOUNT_MISMATCH, TC-PAY-004), 아직 승인 전인지(409 ALREADY_CONFIRMED, TC-PAY-006).
+     * 그다음 주문을 READY에서 IN_PROGRESS로 바꾸는 조건부 갱신으로 동시 승인 중 한 요청만 통과시킨다.
      *
-     * TODO(FR-PAY-02): 토스 결제를 승인하고 유료 횟수를 지급한다.
-     * 1. 입력 검증: paymentKey, orderId, amount가 payments 행과 일치해야 한다. 아니면 AMOUNT_MISMATCH 등 시트 코드.
-     * 2. 권한/소유자 확인: payments.user_id. 아니면 PAYMENT_NOT_FOUND(404). 이미 DONE이면 멱등 성공(재지급 금지).
-     * 3. DB/외부 호출: 토스 POST /v1/payments/confirm. 성공 시 payment_key, status=DONE, method, approved_at, raw를 저장한다.
-     *    같은 트랜잭션에서 credit_wallets.paid_remaining에 products.credits를 더하고 version 락,
-     *    credit_ledger type=GRANT, ref_type=PAYMENT, ref_id=payments.id를 남긴다.
-     * 4. 상태 전이: READY → DONE. 승인 실패 시 상태를 유지하거나 실패 값으로 둔다.
-     * 5. 예외/에러코드: AMOUNT_MISMATCH, PAYMENT_NOT_FOUND, 토스 거절 시 시트 코드(TC-PAY).
-     * 6. 반환: 결제 id, status, 지급 횟수.
+     * <p>토스 호출은 트랜잭션 밖이다. 거절(422)이면 FAILED로, 토스 장애·시간 초과(502·504)이면 READY로 돌려 다시 승인할 수 있게 한다.
+     * 승인에 성공하면 한 트랜잭션에서 결제를 DONE으로 저장하고 유료 이용권을 지급한다. 지갑 낙관적 락 충돌은 트랜잭션을 통째로 다시 시도한다.
+     *
+     * <p>스펙 미정: FAILED·CANCELED 주문을 다시 승인하려 할 때의 오류 코드(지금은 같은 ALREADY_CONFIRMED). 지급 확정에 실패해 IN_PROGRESS로
+     * 남은 결제는 웹훅·재조회(FR-PAY-03)로 맞추는데 아직 없다.
      */
     public Payment confirm(UserId owner, String paymentKey, String orderId, int amount) {
-        Payment payment = payments.findByOrderId(orderId)
-                .filter(item -> item.owner().equals(owner))
-                .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "주문을 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(payment.id(), owner, orderId, amount, payment.orderName(), "DONE", payment.creditsAdded()));
+        if (paymentKey == null || paymentKey.isBlank() || orderId == null || orderId.isBlank() || amount <= 0) {
+            throw new ApiException(400, "VALIDATION_ERROR", "paymentKey, orderId, amount가 필요합니다.");
+        }
+        Payment payment = payments.findByOrderId(orderId, owner)
+                .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "주문을 찾을 수 없습니다."));
+        if (payment.status() == PaymentStatus.DONE) {
+            throw new ConflictException("ALREADY_CONFIRMED", "이미 승인된 주문입니다.");
+        }
+        if (payment.amount() != amount) {
+            log.warn("결제 금액 불일치 orderId={} expected={} actual={}", orderId, payment.amount(), amount);
+            throw new ApiException(400, "AMOUNT_MISMATCH", "결제 금액이 주문 금액과 다릅니다.");
+        }
+        PaymentGatewayClient gateway = gateways.getIfAvailable();
+        if (gateway == null) {
+            throw new PaymentGatewayException("토스 시크릿 키가 설정되지 않아 승인을 할 수 없습니다.");
+        }
+        if (!transition(payment.id(), PaymentStatus.READY, PaymentStatus.IN_PROGRESS)) {
+            throw new ConflictException("ALREADY_CONFIRMED", "이미 처리 중이거나 승인된 주문입니다.");
+        }
+        GatewayPayment confirmed = callGateway(gateway, payment, paymentKey);
+        Payment done = finish(owner, payment, confirmed);
         log.info("결제 승인 orderId={} owner={} amount={}", orderId, owner, amount);
-        return saved;
+        return done;
+    }
+
+    /** 토스 승인을 부르고, 결과에 따라 주문을 FAILED 또는 READY로 돌려놓는다. 성공 응답이 기대와 다르면 지급하지 않는다. */
+    private GatewayPayment callGateway(PaymentGatewayClient gateway, Payment payment, String paymentKey) {
+        GatewayPayment confirmed;
+        try {
+            confirmed = gateway.confirm(paymentKey, payment.orderId(), payment.amount());
+        } catch (PaymentRejectedException exception) {
+            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.FAILED);
+            throw exception;
+        } catch (RuntimeException exception) {
+            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.READY);
+            throw exception;
+        }
+        if (confirmed.totalAmount() != payment.amount() || !payment.orderId().equals(confirmed.orderId())) {
+            log.error("토스 승인 응답이 주문과 다릅니다 orderId={} expectedAmount={} actualAmount={}",
+                    payment.orderId(), payment.amount(), confirmed.totalAmount());
+            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.FAILED);
+            throw new PaymentGatewayException("토스 승인 응답의 주문 번호·금액이 주문과 다릅니다.");
+        }
+        if (!"DONE".equals(confirmed.status())) {
+            log.warn("토스 승인 응답 상태가 DONE이 아닙니다 orderId={} status={}", payment.orderId(), confirmed.status());
+            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.READY);
+            throw new PaymentGatewayException("토스 승인 상태가 DONE이 아닙니다. status=" + confirmed.status());
+        }
+        return confirmed;
+    }
+
+    /** 결제를 DONE으로 저장하고 유료 이용권을 지급한다. 둘은 한 트랜잭션이며, 지갑 락 충돌이면 트랜잭션을 통째로 다시 시도한다. */
+    private Payment finish(UserId owner, Payment payment, GatewayPayment confirmed) {
+        Payment done = payment.confirmed(
+                confirmed.paymentKey(), confirmed.method(), confirmed.approvedAt() == null ? Instant.now() : confirmed.approvedAt());
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return transaction.execute(status -> {
+                    Payment saved = payments.save(done, confirmed.raw());
+                    credits.grantPaidOnce(owner, saved.id(), saved.creditsAdded());
+                    return saved;
+                });
+            } catch (ObjectOptimisticLockingFailureException exception) {
+                log.debug("결제 지급 충돌 재시도 orderId={} attempt={}", payment.orderId(), attempt);
+            }
+        }
+        log.error("토스 승인은 성공했으나 이용권 지급을 확정하지 못했습니다 orderId={} (IN_PROGRESS로 남음)", payment.orderId());
+        throw new IllegalStateException("결제 지급 동시성 충돌이 계속된다");
+    }
+
+    private boolean transition(long id, PaymentStatus from, PaymentStatus to) {
+        return Boolean.TRUE.equals(transaction.execute(status -> payments.transition(id, from, to)));
     }
 
     /**
@@ -91,10 +166,8 @@ public class PaymentService {
      * 6. 반환: 200. 스펙 미정: 웹훅 서명 헤더명·검증 알고리즘, 멱등 키(이벤트 ID 컬럼 없음), IP 허용 목록 출처.
      */
     public void webhook(String paymentKey, String status) {
-        payments.findByOrderId(paymentKey).ifPresentOrElse(payment -> {
-            payments.save(new Payment(payment.id(), payment.owner(), payment.orderId(), payment.amount(), payment.orderName(), status, payment.creditsAdded()));
-            log.info("결제 웹훅 반영 paymentKey={} status={}", paymentKey, status);
-        }, () -> log.warn("결제 웹훅 대상 없음 paymentKey={} status={}", paymentKey, status));
+        // 서명 검증이 없는 경로라 본문을 믿고 상태를 바꾸지 않는다. FR-PAY-03에서 서명·재조회를 구현한 뒤 반영한다.
+        log.warn("결제 웹훅 수신, 검증 구현 전이라 상태를 바꾸지 않음 status={}", status);
     }
 
     /**
@@ -128,7 +201,7 @@ public class PaymentService {
     public Payment cancel(UserId owner, long id) {
         Payment payment = payments.findOwned(id, owner)
                 .orElseThrow(() -> new NotFoundException("PAYMENT_NOT_FOUND", "결제를 찾을 수 없습니다."));
-        Payment saved = payments.save(new Payment(payment.id(), owner, payment.orderId(), payment.amount(), payment.orderName(), "CANCELED", payment.creditsAdded()));
+        Payment saved = payments.save(payment.withStatus(PaymentStatus.CANCELED));
         log.info("결제 취소 paymentId={} owner={}", saved.id(), owner);
         return saved;
     }

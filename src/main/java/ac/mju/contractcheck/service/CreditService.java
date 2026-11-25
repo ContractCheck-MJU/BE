@@ -80,6 +80,21 @@ public class CreditService {
     }
 
     /**
+     * FR-PAY-02 결제 승인
+     * 결제 한 건({@code paymentId})으로 산 유료 이용권을 지갑에 더하고 GRANT 원장(ref_type=PAYMENT, 출처 PAID)을 남긴다.
+     * 같은 결제로 이미 지급했으면 아무것도 하지 않는다(멱등). 호출하는 쪽이 연 트랜잭션 안에서 실행하며, 낙관적 락 충돌은
+     * 그대로 던진다. 트랜잭션 전체를 다시 시도하는 것은 호출하는 쪽의 몫이다(결제 저장과 지급을 함께 성공·실패시키려고).
+     */
+    public void grantPaidOnce(UserId owner, long paymentId, int count) {
+        if (credits.hasLedger(owner, LedgerType.GRANT, LedgerRefType.PAYMENT, paymentId)) {
+            return;
+        }
+        credits.saveAccount(me(owner).grantPaid(count));
+        credits.appendLedger(owner, LedgerType.GRANT, count, LedgerRefType.PAYMENT, paymentId, CreditSource.PAID);
+        log.info("유료 이용권 지급 userId={} paymentId={} count={}", owner, paymentId, count);
+    }
+
+    /**
      * FR-CRD-02 유료 차감
      * 분석 실패 시 해당 분석({@code analysisId})에 차감했던 이용권 1회를 스택(LIFO) 역순 정책에 따라 원래 차감 출처(FREE/PAID)로 복구한다.
      * 이미 같은 analysisId로 RESTORE가 기록돼 있거나 차감(USE) 이력이 없으면 아무것도 하지 않는다(멱등, TC-CRD-008).

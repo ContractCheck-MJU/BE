@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "contractcheck-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "export JAVA_HOME=$(/usr/libexec/java_home -v 21) && docker compose up -d --wait postgres && set -a && . ./.env && set +a && SPRING_PROFILES_ACTIVE=local DB_USERNAME=contractcheck exec ./gradlew bootRun --console=plain"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "contractcheck-api-attach",
+      "url": "http://localhost:8080"
+    }
+  ]
+}
