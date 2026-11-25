@@ -41,10 +41,13 @@ class ClauseRiskInferenceIntegrationTest {
 
     @BeforeAll
     static void connect() {
+        String base = env("INFERENCE_BASE_URL", "http://localhost:8000");
         InferenceProperties properties = new InferenceProperties(
-                env("INFERENCE_BASE_URL", "http://localhost:8000"), env("INFERENCE_API_KEY", "dev-internal-key"),
-                Duration.ofSeconds(60), 1, Duration.ZERO, 64);
-        HttpInferenceClient client = new HttpInferenceClient(properties, new InferenceConfig().inferenceRestClient(properties));
+                env("INFERENCE_CLASSIFY_URL", base), env("INFERENCE_EMBED_URL", base), env("INFERENCE_API_KEY", "dev-internal-key"),
+                Duration.ofSeconds(60), 1, Duration.ZERO, 16, 64);
+        InferenceConfig config = new InferenceConfig();
+        HttpInferenceClient client = new HttpInferenceClient(
+                properties, config.inferenceClassifyRestClient(properties), config.inferenceEmbedRestClient(properties));
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
                 env("DB_URL", "jdbc:postgresql://localhost:5432/contractcheck"), env("DB_USERNAME", "contractcheck"), env("DB_PASSWORD", ""));
         EvidenceRetriever retriever = new EvidenceRetriever(new InferenceEmbeddingModel(client), new EvidenceRepository(JdbcClient.create(dataSource)));
