@@ -28,10 +28,11 @@ class InferenceConfigTest {
         });
         server.start();
         try {
+            String url = "http://127.0.0.1:" + server.getAddress().getPort();
             InferenceProperties properties = new InferenceProperties(
-                    "http://127.0.0.1:" + server.getAddress().getPort(), "key", Duration.ofSeconds(2), 1, Duration.ZERO, 64);
+                    "http://unused.test", url, "key", Duration.ofSeconds(2), 1, Duration.ZERO, 16, 64);
 
-            new InferenceConfig().inferenceRestClient(properties).post().uri("/embed")
+            new InferenceConfig().inferenceEmbedRestClient(properties).post().uri("/embed")
                     .contentType(MediaType.APPLICATION_JSON).body("{\"texts\":[\"a\"]}").retrieve().toBodilessEntity();
 
             assertThat(upgrade.get()).isEqualTo("null");

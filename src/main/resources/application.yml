@@ -93,14 +93,18 @@ contractcheck:
     provider: ${OCR_PROVIDER:apple-vision}
     timeout: ${OCR_TIMEOUT:120s}
   # Python 추론 서버(FastAPI, 내부망). POST /classify, /embed. 키(X-Internal-Api-Key)는 환경변수로만 주입한다.
-  # 타임아웃 10초·배치 64는 스펙시트 값이고, 재시도 횟수(총 3회)는 스펙에 없어 제안값이다. 서킷브레이커는 아직 없다(NFR-03).
+  # 분류와 임베딩은 주소를 따로 둔다(운영: 분류는 서버 컨테이너, 임베딩은 별도 PC). 따로 주지 않으면 INFERENCE_BASE_URL 하나를 같이 쓴다.
+  # 타임아웃 10초는 스펙시트 값이고, 재시도 횟수(총 3회)는 스펙에 없어 제안값이다. 서킷브레이커는 아직 없다(NFR-03).
+  # 분류 배치 16은 추론 서버의 요청당 창 한도(256 = 조항당 최대 16창 × 16)에 맞춘 값이고, 임베딩은 서버 최대치 64다.
   inference:
-    base-url: ${INFERENCE_BASE_URL:http://localhost:8000}
+    classify-base-url: ${INFERENCE_CLASSIFY_URL:${INFERENCE_BASE_URL:http://localhost:8000}}
+    embed-base-url: ${INFERENCE_EMBED_URL:${INFERENCE_BASE_URL:http://localhost:8000}}
     api-key: ${INFERENCE_API_KEY:unset}
-    timeout: 10s
+    timeout: ${INFERENCE_TIMEOUT:10s}
     max-attempts: 3
     retry-backoff: 200ms
-    batch-size: 64
+    classify-batch-size: ${INFERENCE_CLASSIFY_BATCH_SIZE:16}
+    embed-batch-size: ${INFERENCE_EMBED_BATCH_SIZE:64}
   # 토스페이먼츠 서버 연동(FR-PAY-02). 시크릿 키(테스트는 test_sk로 시작)는 환경변수로만 주입한다. 비어 있으면 토스 클라이언트가 등록되지 않아
   # 결제 승인이 502 PAYMENT_GATEWAY_ERROR로 거절되고 앱은 정상 기동한다. timeout은 스펙에 없어 제안값이다.
   toss:
