@@ -2,13 +2,18 @@ package ac.mju.contractcheck.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import ac.mju.contractcheck.domain.PiiRule;
 import ac.mju.contractcheck.repository.PiiRuleRepository;
+import java.time.Duration;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.core.io.DefaultResourceLoader;
 
 /** 기본 규칙 파일(masking/pii-rules.yml)을 그대로 읽어 마스킹한다. Spring 컨텍스트 없이 규칙과 서비스만 연결한다. */
@@ -257,5 +262,56 @@ class PiiMaskingServiceTest {
         for (String preserved : mustPreserve) {
             assertThat(masked).as("계약 조건·소재지 시군구·상호 '%s' 보존", preserved).contains(preserved);
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', quoteCharacter = '"', textBlock = """
+            임대인: 홍길동 주민등록번호 900101-1234567 ; 임대인: [이름] 주민등록번호 [주민번호]
+            임차인: 김가상 전화 010-1111-2222 ; 임차인: [이름] 전화 [전화번호]
+            임차인 김가상 연락처: 010-1111-2222 ; 임차인 [이름] 연락처: [전화번호]
+            임대인 홍 길 동 (인) ; 임대인 [이름] (인)
+            임대인(갑)  성 명 : 홍길동 ; 임대인(갑)  성 명 : [이름]
+            "| 임대인 | 홍길동 | 010-0000-0000 |" ; "| 임대인 | [이름] | [전화번호] |"
+            "| 성명 | 정다운 |" ; "| 성명 | [이름] |"
+            위 계좌의 예금주는 남궁가상이다. ; 위 계좌의 예금주는 [이름]이다.
+            임대인의 배우자 이가상에게 지급한다. ; 임대인의 배우자 [이름]에게 지급한다.
+            주민번호 900101 - 1234567 ; 주민번호 [주민번호]
+            주민번호 9OO1O1-1234567 ; 주민번호 [주민번호]
+            연락처 O1O-1234-5678 ; 연락처 [전화번호]
+            카카오뱅크 3333 01 1234567 ; 카카오뱅크 [계좌번호]
+            메일 gildong @ example.com ; 메일 [이메일]
+            서대문구 가상로 12 301호 ; [주소]
+            임차인 거주지 가상동 123-4번지 ; 임차인 거주지 [주소]
+            """)
+    @DisplayName("FR-UPL-04 항목이 이어지는 이름·띄어 쓴 번호·OCR의 O/0 혼동·시도 없는 주소를 가린다")
+    void masksPreviouslyMissedForms(String text, String expected) {
+        assertThat(service.mask(text)).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "| 구분 | 임대인 | 임차인 |", "| 임대인 | 부담 |", "| 임차인 | 서명 |", "| 임대인 | 수선 의무 |",
+            "임차인 변경 연락처: 중개사무소에 통보한다.", "임대인 및 임차인 전화 또는 서면으로 통지한다.",
+            "임대인: 별도 연락처 기재", "임차인은 주소 변경 시 통보한다.",
+            "예금주는 본인이다.", "예금주는 임대인이다.", "명의인은 동일인이다.",
+            "임대인의 배우자 이외의 사람은 대리할 수 없다.", "세대주 전원의 동의를 받는다.",
+            "임대인의 청구 금액으로 3일 이내에 지급한다.", "임차인의 요구 서면으로 2회 통지한다.",
+            "계약일 2026 11 24, 계좌 2026 11 24 개설", "보증금 국민 10 000 000원",
+            "가동 중인 설비는 3번지 않는다.", "비고 OOOO-OOOO 및 OO1호선 인접",
+            "| 임차인 | 전기요금 | 부담 |", "| 임대인 | 주차장 | 제공 |", "| 임차인 | 임의 변경 | 금지 |",
+            "대리인 위임장 연락처: 첨부", "임차인 서명 연락처: 별지 참조"})
+    @DisplayName("FR-UPL-04 보강한 규칙이 표 머리글·조항 문장·날짜·금액을 가리지 않는다")
+    void doesNotOverMaskWithExtendedRules(String text) {
+        assertThat(service.mask(text)).isEqualTo(text);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"임대인| |끝", "임대인(갑)|\n |x", "예금주|\t||", "소재지| |x", "국민| |x", "임대인: 홍| 가|"})
+    @DisplayName("FR-UPL-04 호칭·라벨 뒤에 공백이 아주 많아도 마스킹이 오래 걸리지 않는다")
+    void longWhitespaceDoesNotStall(String spec) {
+        String[] parts = spec.split("\\|", -1);
+        String text = parts[0] + parts[1].repeat(20_000) + parts[2];
+
+        assertTimeoutPreemptively(Duration.ofSeconds(15), () -> service.mask(text));
     }
 }
