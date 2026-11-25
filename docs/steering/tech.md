@@ -32,7 +32,7 @@ RAG는 Spring AI(`spring-ai-rag`)의 구성요소를 쓴다. 임베딩은 `Infer
 
 ## 결제(토스페이먼츠)
 
-결제는 `PaymentService`가 맡는다. 주문(`order`)은 서버의 상품 가격으로 `payments`에 READY를 만들고, 승인(`confirm`)은 토스를 부르기 전에 입력·소유자·금액·상태를 확인한 뒤 READY → IN_PROGRESS 조건부 갱신으로 동시 승인 중 한 요청만 통과시킨다. 토스 호출(`PaymentGatewayClient`, 구현 `TossPaymentGatewayClient`)은 트랜잭션 밖이며, 성공하면 한 트랜잭션에서 결제를 DONE으로 저장하고 `CreditService.grantPaidOnce`로 유료 이용권과 GRANT 원장을 남긴다(지갑 낙관적 락 충돌은 트랜잭션을 통째로 다시 시도). 거절은 FAILED(422), 토스 장애·시간 초과는 READY로 되돌려 다시 승인할 수 있다(502·504).
+결제는 `PaymentService`가 맡는다. 주문(`order`)은 서버의 상품 가격으로 `payments`에 READY를 만들고, 승인(`confirm`)은 토스를 부르기 전에 입력·소유자·금액·상태를 확인한 뒤 READY → IN_PROGRESS 조건부 갱신으로 동시 승인 중 한 요청만 통과시킨다. 토스 호출(`PaymentGatewayClient`, 구현 `TossPaymentGatewayClient`)은 트랜잭션 밖이며, 성공하면 한 트랜잭션에서 결제를 DONE으로 저장하고 `CreditService.grantPaidOnce`로 유료 이용권과 GRANT 원장을 남긴다(지갑 낙관적 락 충돌은 트랜잭션을 통째로 다시 시도). 거절은 FAILED(422), 토스 장애·시간 초과는 READY로 되돌려 다시 승인할 수 있다(502·504). 토스를 부른 결과는 성공·거절·오류·무응답 모두 `payment_gateway_logs`(V6)에 호출마다 한 행씩 쌓고, 상태 전이(성공은 이용권 지급까지)와 같은 트랜잭션으로 INSERT한다. 쌓은 행은 고치지 않는다. 응답 원문은 로그 파일이 아니라 이 테이블에 남긴다(`payments.raw`는 승인 성공 응답 하나).
 
 시크릿 키는 환경변수 `TOSS_SECRET_KEY`(테스트는 `test_sk`로 시작)로만 받고, 비어 있으면 클라이언트 빈이 없어 앱은 뜨지만 승인은 502다. 로그에는 주문 번호와 상태 코드만 남기고 시크릿 키·결제 키·응답 본문은 남기지 않는다. 클라이언트 키(`test_ck`)는 화면(결제창)에서만 쓴다. 결제 조회·웹훅 검증·취소(FR-PAY-03·04)는 아직 뼈대다. 스펙 미정: 상품 구성(V5의 초기 상품은 임시 값), `payments.status` 허용 값(`PaymentStatus`는 임시), FAILED·CANCELED 주문 재승인 오류 코드, 승인 시간 제한(15초는 제안값).
 

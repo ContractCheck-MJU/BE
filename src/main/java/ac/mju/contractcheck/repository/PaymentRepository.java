@@ -1,9 +1,13 @@
 package ac.mju.contractcheck.repository;
 
 import ac.mju.contractcheck.domain.Payment;
+import ac.mju.contractcheck.domain.PaymentGatewayLog;
 import ac.mju.contractcheck.domain.Product;
 import ac.mju.contractcheck.domain.UserId;
+import ac.mju.contractcheck.domain.enums.GatewayAction;
+import ac.mju.contractcheck.domain.enums.GatewayOutcome;
 import ac.mju.contractcheck.domain.enums.PaymentStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -24,6 +28,8 @@ public class PaymentRepository {
     private final ProductJpaRepository products;
     @NonNull
     private final PaymentJpaRepository payments;
+    @NonNull
+    private final PaymentGatewayLogJpaRepository gatewayLogs;
 
     public @NonNull List<Product> findActiveProducts() {
         return products.findByActiveTrueOrderByIdAsc().stream().map(PaymentRepository::toProduct).toList();
@@ -47,6 +53,25 @@ public class PaymentRepository {
     /** 토스 승인 응답 원문(raw)과 함께 저장한다. */
     public @NonNull Payment save(@NonNull Payment payment, String raw) {
         return saveWithRaw(payment, raw);
+    }
+
+    /**
+     * 결제 대행사 호출 결과를 한 행 쌓는다. 호출하는 service의 트랜잭션 안에서 부르며, 상태 전이와 함께 성공·실패한다.
+     *
+     * @param httpStatus 응답을 받지 못했으면 null
+     * @param response 응답 원문(JSON). 없으면 null
+     */
+    public void appendGatewayLog(
+            long paymentId, @NonNull GatewayAction action, @NonNull GatewayOutcome outcome, Integer httpStatus, String response) {
+        gatewayLogs.save(new PaymentGatewayLogEntity(paymentId, action.name(), outcome.name(), httpStatus, response, Instant.now()));
+    }
+
+    /** 결제 한 건의 대행사 호출 이력을 오래된 순으로 돌려준다. */
+    public @NonNull List<PaymentGatewayLog> findGatewayLogs(long paymentId) {
+        return gatewayLogs.findByPaymentIdOrderByIdAsc(paymentId).stream()
+                .map(entity -> new PaymentGatewayLog(entity.getId(), entity.getPaymentId(), GatewayAction.valueOf(entity.getAction()),
+                        GatewayOutcome.valueOf(entity.getOutcome()), entity.getHttpStatus(), entity.getResponse(), entity.getCreatedAt()))
+                .toList();
     }
 
     public @NonNull Optional<Payment> findByOrderId(String orderId, UserId owner) {

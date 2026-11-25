@@ -10,6 +10,8 @@ import ac.mju.contractcheck.global.error.ConflictException;
 import ac.mju.contractcheck.global.error.NotFoundException;
 import ac.mju.contractcheck.domain.Payment;
 import ac.mju.contractcheck.domain.Product;
+import ac.mju.contractcheck.domain.enums.GatewayAction;
+import ac.mju.contractcheck.domain.enums.GatewayOutcome;
 import ac.mju.contractcheck.domain.enums.PaymentStatus;
 import ac.mju.contractcheck.repository.PaymentRepository;
 import lombok.NonNull;
@@ -29,6 +31,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class PaymentService {
 
     private static final int MAX_ATTEMPTS = 5;
+    /** GatewayPayment는 2xx 응답에서만 만들어지므로 이력에는 200으로 남긴다. */
+    private static final int SUCCESS_HTTP_STATUS = 200;
 
     @NonNull
     private final PaymentRepository payments;
@@ -108,21 +112,25 @@ public class PaymentService {
         try {
             confirmed = gateway.confirm(paymentKey, payment.orderId(), payment.amount());
         } catch (PaymentRejectedException exception) {
-            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.FAILED);
+            transitionAndLog(payment.id(), PaymentStatus.FAILED, GatewayOutcome.REJECTED, exception.httpStatus(), exception.responseBody());
+            throw exception;
+        } catch (PaymentGatewayException exception) {
+            GatewayOutcome outcome = exception.httpStatus() == null ? GatewayOutcome.NO_RESPONSE : GatewayOutcome.ERROR;
+            transitionAndLog(payment.id(), PaymentStatus.READY, outcome, exception.httpStatus(), exception.responseBody());
             throw exception;
         } catch (RuntimeException exception) {
-            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.READY);
+            transitionAndLog(payment.id(), PaymentStatus.READY, GatewayOutcome.NO_RESPONSE, null, null);
             throw exception;
         }
         if (confirmed.totalAmount() != payment.amount() || !payment.orderId().equals(confirmed.orderId())) {
             log.error("토스 승인 응답이 주문과 다릅니다 orderId={} expectedAmount={} actualAmount={}",
                     payment.orderId(), payment.amount(), confirmed.totalAmount());
-            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.FAILED);
+            transitionAndLog(payment.id(), PaymentStatus.FAILED, GatewayOutcome.UNEXPECTED, SUCCESS_HTTP_STATUS, confirmed.raw());
             throw new PaymentGatewayException("토스 승인 응답의 주문 번호·금액이 주문과 다릅니다.");
         }
         if (!"DONE".equals(confirmed.status())) {
             log.warn("토스 승인 응답 상태가 DONE이 아닙니다 orderId={} status={}", payment.orderId(), confirmed.status());
-            transition(payment.id(), PaymentStatus.IN_PROGRESS, PaymentStatus.READY);
+            transitionAndLog(payment.id(), PaymentStatus.READY, GatewayOutcome.UNEXPECTED, SUCCESS_HTTP_STATUS, confirmed.raw());
             throw new PaymentGatewayException("토스 승인 상태가 DONE이 아닙니다. status=" + confirmed.status());
         }
         return confirmed;
@@ -137,6 +145,7 @@ public class PaymentService {
                 return transaction.execute(status -> {
                     Payment saved = payments.save(done, confirmed.raw());
                     credits.grantPaidOnce(owner, saved.id(), saved.creditsAdded());
+                    payments.appendGatewayLog(saved.id(), GatewayAction.CONFIRM, GatewayOutcome.SUCCESS, SUCCESS_HTTP_STATUS, confirmed.raw());
                     return saved;
                 });
             } catch (ObjectOptimisticLockingFailureException exception) {
@@ -145,6 +154,17 @@ public class PaymentService {
         }
         log.error("토스 승인은 성공했으나 이용권 지급을 확정하지 못했습니다 orderId={} (IN_PROGRESS로 남음)", payment.orderId());
         throw new IllegalStateException("결제 지급 동시성 충돌이 계속된다");
+    }
+
+    /**
+     * IN_PROGRESS에서 {@code to}로 옮기면서 토스 호출 결과를 이력(payment_gateway_logs)에 한 행 쌓는다. 둘은 한 트랜잭션이라
+     * 상태만 바뀌고 이력이 빠지거나 그 반대가 되지 않는다. 응답이 없었으면(연결 실패·시간 초과) 응답 없이 결과만 남긴다.
+     */
+    private void transitionAndLog(long id, PaymentStatus to, GatewayOutcome outcome, Integer httpStatus, String response) {
+        transaction.executeWithoutResult(status -> {
+            payments.transition(id, PaymentStatus.IN_PROGRESS, to);
+            payments.appendGatewayLog(id, GatewayAction.CONFIRM, outcome, httpStatus, response);
+        });
     }
 
     private boolean transition(long id, PaymentStatus from, PaymentStatus to) {
