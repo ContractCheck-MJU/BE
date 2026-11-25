@@ -3,6 +3,7 @@ package ac.mju.contractcheck.client;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ac.mju.contractcheck.client.mac.AppleVisionOcrClient;
+import ac.mju.contractcheck.config.UpstageConfig;
 import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
 import org.junit.jupiter.api.DisplayName;
@@ -15,14 +16,15 @@ import org.springframework.stereotype.Component;
 
 /**
  * OCR 구현체를 설정(contractcheck.ocr.provider)만으로 고르고 바꿀 수 있는지 확인한다. 플랫폼에 상관없이 돈다.
- * Upstage 구현체가 생기면 {@link FakeOcrClient}처럼 @ConditionalOnProperty만 달면 서비스 코드는 그대로다.
+ * 새 구현체는 {@link FakeOcrClient}처럼 @ConditionalOnProperty를 달면 서비스 코드는 그대로다.
  */
 class OcrClientSelectionTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withInitializer(context -> context.getBeanFactory()
                     .setConversionService(ApplicationConversionService.getSharedInstance()))
-            .withUserConfiguration(AppleVisionOcrClient.class, FakeOcrClient.class, OcrConsumer.class)
+            .withUserConfiguration(AppleVisionOcrClient.class, UpstageConfig.class, UpstageOcrClient.class,
+                    FakeOcrClient.class, OcrConsumer.class)
             .withPropertyValues("contractcheck.ocr.timeout=120s");
 
     @Test
@@ -44,9 +46,33 @@ class OcrClientSelectionTest {
     }
 
     @Test
+    @DisplayName("provider가 upstage이고 API 키가 있으면 Upstage 구현체가 OcrClient로 등록된다")
+    void upstageProviderWithKeyRegistersUpstage() {
+        runner.withPropertyValues("contractcheck.ocr.provider=upstage", "contractcheck.ocr.upstage.api-key=up_unitTestKey")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(OcrClient.class);
+                    assertThat(context.getBean(OcrClient.class)).isInstanceOf(UpstageOcrClient.class);
+                });
+    }
+
+    @Test
+    @DisplayName("provider가 upstage여도 API 키가 없으면 OcrClient 빈이 없고 컨텍스트는 뜬다")
+    void upstageProviderWithoutKeyRegistersNothing() {
+        runner.withPropertyValues("contractcheck.ocr.provider=upstage", "contractcheck.ocr.upstage.api-key=")
+                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(OcrClient.class));
+    }
+
+    @Test
+    @DisplayName("Upstage 키가 있어도 provider가 apple-vision이면 파일을 외부로 보내는 구현체는 등록되지 않는다")
+    void upstageKeyAloneDoesNotSelectUpstage() {
+        runner.withPropertyValues("contractcheck.ocr.provider=apple-vision", "contractcheck.ocr.upstage.api-key=up_unitTestKey")
+                .run(context -> assertThat(context).doesNotHaveBean(UpstageOcrClient.class));
+    }
+
+    @Test
     @DisplayName("구현체가 없는 provider이거나 설정이 없으면 OcrClient 빈이 없다")
     void unknownOrMissingProviderRegistersNothing() {
-        runner.withPropertyValues("contractcheck.ocr.provider=upstage")
+        runner.withPropertyValues("contractcheck.ocr.provider=unknown")
                 .run(context -> assertThat(context).doesNotHaveBean(OcrClient.class));
         runner.run(context -> assertThat(context).doesNotHaveBean(OcrClient.class));
     }

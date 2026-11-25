@@ -11,7 +11,7 @@ import ac.mju.contractcheck.domain.OcrResult;
  * name = "provider", havingValue = "<이름>")}를 달면 되고, 서비스 코드는 바꾸지 않는다.
  * <ul>
  *   <li>{@code apple-vision}: macOS 로컬 시연용({@link ac.mju.contractcheck.client.mac.AppleVisionOcrClient}). Linux·Windows에서는 쓸 수 없다.</li>
- *   <li>{@code upstage}: 운영 구현체(스펙: Upstage Document Parse). 아직 없다. TODO(FR-UPL-02)</li>
+ *   <li>{@code upstage}: 운영 구현체({@link UpstageOcrClient}, Upstage Document Parse). API 키가 있어야 등록되고, 원본 파일을 외부로 보낸다.</li>
  * </ul>
  *
  * <p>호출은 트랜잭션 밖에서 하고, 테스트에서는 mock한다. 구현체는 계약서 본문을 로그에 남기지 않는다.

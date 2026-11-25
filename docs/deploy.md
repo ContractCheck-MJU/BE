@@ -143,9 +143,11 @@ HTTPS는 필수다. 세션 쿠키(`SESSION`)에 `Secure`가 붙어 http에서는
 | `INFERENCE_API_KEY` | 추론 서버의 `CONTRACTCHECK_INTERNAL_API_KEY`와 같은 값 |
 | `INFERENCE_TIMEOUT` | 선택. 추론 호출 제한 시간(기본 `10s`) |
 | `ANTHROPIC_API_KEY` | Claude API 키(조항 설명 생성) |
+| `UPSTAGE_API_KEY` | Upstage Document Parse API 키(OCR). 넣으면 `prod`에서는 업로드한 원본 파일이 마스킹 없이 Upstage로 전송되므로 팀 결정 뒤에 넣는다 |
+| `OCR_PROVIDER` | `dev` 프로필에서 Upstage를 쓰려면 `upstage`(`prod`는 기본값). 컨테이너에서는 `apple-vision`을 쓸 수 없다 |
 | `LLM_MODEL`, `LLM_EFFORT`, `LLM_TIMEOUT` | 선택. 기본값 `claude-sonnet-5-5`, `low`, `10s` |
 
-소셜 로그인, 저장소, 추론 서버, Claude 값이 비어 있어도 앱은 기동한다. 해당 기능만 실패한다. 임베딩 서버에 닿지 않으면 분석이 FAILED가 되고 이용권은 복구된다.
+소셜 로그인, 저장소, 추론 서버, Claude, Upstage 값이 비어 있어도 앱은 기동한다. 해당 기능만 실패한다. 임베딩 서버에 닿지 않으면 분석이 FAILED가 되고 이용권은 복구된다.
 
 `LOG_PATH`는 이미지 기본값(`/var/log/contractcheck`)을 쓴다. 파일 로그를 재배포 후에도 남기려면 **Persistent Storage**에 볼륨을 추가하고 대상 경로를 `/var/log/contractcheck`로 둔다.
 
