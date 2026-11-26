@@ -11,6 +11,7 @@ import ac.mju.contractcheck.domain.OcrResult;
  * name = "provider", havingValue = "<이름>")}를 달면 되고, 서비스 코드는 바꾸지 않는다.
  * <ul>
  *   <li>{@code apple-vision}: macOS 로컬 시연용({@link ac.mju.contractcheck.client.mac.AppleVisionOcrClient}). Linux·Windows에서는 쓸 수 없다.</li>
+ *   <li>{@code windows-ocr}: Windows 로컬 시연용({@link ac.mju.contractcheck.client.windows.WindowsOcrClient}). Windows 내장 OCR을 PowerShell로 부른다. macOS·Linux에서는 쓸 수 없다.</li>
  *   <li>{@code upstage}: 운영 구현체({@link UpstageOcrClient}, Upstage Document Parse). API 키가 있어야 등록되고, 원본 파일을 외부로 보낸다.</li>
  * </ul>
  *

@@ -87,7 +87,7 @@ contractcheck:
     secret-key: ${STORAGE_SECRET_KEY:unset}
     path-style: true
     server-side-encryption: ${STORAGE_SSE:true}
-  # OCR 구현체(FR-UPL-02). apple-vision은 macOS 로컬 시연용이고, 운영은 upstage(Upstage Document Parse)다. 구현체 추가·교체 방법은 OcrClient를 본다.
+  # OCR 구현체(FR-UPL-02). apple-vision은 macOS, windows-ocr은 Windows 로컬 시연용이고, 운영은 upstage(Upstage Document Parse)다. 구현체 추가·교체 방법은 OcrClient를 본다.
   # upstage는 원본 파일을 마스킹 없이 외부로 보낸다. 키(UPSTAGE_API_KEY)가 없으면 계약서 처리만 FAILED가 된다.
   # 첫 Apple Vision 인식은 모델을 불러오느라 수십 초 걸릴 수 있어 제한 시간을 넉넉히 둔다.
   ocr:

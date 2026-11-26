@@ -3,6 +3,7 @@ package ac.mju.contractcheck.client;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ac.mju.contractcheck.client.mac.AppleVisionOcrClient;
+import ac.mju.contractcheck.client.windows.WindowsOcrClient;
 import ac.mju.contractcheck.config.UpstageConfig;
 import ac.mju.contractcheck.domain.enums.ContractFileType;
 import ac.mju.contractcheck.domain.OcrResult;
@@ -23,8 +24,8 @@ class OcrClientSelectionTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withInitializer(context -> context.getBeanFactory()
                     .setConversionService(ApplicationConversionService.getSharedInstance()))
-            .withUserConfiguration(AppleVisionOcrClient.class, UpstageConfig.class, UpstageOcrClient.class,
-                    FakeOcrClient.class, OcrConsumer.class)
+            .withUserConfiguration(AppleVisionOcrClient.class, WindowsOcrClient.class, UpstageConfig.class,
+                    UpstageOcrClient.class, FakeOcrClient.class, OcrConsumer.class)
             .withPropertyValues("contractcheck.ocr.timeout=120s");
 
     @Test
@@ -33,6 +34,15 @@ class OcrClientSelectionTest {
         runner.withPropertyValues("contractcheck.ocr.provider=apple-vision").run(context -> {
             assertThat(context).hasSingleBean(OcrClient.class);
             assertThat(context.getBean(OcrClient.class)).isInstanceOf(AppleVisionOcrClient.class);
+        });
+    }
+
+    @Test
+    @DisplayName("provider가 windows-ocr이면 Windows OCR 구현체가 OcrClient로 등록된다")
+    void windowsOcrProviderRegistersWindowsOcr() {
+        runner.withPropertyValues("contractcheck.ocr.provider=windows-ocr").run(context -> {
+            assertThat(context).hasSingleBean(OcrClient.class);
+            assertThat(context.getBean(OcrClient.class)).isInstanceOf(WindowsOcrClient.class);
         });
     }
 
