@@ -21,6 +21,8 @@
 
 예외로, 이 컴퓨터에서 도는 `AppleVisionOcrClient`(외부 서비스가 아님)는 `client.mac.AppleVisionOcrClientTest`가 실제 Vision으로 검증한다. macOS가 아니거나 `swiftc`가 없으면 자동으로 건너뛰므로 Linux CI에서는 돌지 않는다. macOS에서는 처음 실행 때 헬퍼 컴파일과 모델 로딩으로 1분 가까이 걸린다. 서비스 테스트는 `OcrClient`를 mock한다.
 
+`WindowsOcrClient`(Windows 내장 OCR, PowerShell 호출)도 같은 이유로 `client.windows.WindowsOcrClientTest`가 실제 OCR로 검증한다. Windows가 아니거나 OCR 엔진(한국어 언어팩)을 쓸 수 없으면 건너뛴다. Windows OCR은 글자를 비슷한 글자로 읽을 때가 있어(예: 차→자) 단어 단위 단정은 피한다.
+
 운영 코드에 개발용·가짜 로그인 엔드포인트를 두지 않는다. 예전의 dev login은 고의로 제거했다. ([security.md](security.md))
 
 ## 실행 환경
